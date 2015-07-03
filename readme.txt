@@ -48,7 +48,7 @@ Sublanguage does not handle automatic translations.
 
 == Installation ==
 
-1. Upload `plugin-name.php` to the `/wp-content/plugins/` directory
+1. Upload to the `/wp-content/plugins/` directory
 1. Activate the plugin through the 'Plugins' menu in WordPress
 1. Add languages through the `Languages` menu in WordPress
 1. In `Dashboard -> Updates` click `Update Translations` to automatically download language packages. Or manually install language packages.
