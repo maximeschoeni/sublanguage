@@ -78,7 +78,8 @@ class Sublanguage_languages {
 			'map_meta_cap' => true,
 			'has_archive'        => false,
 			'hierarchical'       => false,
-			'supports'           => array('title', 'slug', 'page-attributes') 
+			'supports'           => array('title', 'slug', 'page-attributes') ,
+			'menu_icon'			 => 'dashicons-translation'
 		));
 	
 	

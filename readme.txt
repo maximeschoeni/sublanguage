@@ -2,10 +2,10 @@
 === Sublanguage ===
 Contributors: maximeschoeni
 Donate link: sublanguageplugin.wordpress.com
-Tags: multilanguage, language, translation
+Tags: multilanguage, multilingual, language, translation
 Requires at least: 4.0
 Tested up to: 4.2.2
-Stable tag: 1.2
+Stable tag: 1.2.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -29,7 +29,7 @@ Sublanguage is a lightweight multilanguage plugin for wordpress. It is designed 
 - urls fully translatable
 - support quick edit
 - support revisions
-- language switch in menu
+- support ajax
 - extensible
 
 = Notices =
@@ -40,45 +40,50 @@ Compatibility with existing themes or plugins is not guaranteed. But you can mak
 
 Sublanguage does not handle automatic translations.
 
-= Road Map =
-
-- keep a free, lightweight version of this plugin up-to-date
-- enhance API/documentation
-- no additional features planed
 
 == Installation ==
 
 1. Upload to the `/wp-content/plugins/` directory
 1. Activate the plugin through the 'Plugins' menu in WordPress
-1. Add languages through the `Languages` menu in WordPress
-1. In `Dashboard -> Updates` click `Update Translations` to automatically download language packages. Or manually install language packages.
 
 == Frequently Asked Questions ==
 
 = How does Sublanguage work? =
 
-Sublanguage plugin will add a `language` custom post type. `Language` custom posts have the following attributes: 
+Sublanguage plugin first adds a `language` custom post type. `Language` custom posts have the following attributes: 
 
 - `post_title`: language name (English, Français, Deutch, etc.)
 - `post_name`: language slug used in url (en, fr, de, etc.)
 - `post_content`: language code for localization (en_GB, fr_FR, de_DE, etc.)
 
-Adding a language custom post will create one `translation` custom post type, by combining this language post id with a prefix.
+Adding a language custom post then creates a `translation` custom post type, by combining this language post id with a prefix.
 
-A `translation` custom post will be created every time you translate at least one field of an original post, page or custom post (if enabled in the settings).
+A `translation` custom post is created for every post, page or custom post needing a translation.
 
 Translation custom posts have the following attributes:
 
-- `post_title`: translation of the original post title
-- `post_content`: translation of the original post content
-- `post_excerpt`: translation of the original post excerpt
-- `post_name`: translation of the original post name (permalink)
+- `post_title`: translation of post title
+- `post_content`: translation of post content
+- `post_excerpt`: translation of post excerpt
+- `post_name`: translation of post name (permalink)
 - `post_parent`: Id of the original post
 - `post_type`: language custom post id combined with a prefix.
 
 Every other post attributes is inherited from original. If `post_title`, `post_content`, `post_excerpt` or `post_name` is left
-blank, it will inherit value from original post. Translation custom post may also have post meta values. 
-A language post status must be set to `publish` to be visible on front-end. If set to `draft`, it will still be available in admin for translation.
+blank, it will inherit value from original post. Translation custom post may also have post meta values.
+
+Adding a language also creates a custom taxonomy, by also combining this language post id with a prefix.
+
+A translation term is created for every term needing a translation, and has the following attributes:
+
+- `slug`: translation of term slug
+- `name`: translation of term name
+- `description`: translation of term description
+- `parent`: term id of original term
+- `taxonomy`: language custom post id combined with a prefix.
+
+A language post status must be set to `publish` to have posts using this language to be visible on front-end. If set to `draft`, language will still be available in admin for translation.
+
 Deleting a language post will permanently delete all translations associated to this language. Deleting main language will not delete original posts.
 
 On a standard front-end request, Sublanguage plugin will first try to find out the requested language.
@@ -101,7 +106,7 @@ go to Display > Menu, open option drawer and verify 'language' is selected.
 Then add as much 'language item' as you have languages.
 You can even distribute languages on different hierarchy level.
 If you need current language to be on the first level and further language on second, you will also want to check `current language first` in `Settings -> Sublanguage`
-- Otherwise, add this function in your template file (read below for customization):
+- Otherwise, add this function in your template file (read below for customization)
 
 	do_action('sublanguage_print_language_switch');
 	
@@ -137,9 +142,9 @@ By the way, if you just want to replace the language name by the slug, use this 
 	 * @param WP_Post language custom post
 	 */
 	function my_language_name($name, $language) {
-	
+
 		return $language->post_name;
-	
+
 	}
 
 = Post title, content or excerpt does not translate as expected in my theme =
@@ -333,7 +338,21 @@ If performance drops noticeably, you may want to install a cache plugin. Sublang
 
 Sublanguage also works with [SQLite Integration plugin](https://wordpress.org/plugins/sqlite-integration/).
 
+== Screenshots ==
+
+1. Every language correspond to a language custom post
+2. edit.php screen for translatable posts.
+3. post.php screen for translatable post.
+4. edit-tags.php screen for translatable term.
+5. edit-tags.php screen for translatable term.
+6. options-permalink.php screen for taxonomy slug or custom post archive slug translation.
+7. custom settings for Sublanguage
+
 == Changelog ==
+
+= 1.2.1 =
+
+Some changes in readme file and adding medias (screenshots, banner, etc.).
 
 = 1.2 =
 
