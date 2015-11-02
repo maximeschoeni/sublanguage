@@ -20,12 +20,11 @@ class Sublanguage_site extends Sublanguage_main {
 		
 		parent::__construct();
 		
-		
 		$this->detect_language();
 		
-		
-		//add_action('plugins_loaded', array($this, 'load'), 11);
-		
+		// Public API for ajax
+		add_action('sublanguage_prepare_ajax', array($this, 'ajax_enqueue_scripts'));
+				
 		add_action('init', array($this, 'init'));
 		
 	}
@@ -38,34 +37,26 @@ class Sublanguage_site extends Sublanguage_main {
 		add_action('parse_query', array($this, 'allow_filters')); // allow filters on menu get_posts
 		add_filter('the_posts', array($this, 'translate_the_posts'), 10, 2);
 		
+		add_filter('get_term', array($this, 'translate_get_term'), 10, 2); // hard translate term
 		
-		//add_filter('the_posts', array($this, 'hard_translate_posts'), 20, 2);
-		
-		add_filter('single_term_title', array($this, 'filter_single_term_title'));
-		add_filter('single_cat_title', array($this, 'filter_single_term_title'));
-		add_filter('single_tag_title', array($this, 'filter_single_term_title'));
 		add_filter('the_content', array($this, 'translate_post_content'), 9);
 		add_filter('the_title', array($this, 'translate_post_title'), 10, 2);
 		add_filter('get_the_excerpt', array($this, 'translate_post_excerpt'), 9);
 		add_filter('single_post_title', array($this, 'translate_single_post_title'), 10, 2);
-
 		add_filter('get_post_metadata', array($this, 'translate_meta_data'), 10, 4);
 		add_filter('wp_setup_nav_menu_item', array($this, 'translate_menu_nav_item'));
 		add_filter('list_cats', array($this, 'translate_term_name'), 10, 2);
-		add_filter('get_the_terms', array($this, 'translate_post_terms'), 10, 3); // filter in get_the_terms()
+		add_filter('get_the_terms', array($this, 'translate_post_terms'), 10, 3);
 		add_filter('get_terms', array($this, 'translate_get_terms'), 10, 3);
 		add_filter('tag_cloud_sort', array($this,'translate_tag_cloud'), 10, 2);
-		
- 		add_filter('home_url', array($this,'translate_home_url'), 10, 4); // should it not be set later?
+ 		add_filter('home_url', array($this,'translate_home_url'), 10, 4);
 		
 		// SEARCH
 		add_filter('posts_search', array($this, 'posts_search'), null, 2);
 		
 		// API
 		add_action('sublanguage_print_language_switch', array($this, 'print_language_switch'));
-		add_action('init', array($this, 'register_postmeta_keys'), 99); // register post meta
 		add_filter('sublanguage_custom_translate', array($this, 'custom_translate'), null, 3);
-		add_filter('sublanguage_translate_post_field', array($this, 'translate_post_field_custom'), null, 3);
 		add_action('sublanguage_load_admin', array($this, 'load_admin'));
 		do_action('sublanguage_init', $this);
 		
@@ -109,9 +100,7 @@ class Sublanguage_site extends Sublanguage_main {
  			add_action('wp', array($this, 'redirect_uncanonical'), 11);
 			
 		}
-		
-		// ajax
-		add_action('wp_enqueue_scripts', array($this, 'enqueue_script'));
+
 		
 		// login	
 		add_filter('login_url', array($this, 'translate_login_url'));
@@ -124,6 +113,7 @@ class Sublanguage_site extends Sublanguage_main {
 		add_action('register_form', array($this, 'translate_login_form'));
 		add_filter('retrieve_password_message', array($this, 'translate_retrieve_password_message'));
 		add_filter('lostpassword_redirect', array($this, 'lostpassword_redirect'));
+		add_filter('registration_redirect', array($this, 'registration_redirect'));
 		
 		
 	}
@@ -388,7 +378,6 @@ class Sublanguage_site extends Sublanguage_main {
 			
 		}
 		
-		
 		return $menu_item;
 		
 	}
@@ -493,31 +482,52 @@ class Sublanguage_site extends Sublanguage_main {
 	 * @from 1.0
 	 */
 	public function catch_translation($query_vars) {
-
+		
 		if (isset($query_vars['nodepage'])) { // -> node page
 			
 			$post_type = $query_vars['nodepage_type'];
 			$post_type_qv = $post_type == 'page' ? 'pagename' : 'name';
 			$post_name = $query_vars['nodepage'];
+			$post_types = array($post_type);
 			
-			$post = $this->query_post($query_vars['nodepage'], array($post_type));
-
+			if (in_array('attachment', $this->options['cpt'])) {
+				
+				array_push($post_types, 'attachment');
+				
+			}
+			
+			$post = $this->query_post($query_vars['nodepage'], $post_types);
+			
 			if ($post) {
 				
-				if ($post->post_parent != $query_vars['nodepage_parent']) { // -> path does not match
+				if ($post->post_type != 'attachment' && $post->post_parent != $query_vars['nodepage_parent']) { // -> path does not match
 					
 					$this->canonical = false;
 					
 				} 
-				 
-				if ($post_type == 'page') {
+				
+				if ($post->post_type == 'attachment') {
 					
-					$query_vars[$post_type_qv] = $this->canonical ? $query_vars['nodepage_path'].'/'.$post->post_name : get_page_uri($post->ID);
+					$query_vars['attachment'] = $post->post_name;
+					$query_vars['post_type'] = $post->post_type;
+					$query_vars['name'] = $post->post_name; // ?
+					
+				} else if ($post->post_type == 'page') {
+					
+					if ($this->canonical) {
+						
+						$query_vars[$post_type_qv] = $query_vars['nodepage_path'].'/'.$post->post_name;
+						
+					} else {
+						
+						$query_vars[$post_type_qv] = get_page_uri($post->ID);
+					
+					}
 					
 				} else {
 					
 					$query_vars[$post_type_qv] = $post->post_name;
-					$query_vars['post_type'] = $post_type;
+					$query_vars['post_type'] = $post->post_type;
 					$query_vars['name'] = $post->post_name; // ?
 					
 				}
@@ -534,7 +544,17 @@ class Sublanguage_site extends Sublanguage_main {
 			unset($query_vars['nodepage_path']);
 			unset($query_vars['nodepage_parent']);
 			unset($query_vars['nodepage_type']);
-						
+			
+		} else if (isset($query_vars['attachment']) && in_array('attachment', $this->options['cpt'])) { // -> attachment (this is a child of a "post" post-type)
+			
+			$post = $this->query_post($query_vars['attachment'], 'attachment');
+			
+			if ($post) {
+			
+				$query_vars['attachment'] = $post->post_name; 
+				
+			}
+			
 		} else if (isset($query_vars['sub_cpt_t'])) { // -> translated custom-post-type
 			
 			$custom_type = $query_vars['sub_cpt_o'];
@@ -613,22 +633,22 @@ class Sublanguage_site extends Sublanguage_main {
 			$post_name = isset($query_vars['pagename']) ? $query_vars['pagename'] : $query_vars['name'];
 			
 			$post = $this->query_post($post_name, array('post', 'page'));
-			
+		
 			if ($post) {
-			
+		
 				if ($post->post_type == 'page') {
-					
+				
 					$query_vars['pagename'] = $post->post_name;
 					unset($query_vars['name']);
-					
+				
 				} else {
-				
+			
 					$query_vars['name'] = $post->post_name;
-					
+				
 				}
-				
+			
 				$this->enqueue_translation($post->ID);
-				
+			
 			} 
 			
 		} else if (isset($query_vars['nodeterm'])) { // -> node taxonomy
@@ -740,6 +760,11 @@ class Sublanguage_site extends Sublanguage_main {
 			
 			}
 			
+		} else if (isset($query_vars['error']) && $query_vars['error'] == '404' && in_array('attachment', $this->options['cpt'])) { // -> maybe an attachment translation (if it is a child of a subpage)
+			
+			// ./wp-include/class-wp.php, line 213
+			// no attachment were found through get_page_by_path(), but there is no filter...
+			
 		}
 		
 		if (isset($query_vars['preview'])) {
@@ -752,6 +777,7 @@ class Sublanguage_site extends Sublanguage_main {
 		add_filter('post_link', array($this, 'translate_permalink'), 10, 3);
 		add_filter('page_link', array($this, 'translate_page_link'), 10, 3);
 		add_filter('post_type_link', array($this, 'translate_custom_post_link'), 10, 3);
+		add_filter('attachment_link', array($this, 'translate_attachment_link'), 10, 2);
 		add_filter('post_link_category', array($this, 'translate_post_link_category'), 10, 3); // not implemented yet
 		add_filter('post_type_archive_link', array($this, 'translate_post_type_archive_link'), 10, 2);
 		add_filter('term_link', array($this, 'translate_term_link'), 10, 3);
@@ -831,9 +857,9 @@ class Sublanguage_site extends Sublanguage_main {
 			$post_name,
 			$translation_post_type
 		));
-	
+		
 		if ($post) { // translation or original
-			
+				
 			if ($post->post_type == $translation_post_type) { // -> this is a translation
 				
 				$original = $wpdb->get_row( $wpdb->prepare(
@@ -1038,26 +1064,6 @@ class Sublanguage_site extends Sublanguage_main {
 		return false;
 	
 	}
-
-	/**
-	 * Enqueue javascript file
-	 *
-	 * Hook for 'wp_enqueue_scripts'
-	 *
-	 * @from 1.1
-	 */
-	public function enqueue_script() {
-
-		wp_register_script('sublanguage', plugins_url('/js/site.js', __FILE__), array('jquery'), false, true );
-
-		wp_localize_script('sublanguage', 'sublanguage', array(
-			'current' => $this->current_language->post_name,
-			'qv' => $this->language_query_var
-		));
-
-		wp_enqueue_script('sublanguage');
-		
-	}
 	
 	/**
 	 * Add language slug in login url
@@ -1068,7 +1074,7 @@ class Sublanguage_site extends Sublanguage_main {
 	 */
 	public function translate_login_url($login_url){
 		
-		if ($this->current_language->ID != $this->options['main']) {
+		if (isset($this->current_language->post_name)) {
 		
 			$login_url = add_query_arg(array($this->language_query_var => $this->current_language->post_name), $login_url);
 			
@@ -1118,6 +1124,19 @@ class Sublanguage_site extends Sublanguage_main {
 		return 'wp-login.php?checkemail=confirm'.'&'.$this->language_query_var.'='.$this->current_language->post_name;
 	
 	}
+	
+	/**
+	 * registration redirect
+	 *
+	 * Filter for 'registration_redirect'
+	 *
+	 * @from 1.4.1
+	 */
+	public function registration_redirect($redirect_to) {
+		
+		return 'wp-login.php?checkemail=registered'.'&'.$this->language_query_var.'='.$this->current_language->post_name;
+	
+	}	
 	
 	
 	/**
@@ -1256,6 +1275,33 @@ class Sublanguage_site extends Sublanguage_main {
 		return false;
 		
 	}
+
+
+	/**
+	 * Override get_language to select only published language
+	 *
+	 * @from 1.2.2
+	 *
+	 * @return array of WP_post objects
+	 */
+	public function get_languages() {
+		
+		if (empty($this->languages_cache)) {
+			
+			$this->languages_cache = get_posts(array(
+				'post_type' => $this->language_post_type,
+				'post_status' => 'publish',
+				'orderby' => 'menu_order' ,
+				'order'   => 'ASC',
+				'nopaging' => true,
+				'update_post_term_cache' => false
+			));
+						
+		}
+    
+    return $this->languages_cache;
+    
+  }
 
 	
 }

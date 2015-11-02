@@ -96,14 +96,6 @@ class Sublanguage_settings {
 			'section-settings'
 		);
 		
-// 		add_settings_field(	
-// 			'show-language-edit', 
-// 			__('Show current language when editing', 'sublanguage'), 
-// 			array($this, 'field_show_edit_language'), 
-// 			$this->option_page_name, 
-// 			'section-settings'
-// 		);
-		
 		add_settings_field(	
 			'current-first', 
 			__('Current language first', 'sublanguage'), 
@@ -112,20 +104,34 @@ class Sublanguage_settings {
 			'section-settings'
 		);
 		
+		add_settings_field(	
+			'sublanguage-version', 
+			__('Version', 'sublanguage'), 
+			array($this, 'field_version'), 
+			$this->option_page_name, 
+			'section-settings'
+		);
 		
-  }
-	
+	}
 	
 	/**
 	 *	@from 1.0
 	 */
-	public function section_settings() {
-		global $sublanguage_admin;
-				
-		echo '<input type="hidden" name="'.$sublanguage_admin->option_name.'[version]" value="'.$sublanguage_admin->options['version'].'"/>';
+	public function section_settings() {				
 		
 	}
-	
+
+	/**
+	 *	@from 1.3
+	 */
+	function field_version($args) {
+		global $sublanguage_admin;
+      	
+      	echo '<input type="hidden" name="'.$sublanguage_admin->option_name.'[version]" value="'.$sublanguage_admin->options['version'].'"/>';
+		echo '<p>'.$sublanguage_admin->options['version'].'</p>';
+		
+	}
+		
 	/**
 	 *	@from 1.0
 	 */
@@ -133,8 +139,6 @@ class Sublanguage_settings {
 		global $sublanguage_admin;
         
 		$taxonomies = get_taxonomies(array(
-// 			'rewrite' => true,
-//  			'public' => true,
 			'show_ui' => true
 		), 'objects');
 		
@@ -164,14 +168,11 @@ class Sublanguage_settings {
 		$cpts = get_post_types(array(
 			'show_ui' => true,
 			'public' => true,
-			//'rewrite' => true
 		), 'objects' );
 		
 		if (isset($cpts)) {
 		
 			foreach ($cpts as $post_type) {
-				
-				if ($post_type->name == 'attachment') continue; // -> not suppported yet
 				
 				$checked = isset($sublanguage_admin->options['cpt']) && in_array($post_type->name, $sublanguage_admin->options['cpt']) ? ' checked' : '';
 				
@@ -322,24 +323,16 @@ class Sublanguage_settings {
 	public function sanitize_settings($input) {
 		
 		$output = array();
-
 		$output['cpt'] = isset($input['cpt']) ? array_map('esc_attr', $input['cpt']) : array();
 		$output['taxonomy'] = isset($input['taxonomy']) ? array_map('esc_attr', $input['taxonomy']) : array();
-		
 		$output['show_slug'] = (isset($input['show_slug']) && $input['show_slug']);
-// 		$output['show_edit_lng'] = (isset($input['show_edit_lng']) && $input['show_edit_lng']);
 		$output['main'] = isset($input['main']) && $input['main'] ? $input['main'] : $input['lng'][0]['id'];
 		$output['default'] = isset($input['default']) && $input['default'] ? $input['default'] : $input['lng'][0]['id'];
 		$output['autodetect'] = (isset($input['autodetect']) && $input['autodetect']);
 		$output['current_first'] = (isset($input['current_first']) && $input['current_first']);
+		$output['version'] = isset($input['version']) ? esc_attr($input['version']) : '-';
 		
-		if (isset($input['version'])) {
-			
-			$output['version'] = esc_attr($input['version']);
-			
-		}
-		
-    return $output;
+    	return $output;
 	}
 
 

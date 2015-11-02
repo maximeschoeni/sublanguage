@@ -238,7 +238,7 @@ class Sublanguage_admin_post {
 	//<![CDATA[
 		jQuery(document).ready(function($) {
 			$("select[name='.$name.']").change(function() {
-				$(this).closest("form").find("input[type=submit]").click();
+				$(this).closest("form").find("input#save[type=submit]").click();
 			});
 		});
 	//]]>

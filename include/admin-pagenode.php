@@ -85,10 +85,11 @@ class Sublanguage_hierarchical_pages {
 	}
 	
 	/**
-	 * rebuild permalink when saving post if parent/name has changed
-	 * Hook for 'post_updated'
+	 * rebuild permalink after post was deleted
+	 * Hook for 'after_delete_post'
 	 */
 	public function after_delete_post($post_id) {
+		global $sublanguage_admin;
 		
 		$sublanguage_admin->disable_translate_home_url = true;
 		flush_rewrite_rules();
@@ -178,7 +179,8 @@ class Sublanguage_hierarchical_pages {
 					
 					foreach ($languages as $language) {
 				
-						if ($sublanguage_admin->get_post_translation($node->page->ID, $language->ID) !== false) {
+						if ($language->ID != $sublanguage_admin->options['main']
+							&& $sublanguage_admin->get_post_translation($node->page->ID, $language->ID) !== false) {
 				
 							if ($post_type == 'page') {
 						

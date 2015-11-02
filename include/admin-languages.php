@@ -30,7 +30,6 @@ class Sublanguage_languages {
 		add_filter( 'parse_query', array($this, 'sort_languages' ));
 		
 		// never hide the slug meta box
-		//add_filter('hidden_meta_boxes', array($this, 'always_display_slug'), null, 2);	
 		add_filter('default_hidden_meta_boxes', array($this, 'hide_settings'), null, 2);
 	
 	
@@ -421,22 +420,13 @@ class Sublanguage_languages {
 			
 			$hidden[] = 'languages_settings';
 			
-		}
-		
-		return $hidden;
-	}
-	
-	/**
-	 * Hide slug box
-	 * Hook for 'hidden_meta_boxes'
-	 *
-	 * @from 1.0
-	 */
-	public function hide_slug($hidden, $screen) {
-		
-		if (isset($screen) && $screen->id == 'language') {
+			$key = array_search('slugdiv', $hidden);
 			
-			$hidden[] = 'slug';
+			if ($key !== false) {
+			
+				unset($hidden[$key]);
+				
+			}
 			
 		}
 		

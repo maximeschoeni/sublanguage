@@ -1,0 +1,36 @@
+.sublanguage-selector {
+	margin-bottom: 16px;
+	position: relative;
+	overflow: hidden;
+	white-space: nowrap;
+}
+.sublanguage-selector:after {
+	content:"";
+	border-bottom: 1px solid #ddd;
+	width: 100%;
+	display: inline-block;
+	vertical-align: bottom;
+}
+.sublanguage-selector a {
+	padding: 6px 8px;
+	display: inline-block;
+	text-decoration: none;
+	border-bottom: 1px solid #ddd;
+	border-right: 1px solid #ddd;
+	outline: none;
+	box-shadow: none;
+	border-top: 1px solid transparent;
+}
+.sublanguage-selector a:focus {
+	outline: none; 
+	box-shadow: none;
+}
+.sublanguage-selector a.active {
+	border-top: 1px solid #ddd;
+	border-bottom: none;
+	color: #777;
+}
+.attachment-info,
+.media-modal-content .attachment-info .details {
+	border-bottom:none;
+}
