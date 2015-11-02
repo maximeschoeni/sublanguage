@@ -1,14 +1,13 @@
 
-Sublanguage
-===========
+#Sublanguage
 
 Sublanguage is a lightweight multilanguage plugin for wordpress.
 
-== Description ==
+##Description
 
 Sublanguage is a lightweight solution for building multilanguage sites with wordpress.
 
-= No duplicated content =
+##No duplicated content
 
 Sublanguage works by extending a "main language" by one or more "sub-languages". When data is missing for a "sub-language", 
 "main language" data will be used instead. Thus, you only need to translate data that actually differ between languages. 
