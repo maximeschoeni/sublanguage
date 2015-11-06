@@ -1,5 +1,5 @@
 
-# Sublanguage
+#Sublanguage
 
 Sublanguage is a [multi-language plugin for Wordpress](https://wordpress.org/plugins/sublanguage/).
 
