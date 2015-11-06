@@ -162,7 +162,7 @@ With something like this in your php:
 		
 	}
 		
-You can also use this hook, `sublanguage_prepare_ajax`, to enqueue a small helper javascript file. 
+You can also use this function to enqueue a small helper javascript file. 
 
 	add_action('init', 'my_init');
 
