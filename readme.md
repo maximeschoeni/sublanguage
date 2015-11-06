@@ -20,7 +20,7 @@ Sublanguage is a [multi-language plugin for Wordpress](https://wordpress.org/plu
 
 Sublanguage is more a toolkit than a ready-made solution for building a multi-language website. It focuses on customizing public interface for visitors, and adapting user experience for editors. It is design to bring multilingual functionalities and let room for personalization. While UI configuration is quite minimal, multiple hooks and filters are available to fit every needs. 
 
-Sublanguage is based on the concept of inheritance. Translations are a custom-post-type parented to an original posts, pages or custom-posts. Each translations have 4 relevant fields: `post_title`, `post_content`, `post_name` and `post_excerpt`. If one field is empty, or if translation is missing, original language field content is inherited. The intention is to completely avoid duplicated or even synchronized content, because it is a pain for content editors.
+Sublanguage is based on the concept of inheritance. Translations are custom-post-types parented to original posts, pages or custom-posts. Each translations have 4 relevant fields: `post_title`, `post_content`, `post_name` and `post_excerpt`. If one field is empty, or if translation is missing, original language field content is inherited. The intention is to completely avoid duplicated or even synchronized content, because it is a pain for content editors.
 
 Sublanguage cares about SEO. It uses rewrite URL to structures language content into subdirectories, accordingly with [Google recommendations](https://support.google.com/webmasters/answer/182192?hl=en). Moreover, URL permalink are fully translatable, not only post slugs but also terms, taxonomies and post-type archives slugs.
 
