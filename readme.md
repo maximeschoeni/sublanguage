@@ -67,11 +67,41 @@ For customization, use `sublanguage_custom_switch` filter in your `function.php`
 	<ul>
 	<?php foreach ($languages as $language) { ?>
 		<li class="<?php echo $language->post_name; ?> <?php if ($sublanguage->current_language->ID == $language->ID) echo 'current'; ?>">
-			<a href="<?php echo $sublanguage->get_translation_link($language); ?>"><?php echo apply_filters('sublanguage_language_name', $language->post_title, $language); ?></a>
+			<a href="<?php echo $sublanguage->get_translation_link($language); ?>"><?php echo $language->post_title; ?></a>
 		</li>
 	<?php } ?>
 	</ul>
 	<?php 
+
+	}
+
+When different language switches are needed in different places of the template, a ´context´ Parameter may be used:
+
+	do_action('sublanguage_print_language_switch', 'top');
+
+        // ...
+
+	do_action('sublanguage_print_language_switch', 'footer');
+
+This parameter is then available in the `sublanguage_custom_switch` filter:
+
+	add_action('sublanguage_custom_switch', 'my_custom_switch', 10, 3); 
+
+	/**
+	 * @param array of WP_Post language custom post
+	 * @param Sublanguage_site $this Sublanguage instance.
+	 */
+	function my_custom_switch($languages, $sublanguage, $context) {
+
+		if ($context == 'top') {
+
+			// -> print custom switch
+
+		} else if ($context == 'footer') {
+
+			// -> print custom switch
+
+		}
 
 	}
 
@@ -212,7 +242,6 @@ Code to add in your `function.php` file:
 		return $original_text;
 	
 	}
-
 
 
 
