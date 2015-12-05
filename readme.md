@@ -175,7 +175,7 @@ You can also translate post field into non-current language:
 
 ### Translate terms fields
 
-All fields of fetched terms will automatically be translated to current language. Example:
+All fields of fetched terms are automatically translated to current language. Example:
 
 	// echo translated term name
 	echo $term->name;
@@ -223,7 +223,7 @@ Please note the Wordpress builtin Custom Fields box is not supported. You need t
 
 If you need to access data through AJAX, you just need to add the wanted language slug into the ajax request:
 
-	$.get(wp.url, {action:'my_action', id:myID, language:'fr'}, function(result){
+	$.get(ajaxurl, {action:'my_action', id:myID, language:'fr'}, function(result){
 		$(body).append(result); 
 	});
 	
@@ -234,7 +234,7 @@ With something like this in your php:
 	
 	function my_action() {
 		
-		$post = get_post( intval($GET_['id']) );
+		$post = get_post( intval($_GET['id']) );
 		
 		echo '<h1>' . get_the_title( $post->ID ) . '</h1>';
 		
@@ -243,8 +243,10 @@ With something like this in your php:
 		exit;
 		
 	}
+
+Also see [AJAX in Wordpress](https://codex.wordpress.org/AJAX_in_Plugins) documentation.
 		
-You can also use this function to enqueue a small helper javascript file. 
+You can  use this function to enqueue a small helper javascript file. 
 
 	add_action('init', 'my_init');
 
@@ -256,9 +258,9 @@ You can also use this function to enqueue a small helper javascript file.
 
 This script will automatically send current language within every ajax call. Moreover, it will register some useful variables under `sublanguage` javascript global. Use `console.log(sublanguage)` to explore it.
 
-### Current language and PHP Globals
+### Accessing current language
 
-You can use `$sublanguage` global to access most plugins properties and function. For example if you need to access the current language:
+You can use `$sublanguage` global to access most plugins properties and function. For example if you need to access the current language (lets say it is french):
 
 	global $sublanguage;
 	echo $sublanguage->current_language // -> WP_Post object
@@ -266,9 +268,18 @@ You can use `$sublanguage` global to access most plugins properties and function
 	echo $sublanguage->current_language->post_name; // -> fr
 	echo $sublanguage->current_language->post_content; // -> fr_FR
 
-Alternatively (and preferably) you can use a sublanguage filter to call a user function with `$current_language` value in parameters:
+Alternatively (and preferably) you can use ´sublanguage_custom_translate´ filter to call a user function with `$current_language` value in parameters:
 
-Function to use in your template file: 
+	apply_filters('sublanguage_custom_translate', $default, $callback, $context = null);
+
+This function use 6 parameters:
+
+- ´'sublanguage_custom_translate'´: filter name
+- ´default´: value to use if translation does not exist
+- ´$callback´: user function to be called
+- ´$context´: Optional value.
+
+Example. Function to use in your template file: 
 
 	echo apply_filters('sublanguage_custom_translate', 'hello', 'my_custom_translation', 'optional value');
 
@@ -277,22 +288,99 @@ Code to add in your `function.php` file:
 	/**
 	 * @param string $original_text. Original text to translate.
 	 * @param WP_Post object $current_language
-	 * @param mixed $args. Optional arguments
+	 * @param Sublanguage_site object $sublanguage
+	 * @param mixed $args. Optional argument passed.
 	 */
-	function my_custom_translation($original_text, $current_language, $optional_arg) {
+	function my_custom_translation($original_text, $current_language, $sublanguage, $optional_arg) {
 	
-		if ($current_language->post_content == 'fr_FR') {
+		if ($current_language->post_content == 'it_IT') {
 			
-			return 'Bonjour!';
+			return 'Ciao!';
 		
 		} else if ($current_language->post_content == 'de_DE') {
 			
-			return 'Guten Tag!';
+			return 'Hallo!';
 		
 		}
 	
 		return $original_text;
-	
 	}
+
+### Translate options
+
+Example for translating blog description:
+
+	if ( !is_admin() ) {
+	
+		add_filter( 'option_blogdescription', 'my_translate_option_field' );
+		
+	}
+
+	function my_translate_option_field( $value ) {
+
+		return apply_filters( 'sublanguage_custom_translate', $value, 'my_get_description' );
+
+	}
+
+	function my_custom_language_parser( $original, $language ) {
+
+		if ( $language->post_content == 'fr_FR' ) {
+		
+			return 'Description en français';
+			
+		} else if ( $language->post_content == 'ko_KR' ) {
+
+			return '한국어 설명';
+			
+		}
+		
+		return $original;
+	}
+
+### Translate plugin
+	
+Example translating the [the yoast SEO plugin](https://wordpress.org/plugins/wordpress-seo/).
+
+To start with, lets translate the site-wide options. We are going to define a custom language format: in all plugin user interface textual fields by 
+
+
+Lets say we have a french-german site. 
+
+if (!is_admin()) {
+
+	add_filter('option_wpseo', 'my_wpseo_option');
+	add_filter('option_wpseo_titles', 'my_wpseo_option');
+	add_filter('option_wpseo_social', 'my_wpseo_option');
+
+}
+
+function my_wpseo_option($value) {
+
+	foreach ($value as $key => $val) {
+
+		$value[$key] = apply_filters('sublanguage_custom_translate', $val, 'my_custom_language_parser');
+
+	}
+
+	return $value;
+
+}
+
+function my_custom_language_parser($original, $language) {
+
+	if (preg_match('/\[:'.$language->post_name.'\]([^[]*)/', $original, $matches)) {
+
+		return $matches[1];
+
+	}
+
+	return $original;
+
+}
+
+
+
+
+
 
 
