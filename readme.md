@@ -75,7 +75,7 @@ For customization, use `sublanguage_custom_switch` filter in your `function.php`
 
 	}
 
-When different language switches are needed in different places of the template, a ´context´ Parameter may be used:
+When different language switches are needed in different places of the template, a `context` Parameter may be used:
 
 	do_action('sublanguage_print_language_switch', 'top');
 
@@ -107,24 +107,24 @@ This parameter is then available in the `sublanguage_custom_switch` filter:
 
 ### Translate posts fields
 
-You can use ´sublanguage_translate_post_field´ filter to translate any post field.
+You can use `sublanguage_translate_post_field` filter to translate any post field.
 
 	apply_filters( 'sublanguage_translate_post_field', $default, $post, $field, $language = null, $by = null)
 
 This function use 6 params:
 
-- ´'sublanguage_translate_post_field'´: filter name
-- ´default´: value to use if translation does not exist
-- ´post´: the Post object you want to translate the field of
-- ´field´: field name ('post_title', 'post_content', 'post_name' or 'post_excerpt')
-- ´language´: Optional. Language slug, id, locale or object. By default, the current language will be used
-- ´by´: Optional. Use 'ID' or 'post_content' only if language is set to id or locale.
+- `'sublanguage_translate_post_field'`: filter name
+- `default`: value to use if translation does not exist
+- `post`: the Post object you want to translate the field of
+- `field`: field name ('post_title', 'post_content', 'post_name' or 'post_excerpt')
+- `language`: Optional. Language slug, id, locale or object. By default, the current language will be used
+- `by`: Optional. Use 'ID' or 'post_content' only if language is set to id or locale.
 
 Example:
 
 	echo apply_filters( 'sublanguage_translate_post_field', $some_post->post_title, 'hello', 'post_title' );
 
-Most translations are done automatically within template filters though. Calling ´get_title()´, ´get_the_title($id)´, ´the_content()´, ´the_excerpt()´ or ´get_permalink($id)´ will automatically return or echo translated text.
+Most translations are done automatically within template filters though. Calling `get_title()`, `get_the_title($id)`, `the_content()`, `the_excerpt()` or `get_permalink($id)` will automatically return or echo translated text.
 
 Example for echoing post title:
 
@@ -180,18 +180,18 @@ All fields of fetched terms are automatically translated to current language. Ex
 	// echo translated term name
 	echo $term->name;
 
-For translating term fields in non-current language, use ´sublanguage_translate_term_field´ filter.
+For translating term fields in non-current language, use `sublanguage_translate_term_field` filter.
 
 	apply_filters( 'sublanguage_translate_term_field', $default, term, $field, $language = null, $by = null)
 
 This function use 6 params:
 
-- ´'sublanguage_translate_term_field'´: filter name
-- ´default´: value to use if translation does not exist
-- ´term´: the Post object you want to translate the field of
-- ´field´: field name ('name', 'slug', or 'description')
-- ´language´: Optional. Language slug, id, locale or object. By default, the current language will be used
-- ´by´: Optional. Use 'ID' or 'post_content' only if language is set to id or locale.
+- `'sublanguage_translate_term_field'`: filter name
+- `default`: value to use if translation does not exist
+- `term`: the Post object you want to translate the field of
+- `field`: field name ('name', 'slug', or 'description')
+- `language`: Optional. Language slug, id, locale or object. By default, the current language will be used
+- `by`: Optional. Use 'ID' or 'post_content' only if language is set to id or locale.
 
 Example:
 	
@@ -268,16 +268,16 @@ You can use `$sublanguage` global to access most plugins properties and function
 	echo $sublanguage->current_language->post_name; // -> fr
 	echo $sublanguage->current_language->post_content; // -> fr_FR
 
-Alternatively (and preferably) you can use ´sublanguage_custom_translate´ filter to call a user function with `$current_language` value in parameters:
+Alternatively (and preferably) you can use `sublanguage_custom_translate` filter to call a user function with `$current_language` value in parameters:
 
 	apply_filters('sublanguage_custom_translate', $default, $callback, $context = null);
 
 This function use 6 parameters:
 
-- ´'sublanguage_custom_translate'´: filter name
-- ´default´: value to use if translation does not exist
-- ´$callback´: user function to be called
-- ´$context´: Optional value.
+- `'sublanguage_custom_translate'`: filter name
+- `default`: value to use if translation does not exist
+- `$callback`: user function to be called
+- `$context`: Optional value.
 
 Example. Function to use in your template file: 
 
