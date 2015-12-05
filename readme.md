@@ -105,7 +105,22 @@ This parameter is then available in the `sublanguage_custom_switch` filter:
 
 	}
 
-### Template Loop
+### Translate posts fields
+
+You can use ´sublanguage_translate_post_field´ filter to translate any post field.
+
+	apply_filters( 'translate_post_field', $default, $post, $field)
+
+This function use 4 params:
+
+- ´'translate_post_field'´: filter name
+- ´default´: value to use if translation does not exist
+- ´post´: the Post object you want to translate the field of
+- ´field´: field name ('post_title', 'post_content', 'post_name' or 'post_excerpt')
+
+Example:
+
+	echo apply_filters( 'translate_post_field', $some_post->post_title, 'hello', 'post_title' );
 
 Most translations are done automatically through template filters. But you must ensure proper filters are called. 
 
@@ -242,6 +257,5 @@ Code to add in your `function.php` file:
 		return $original_text;
 	
 	}
-
 
 
