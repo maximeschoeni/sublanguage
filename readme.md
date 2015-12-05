@@ -109,61 +109,98 @@ This parameter is then available in the `sublanguage_custom_switch` filter:
 
 You can use ´sublanguage_translate_post_field´ filter to translate any post field.
 
-	apply_filters( 'translate_post_field', $default, $post, $field)
+	apply_filters( 'sublanguage_translate_post_field', $default, $post, $field, $language = null, $by = null)
 
-This function use 4 params:
+This function use 6 params:
 
-- ´'translate_post_field'´: filter name
+- ´'sublanguage_translate_post_field'´: filter name
 - ´default´: value to use if translation does not exist
 - ´post´: the Post object you want to translate the field of
 - ´field´: field name ('post_title', 'post_content', 'post_name' or 'post_excerpt')
+- ´language´: Optional. Language slug, id, locale or object. By default, the current language will be used
+- ´by´: Optional. Use 'ID' or 'post_content' only if language is set to id or locale.
 
 Example:
 
-	echo apply_filters( 'translate_post_field', $some_post->post_title, 'hello', 'post_title' );
+	echo apply_filters( 'sublanguage_translate_post_field', $some_post->post_title, 'hello', 'post_title' );
 
-Most translations are done automatically through template filters. But you must ensure proper filters are called. 
+Most translations are done automatically within template filters though. Calling ´get_title()´, ´get_the_title($id)´, ´the_content()´, ´the_excerpt()´ or ´get_permalink($id)´ will automatically return or echo translated text.
 
-For echoing post title, you need to ensure ´the_title´ filter is called.
+Example for echoing post title:
 
 	// echoing post title inside the loop
 	the_title();
 	
-	// echoing post title outside the loop
-	echo get_the_title($some_post->ID);
+	// echoing post title inside or outside the loop
+	echo get_the_title( $some_post->ID );
 	
-	// but...
-	echo $post->post_title;	// -> Does not work !
+	// or
+	echo apply_filters( 'the_title', $some_post->post_title, $some_post->ID );
+	
+	// or
+	echo apply_filters( 'sublanguage_translate_post_field', $some_post->post_title, $some_post, 'post_title' );
 
-For echoing post content, you need to ensure ´the_content´ filter is called.
+Example for echoing post content:
 
 	// echoing content inside the loop
 	the_content();
 	
-	// or...
+	// or
 	echo apply_filters('the_content', get_the_content());
 
-	// but...
-	echo $post->post_content; // -> Does not work !
-	echo get_the_content(); // -> Does not work !
-	
 	// echoing post content outside the loop:
 	echo apply_filters( 'sublanguage_translate_post_field', $some_post->post_content, $some_post, 'post_content' );
 	
-Idem for post excerpt, you need to ensure ´the_excerpt´ filter is called.
+Most links are automatically translated through specific function:
 	
-For echoing permalink, term link, archive post or home url, just use the usual functions:
-
-	get_permalink();
+	// get post, page, media or custom post link:
+	get_permalink( $id );
+	
+	// get catgory, tag or term:
 	get_term_link( $term_id, $taxonomy );
+	
+	// get custom post type archive:
 	get_post_type_archive_link( $post_type_name );
+	
+	// get home
 	home_url();
 
+You can also translate post field into non-current language:
 
+	// echo post title in spanish by slug
+	echo apply_filters( 'sublanguage_translate_post_field', $some_post->post_title, $some_post, 'post_title', 'es' );
+	
+	// echo post title in spanish by locale
+	echo apply_filters( 'sublanguage_translate_post_field', $some_post->post_title, $some_post, 'post_title', 'es_ES', 'post_content' );
 
-### Meta fields
+### Translate terms fields
 
-If you want to use translatable meta fields, you need to register related meta key using the `sublanguage_register_postmeta_key` hook. For example:
+All fields of fetched terms will automatically be translated to current language. Example:
+
+	// echo translated term name
+	echo $term->name;
+
+For translating term fields in non-current language, use ´sublanguage_translate_term_field´ filter.
+
+	apply_filters( 'sublanguage_translate_term_field', $default, term, $field, $language = null, $by = null)
+
+This function use 6 params:
+
+- ´'sublanguage_translate_term_field'´: filter name
+- ´default´: value to use if translation does not exist
+- ´term´: the Post object you want to translate the field of
+- ´field´: field name ('name', 'slug', or 'description')
+- ´language´: Optional. Language slug, id, locale or object. By default, the current language will be used
+- ´by´: Optional. Use 'ID' or 'post_content' only if language is set to id or locale.
+
+Example:
+	
+	// translate term name in Korean:
+	echo apply_filters( 'sublanguage_translate_term_field', term->name, term, $field, 'ko')
+
+### Translate meta fields
+
+By default, meta fields are not translatable: the value is the same in all language. If you want to use translatable meta fields, you need to register related meta key using the `sublanguage_register_postmeta_key` hook. Example:
 
 	add_filter( 'sublanguage_register_postmeta_key', 'my_translate_postmeta' );
 
@@ -178,7 +215,7 @@ If you want to use translatable meta fields, you need to register related meta k
 Then you can use the translated value in your template file just by calling `get_post_meta()` function. It will automatically translate 
 accordingly to current language. If translation meta value is empty, it will still inherit from the original post.
 
-	echo get_post_meta($post_id, '_my_postmeta_key', true);
+	echo get_post_meta( $post_id, '_my_postmeta_key', true );
 
 Please note the Wordpress builtin Custom Fields box is not supported. You need to use your own [custom meta box](https://codex.wordpress.org/Function_Reference/add_meta_box) in order to edit the translation meta values in admin.
 
