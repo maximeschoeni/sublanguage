@@ -20,13 +20,15 @@ Sublanguage is a [multi-language plugin for Wordpress](https://wordpress.org/plu
 
 Sublanguage is more a toolkit than a ready-made solution for building a multi-language website. It focuses on customizing public interface for visitors, and adapting user experience for editors. It is design to bring multilingual functionalities and let room for personalization. While UI configuration is quite minimal, multiple hooks and filters are available to fit every needs. 
 
-Sublanguage is based on the concept of inheritance. Translations are custom-post-types parented to original posts, pages or custom-posts. Each translations have 4 relevant fields: `post_title`, `post_content`, `post_name` and `post_excerpt`. If one field is empty, or if translation is missing, original language field content is inherited. The intention is to completely avoid duplicated or even synchronized content, because it is a pain for content editors.
+Sublanguage is based on the concept of inheritance. Translations are custom-post-types parented to original posts, pages or custom-posts. Each translations have 4 relevant fields: `post_title`, `post_content`, `post_name` and `post_excerpt`. If one field is empty, or if translation is missing, original language field content is inherited. The intention is to completely avoid duplicated or even synchronized content.
 
-Sublanguage cares about SEO. It uses rewrite URL to structures language content into subdirectories, accordingly with [Google recommendations](https://support.google.com/webmasters/answer/182192?hl=en). Moreover, URL permalink are fully translatable, not only post slugs but also terms, taxonomies and post-type archives slugs.
+To comply with SEO standards, Sublanguage uses rewrite URL to structures language content into subdirectories. Moreover, URL permalink are fully translatable, not only post slugs but also terms, taxonomies and post-type archives slugs.
+
+## FAQ
+
+Please read the faq on [wordpress plugin page](https://wordpress.org/plugins/sublanguage/faq/)
 
 ## Documentation
-
-Additional documentation is available on [Wordpress plugin FAQ](https://wordpress.org/plugins/sublanguage/faq/)
 
 ### Installation
 
@@ -45,13 +47,11 @@ For erasing all content added by Sublanguage:
 
 Deleting a language will permanently delete all translations associated to this language. Deleting main language will NOT delete original posts.
 
-
 ### Language Switch
 
 Add this function in your template file to echo the language switch.
 
 	do_action('sublanguage_print_language_switch');
-
 
 For customization, use `sublanguage_custom_switch` filter in your `function.php`.
 
@@ -111,7 +111,7 @@ You can use `sublanguage_translate_post_field` filter to translate any post fiel
 
 	apply_filters( 'sublanguage_translate_post_field', $default, $post, $field, $language = null, $by = null)
 
-This function use 6 params:
+This function use 6 parameters:
 
 - `'sublanguage_translate_post_field'`: filter name
 - `default`: value to use if translation does not exist
@@ -184,7 +184,7 @@ For translating term fields in non-current language, use `sublanguage_translate_
 
 	apply_filters( 'sublanguage_translate_term_field', $default, term, $field, $language = null, $by = null)
 
-This function use 6 params:
+This function use 6 parameters:
 
 - `'sublanguage_translate_term_field'`: filter name
 - `default`: value to use if translation does not exist
@@ -343,7 +343,7 @@ Example translating the [the yoast SEO plugin](https://wordpress.org/plugins/wor
 
 #### 1. translating options content
 
-The most convenient way is to translate texts directly into fields using a custom formating. Lets use something like this in each text input: ´[:en]English text[:fr]Text français[:de]Deutche Inhalt´ (for an english/french/german site).
+The most convenient way is to translate texts directly into fields using a custom formating. Lets use something like this in each text input: `[:en]English text[:fr]Text français[:de]Deutche Inhalt` (for an english/french/german site).
 
 The following script will parse and recover the relevant value according to the current language:
 
@@ -400,13 +400,12 @@ No need to use the previous formating here. Once registered, post meta will just
 
 #### 3. translating term meta fields
 
-Current version of plugin (3.0.4) still use do-it-yourself term meta values (WP < 4.4 did not supoort term meta), which are stored into blog options. So lets use the exact same way as for translating options (and use the ´[:en]...[:fr]etc.´ formating):
+Current version of plugin (3.0.4) still use do-it-yourself term meta values (WP < 4.4 did not supoort term meta), which are stored into blog options. So lets use the exact same way as for translating options (and use the `[:en]...[:fr]etc.` formating):
 
 	if ( !is_admin() ) {
 	
 		add_filter('wpseo_taxonomy_meta', 'my_wpseo_option');
 
 	}	
-
 
 
