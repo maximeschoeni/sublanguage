@@ -1,11 +1,9 @@
-
 === Sublanguage ===
 Contributors: maximeschoeni
-Donate link: sublanguageplugin.wordpress.com
 Tags: multilanguage, multilingual, language, translation
-Requires at least: 4.0
-Tested up to: 4.3.1
-Stable tag: 1.4.4
+Requires at least: 4.2
+Tested up to: 4.4
+Stable tag: 1.4.8
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -13,28 +11,25 @@ Sublanguage is a lightweight multilanguage plugin for wordpress.
 
 == Description ==
 
-Sublanguage is a lightweight solution for building multilanguage sites with wordpress.
+= Philosophy =
 
-= No duplicated content =
+Sublanguage is more a toolkit than a ready-made solution for building a multi-language website. It focuses on customizing public interface for visitors, and adapting user experience for editors. It is designed to bring multilingual functionalities and let room for personalization. While UI configuration is quite minimal, multiple hooks and filters are available to fit every needs.
 
-Sublanguage works by extending a "main language" by one or more "sub-languages". When data is missing for a "sub-language", 
-"main language" data will be used instead. Thus, you only need to translate data that actually differ between languages. 
+Sublanguage is based on the concept of inheritance. Translations are custom-post-types parented to original posts, pages or custom-posts. If translation field is empty, or if translation is missing, original language field content is inherited. The intention is to completely avoid duplicated or even synchronized content, because it is unhandy for content editors.
+
+Sublanguage pays attention to SEO directives. It uses rewrite URL to structures language content into subdirectories. Moreover URL permalink are fully translatable, not only post slugs but also terms, taxonomies and post-type archives slugs.
+
+= Documentation =
+
+Plugin documentation is available on [github](https://github.com/maximeschoeni/sublanguage)
 
 = Translate posts, pages, medias and custom posts =
 
-You can translate title, content, excerpt, permalink (url) and meta fields for any kind of post types,
-and title, caption, alt field and description for medias (attachment).
-When a field is let blank, it will inherit value from "main language".
-By default, only posts and pages are translatable. Go to `Settings` > `Sublanguage` to enable other post types.
-You can also translate meta fields, but you need first to register them using `sublanguage_register_postmeta_key` filter. And the default `Custom Fields` box is not supported. Read the faq for more information.
-Post revisions are supported for every languages.
+You can translate title, content, excerpt, permalink (url) and meta fields for any kind of post types, and title, caption, alt field and description for medias (attachment). When a field is let blank, it will inherit value from "main language". By default, only posts and pages are translatable. Go to `Settings` > `Sublanguage` to enable other post types. You can also translate meta fields, but you need first to register them using `sublanguage_register_postmeta_key` filter. Read the [faq](https://wordpress.org/plugins/sublanguage/faq/) for more information.
 
 = Translate categories, tags and custom taxonomies =
 
-You can translate the name, slug and description field for any term. 
-As for posts, blank fields will also inherit the main language value.
-You cannot translate term relationship: all translation of a post inherit the same term relationship.
-By default, only categories are translatable. Go to `Settings` > `Sublanguage` to enable other taxonomies.
+You can translate the name, slug and description field for any term. As for posts, blank fields will also inherit the main language value. You cannot translate term relationship: all translation of a post inherit the same term relationship. By default, only categories are translatable. Go to `Settings` > `Sublanguage` to enable other taxonomies.
 
 = Quick edit =
 
@@ -42,17 +37,15 @@ Sublanguage support the quick edit interface in post list table, and adds a cust
 
 = No additional tables in database =
 
-All translation data is stored using the standard Wordpress API for custom posts and taxonomies.
-So you won't run into problems if you have other plugins dealing with database (import/export plugin, archive plugin, cache plugin, etc.)
+All translation data is stored using the standard Wordpress API for custom posts and taxonomies. So you won't run into problems if you have other plugins dealing with database (import/export plugin, archive plugin, cache plugin, etc.)
 
 = Support ajax =
 
-You can use ajax to get/upload posts from front-end. Read the faq for more information.
-Use `do_action('sublanguage_prepare_ajax')` in your template file to enqueue a script to provide useful data in javscript. Read the faq for more information.
+You can get or update posts translations from front-end with ajax, using the [conventional way](https://codex.wordpress.org/AJAX_in_Plugins). Read the [faq](https://wordpress.org/plugins/sublanguage/faq/) for more information.
 
 = Support multisite =
 
-Sublanguage works independantly for each site of a multisite installation.
+Sublanguage works fine on a multisite installation. Each site may have its own languages.
 
 = Translate login screens =
 
@@ -60,11 +53,19 @@ Translate screens for login, reset password, register, and email alerts.
 
 = Extensible =
 
-You can extend functionalities by using some hooks/filters. Read the faq for more information.
+You can extend functionalities by using some hooks/filters. Read the [faq](https://wordpress.org/plugins/sublanguage/faq/) for more information.
 
 = No automatic translations ! =
 
 Sublanguage provide an interface to deal with multilanguage but does not handle automatic translations.
+
+= Github =
+
+[Sublanguage is on github](https://github.com/maximeschoeni/sublanguage). Any contribution is welcome!
+
+= Thanks =
+
+- [uggur](https://profiles.wordpress.org/uggur) for Turkish translation
 
 == Installation ==
 
@@ -353,6 +354,44 @@ Sublanguage also works with [SQLite Integration plugin](https://wordpress.org/pl
 
 == Changelog ==
 
+= 1.4.8 =
+
+- Adds `get_default_language_switch` function
+- Bug fix: terms were not translated correctly when using shared terms (on `wp_term_taxonomy` DB table).
+- Bug fix: removed use of filter for `'home_url'` except in `post.php` page, in order to prevent bugs when rebuilding permalinks
+
+= 1.4.7 =
+
+- Adds optional `context` parameter for `sublanguage_print_language_switch` and `sublanguage_custom_switch` hooks
+- `load_plugin_textdomain` now only called in admin.
+- Deprecate `sublanguage_current_language`. Use `sublanguage_init` instead.
+- Deprecate `sublanguage_load_admin`. No alternative.
+- Bug fix: Multiple errors occured when option was not set
+- Bug fix: Multiple errors occured when no languages post type was set.
+
+= 1.4.6 =
+
+- Improves `sublanguage_translate_term_field` to allow translation in any language
+- Improves `sublanguage_translate_post_field` to allow translation in any language
+- Adds `sublanguage_enqueue_terms` action to handle custom translation terms query
+- Adds `sublanguage_enqueue_posts` action to handle custom translation posts query
+- Bug fix: Terms order was incorrect when queried order was by name, description or slug on secondary language
+- Bug fix: Posts order was incorrect when queried order was by name or title on secondary language
+- Bug fix: translation terms taxonomy was incorrectly associated to post object type when registered
+- Bug fix: Terms were incorrectly cached when multiple taxonomies were queried at once
+
+= 1.4.5 =
+
+- Support for [hreflang tag](https://moz.com/learn/seo/hreflang-tag)
+- Add filter to determine whether empty translated post meta values override originals
+- Automatically create term translation when term is created when not on main language
+- Improved multilanguage search
+- Bug fix: switching language on search page was incorrectly redirecting to home
+- Bug fix: getting post meta values without providing key value now return correct values
+- Bug fix: `translate_post_type_archive_link()` function did not return the correct link for main language if it was edited.
+- Bug fix: problems occured when tag was added while not on main language
+- Bug fix: using `sublanguage_custom_switch` hook with only one language was causing error
+
 = 1.4.4 =
 
 - Bug fix: language was mixed when inserting media into post when media and post languages did not match.
@@ -362,7 +401,7 @@ Sublanguage also works with [SQLite Integration plugin](https://wordpress.org/pl
 - Bug fix: language was not properly sent by ajax when using GET method
 - Bug fix: result of get_terms was not properly translated when only names were queried
 - Bug fix: deleting a post was throwing a notice
-- Feature: updating from 1.4.3 or before cleans database from all orphan terms
+- Updating from 1.4.3 or before cleans database from all orphan terms
 
 = 1.4.3 =
 
@@ -382,15 +421,15 @@ Sublanguage also works with [SQLite Integration plugin](https://wordpress.org/pl
 
 = 1.4 =
 
-- New feature: add support for attachment translation
-- New feature: add support to handle editor button in Tinymce Advanced Plugin -
-- Various bug fixes
+- Add support for attachment translation
+- Add support to handle editor button in Tinymce Advanced Plugin -
+- Undocumented bug fixes
 
 = 1.3 =
 
-- New feature: tinymce plugin, a fast interface for managing posts translations.
-- New feature: support widget
-- Various bug fixes
+- Tinymce plugin, a fast interface for managing posts translations.
+- Support widget
+- Undocumented bug fixes
 
 = 1.2.2 =
 
@@ -403,11 +442,11 @@ Some changes in readme file and adding medias (screenshots, banner, etc.).
 
 = 1.2 =
 
-Various core modifications.
+Undocumented modifications.
 
 = 1.1 =
 
-Various core modifications.
+Undocumented modifications.
 
 == Upgrade Notice ==
 

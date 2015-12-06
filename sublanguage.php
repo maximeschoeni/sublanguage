@@ -4,7 +4,7 @@ Plugin Name: Sublanguage
 Plugin URI: http://sublanguageplugin.wordpress.com
 Description: Plugin for building a site with multiple languages
 Author: Maxime Schoeni
-Version: 1.4.4
+Version: 1.4.8
 Author URI: http://sublanguageplugin.wordpress.com
 Text Domain: sublanguage
 Domain Path: /languages
@@ -73,8 +73,9 @@ if (is_admin()) {
 }
 
 
-
-
+/** 
+ * Base class for Sublanguage_site in front-end and Sublanguage_admin in admin.
+ */
 class Sublanguage_main {
 
 	/** 
@@ -82,7 +83,7 @@ class Sublanguage_main {
 	 *
 	 * @var float
 	 */
-	var $version = '1.4.4';
+	var $version = '1.4.8';
 	
 	/** 
 	 * @from 1.0
@@ -166,20 +167,13 @@ class Sublanguage_main {
 	 * @var string
 	 */
 	var $term_translation_prefix = 'translation_';
-	
-	/** 
-	 * @from 1.2
-	 *
-	 * @var array
-	 */
-	var $options;
 
 	/**
 	 * @from 1.0
 	 *
 	 * @var array
 	 */
-	var $current_language;
+	var $current_language = false;
 	
 	/**
 	 * @from 1.1
@@ -201,36 +195,77 @@ class Sublanguage_main {
 	 * @var array
 	 */
 	var $fields = array('post_content', 'post_name', 'post_excerpt', 'post_title');
-
 	
 	/**
-	 *	@from 1.1
+	 * @from 1.4.5
+	 *
+	 * @var array
 	 */
-	public function __construct() {
-		
-		$this->options = get_option($this->option_name);
-		
-		add_action( 'plugins_loaded', array($this, 'load_textdomain'));
+	var $disable_postmeta_filter = false;
+	
+	/**
+	 * @from 1.4.6
+	 *
+	 * @var array
+	 */
+	var $term_sort_cache;
+	
+	/**
+	 * @from 1.4.6
+	 *
+	 * @var array
+	 */
+	var $post_sort_cache;
+	
+
+	/**
+	 * Register all filters needed for admin and front-end
+	 *
+	 * @from 1.4.7
+	 */
+	public function load() {
+				
 		add_filter('terms_clauses', array($this, 'filter_terms_clauses'), 10, 3);
-		add_filter('wp_get_object_terms', array($this, 'filter_get_terms'), 9, 1);
-		add_filter('get_terms', array($this, 'filter_get_terms'), 9, 1);
+		add_filter('posts_clauses', array($this, 'filter_search_query'), 10, 2); // -> added in 1.4.5
+		
+		add_filter('get_object_terms', array($this, 'filter_get_object_terms'), 10, 4);
+		add_filter('get_term', array($this, 'translate_get_term'), 10, 2); // hard translate term
+		add_filter('get_terms', array($this, 'translate_get_terms'), 10, 3); // hard translate terms
+		add_filter('get_terms', array($this, 'register_taxonomy_terms_order'), 10, 3); // register terms order - added in 1.4.6
+		add_filter('get_the_terms', array($this, 'translate_post_terms'), 10, 3);
+		add_filter('list_cats', array($this, 'translate_term_name'), 10, 2);
+		
+		add_filter('the_posts', array($this, 'translate_the_posts'), 10, 2);
+		add_filter('the_posts', array($this, 'sort_the_posts'), 11, 2); // -> added in 1.4.6
+		
 		add_filter('posts_where_request', array($this, 'filter_posts_where'), 10, 2);
 		add_action('init', array($this, 'register_translations'));
 		add_action('widgets_init', array($this, 'register_widget'));
-		add_filter('sublanguage_translate_post_field', array($this, 'translate_post_field_custom'), null, 3);
+		add_filter('sublanguage_translate_post_field', array($this, 'translate_post_field_custom'), null, 5);
+		add_filter('sublanguage_translate_term_field', array($this, 'translate_term_field_custom'), null, 6);
 		add_action('init', array($this, 'register_postmeta_keys'), 99); // register post meta
+				
+		add_action('sublanguage_enqueue_terms', array($this, 'enqueue_terms'), 10, 2); // -> added in 1.4.6
+		add_action('sublanguage_enqueue_posts', array($this, 'enqueue_posts'), 10, 2); // -> added in 1.4.6
 		
 	}
 
-	/**
-	 * Load text domain
+	/** 
+	 * Get option
 	 *
-	 * @from 1.0
+	 * @from 1.4.7
 	 */
-	public function load_textdomain() {
+	public function get_option($option_name, $default = false) {
+	
+		$options = get_option($this->option_name);
 		
-		load_plugin_textdomain('sublanguage', false, dirname(plugin_basename(__FILE__)).'/languages');
+		if (isset($options[$option_name])) {
+			
+			return $options[$option_name];
 		
+		}
+		
+		return $default;
 	}
 	
 	/**
@@ -252,7 +287,7 @@ class Sublanguage_main {
 				'nopaging' => true,
 				'update_post_term_cache' => false
 			));
-						
+			
 		}
     
     return $this->languages_cache;
@@ -341,6 +376,27 @@ class Sublanguage_main {
 		
 		return $output;
 	}
+	
+	/**
+	 * @from 1.4.4
+	 *
+	 * @param string $column.
+	 * @return array
+	 */
+	public function get_language_post_types() {
+		
+		$languages = $this->get_languages();
+		$post_types = array();
+		
+		foreach ($languages as $lng) {
+			
+			$post_types[] = $this->post_translation_prefix.intval($lng->ID);
+			
+		}
+		
+		return $post_types;
+	}
+	
 
 	/**
 	 * Get default language 
@@ -351,7 +407,7 @@ class Sublanguage_main {
 	 */
 	public function get_default_language() {
 		
-		return $this->get_language_by($this->options['default'], 'ID');
+		return $this->get_language_by($this->get_option('default'), 'ID');
     
 	}
 
@@ -364,11 +420,235 @@ class Sublanguage_main {
 	 */
 	public function get_main_language() {
 		
-		return $this->get_language_by($this->options['main'], 'ID');
+		return $this->get_language_by($this->get_option('main'), 'ID');
     
 	}
 
+	/**
+	 * Get translatable taxonomies 
+	 *
+	 * @from 1.4.7
+	 *
+	 * @return WP_Post object
+	 */
+	public function get_taxonomies() {
+		
+		return $this->get_option('taxonomy', array());
+    
+	}
+	
+	/**
+	 * Get translatable post_types 
+	 *
+	 * @from 1.4.7
+	 *
+	 * @return WP_Post object
+	 */
+	public function get_post_types() {
+		
+		return $this->get_option('cpt', array());
+    
+	}
+	
+	/**
+	 * Check whether language is main
+	 *
+	 * @from 1.4.7
+	 *
+	 * @return boolean
+	 */
+	public function is_main($language_id = null) {
+		
+		if (isset($language_id)) {
+			
+			return $language_id == $this->get_option('main');
+		
+		} else if ($this->current_language) {
+			
+			return $this->current_language->ID == $this->get_option('main');
+		
+		}
+		
+		return false;
+	}
+	
+	/**
+	 * Check whether language is sub-language
+	 *
+	 * @from 1.4.7
+	 *
+	 * @return boolean
+	 */
+	public function is_sub($language_id = null) {
+		
+		if (isset($language_id)) {
+			
+			return $language_id != $this->get_option('main');
+		
+		} else if ($this->current_language) {
+			
+			return $this->current_language->ID != $this->get_option('main');
+		
+		}
+		
+		return false;
+	}
+	
+	/**
+	 * Check whether language is sub-language
+	 *
+	 * @from 1.4.7
+	 *
+	 * @return boolean
+	 */
+	 public function is_default($language_id = null) {
+		
+		if (isset($language_id)) {
+			
+			return $language_id == $this->get_option('default');
+		
+		} else if ($this->current_language) {
+			
+			return $this->current_language->ID == $this->get_option('default');
+		
+		}
+		
+		return false;
+	}
 
+	/**
+	 * Check whether language is current language
+	 *
+	 * @from 1.4.7
+	 *
+	 * @return boolean
+	 */
+	public function is_current($language) {
+		
+		return $this->current_language && $language->ID === $this->current_language->ID;
+		
+	}	
+	
+	/**
+	 * Get translation post type
+	 *
+	 * @from 1.4.7
+	 *
+	 * @return boolean
+	 */
+	public function get_translation_post_type($language = null) {
+		
+		if (empty($language)) {
+			
+			if ($this->current_language) return $this->post_translation_prefix.$this->current_language->ID;
+		
+		} else {
+			
+			return $this->post_translation_prefix.$language->ID;
+			
+		}
+
+		return $this->post_translation_prefix . '0';
+	}	
+	
+	/**
+	 * Get translation taxonomy
+	 *
+	 * @from 1.4.7
+	 *
+	 * @return boolean
+	 */
+	public function get_translation_taxonomy($language = null) {
+		
+		if (empty($language)) {
+			
+			if ($this->current_language) return $this->term_translation_prefix.$this->current_language->ID;
+		
+		} else {
+			
+			return $this->term_translation_prefix.$language->ID;
+			
+		}
+
+		return $this->term_translation_prefix . '0';
+	}
+	
+	/**
+	 * Find whether taxonomy or taxonomies array is translatable. 
+	 *
+	 * @from 1.4.5
+	 *
+	 * @param mixed string|array $taxonomies
+	 * @return boolean
+	 */
+	public function is_taxonomy_translatable($taxonomies) {
+		
+		return ((is_string($taxonomies) && in_array($taxonomies, $this->get_taxonomies()))
+			|| (is_array($taxonomies) && !array_diff($taxonomies, $this->get_taxonomies())));
+		
+	}
+
+	/**
+	 * Filter translatable taxonomies from array 
+	 *
+	 * @from 1.4.6
+	 *
+	 * @param mixed string|array $taxonomies
+	 * @return array
+	 */
+	public function filter_translatable_taxonomies($taxonomies) {
+		
+		if (!is_array($taxonomies)) {
+		
+			$taxonomies = array($taxonomies);
+			
+		} 
+		
+		return array_intersect($this->get_taxonomies(), $taxonomies);
+	}
+	
+	/**
+	 * Find whether post-type or post-types array is translatable. 
+	 *
+	 * @from 1.4.5
+	 *
+	 * @param mixed string|array $taxonomies
+	 * @return boolean
+	 */
+	public function is_post_type_translatable($post_type) {
+		
+		return ((is_string($post_type) && ($post_type == 'any' || empty($post_type) || in_array($post_type, $this->get_post_types()))) || (is_array($post_type) && !array_diff($post_type, $this->get_post_types())));
+		
+	}
+
+	
+	/**
+	 * Filter translatable post-types from post-types array 
+	 *
+	 * @from 1.4.6
+	 *
+	 * @param mixed string|array $post_types
+	 * @return array
+	 */
+	public function filter_translatable_post_types($post_types) {
+		
+		if (is_array($post_types)) {
+		
+			return array_intersect($this->get_post_types(), $post_types);
+			
+		} else if (!$post_types || $post_types === 'any') {
+			
+			return $this->get_post_types();
+		
+		} else if (is_string($post_types) && in_array($post_types, $this->get_post_types())) {
+			
+			return array($post_types);
+		
+		}
+		
+		return array();
+	}
+	
 	/**
 	 * get taxonomy translation
 	 *
@@ -525,6 +805,81 @@ class Sublanguage_main {
  /********* POST TRANSLATION *********/   
 
 
+
+
+	
+	/**
+	 * filter search query
+	 *
+	 * filter for 'posts_clauses'
+	 *
+	 * @from 1.4.5
+	 */
+	public function filter_search_query($pieces, $query) {
+		global $wpdb;
+		
+		if (!empty($query->query_vars['name']) || !empty($query->query_vars['pagename']) || !empty($query->query_vars['s'])) {
+		
+			$post_types = $this->filter_translatable_post_types($query->query_vars['post_type']);
+		
+			if ($post_types) { // -> language is not main and post-type is translatable
+			
+				/**
+				 * Filter language search mode
+				 *
+				 * @param string:
+				 * 'self' 	=> search only in current language
+				 * 'parent' => search in current language and in original language
+				 * 'all' 	=> search in all languages
+				 *
+				 * @from 1.0
+				 */		
+				$search_mode = apply_filters('sublanguage_post_search_mode', 'self'); // 'self', 'parent', 'all'
+			
+				if ($search_mode == 'all' || $this->is_sub()) {
+					
+					$args = $query->query_vars;
+				
+					$args['post_type'] = ($search_mode == 'all') ? $this->get_language_post_types() : $this->get_translation_post_type();
+					$args['fields'] = 'id=>parent';
+				
+					$translations = new WP_Query($args);
+				
+					if ($translations->have_posts()) {
+					
+						$parent_ids = array();
+					
+						foreach ($translations->posts as $item) {
+						
+							$parent_ids[] = intval($item->post_parent);
+						
+						}
+						
+						$sql_post_types = " AND $wpdb->posts.post_type in ('" . implode("', '", array_map('esc_sql', $post_types)) . "')";
+						
+						if ($search_mode == 'self') {
+							
+							$pieces['where'] = " AND $wpdb->posts.ID in (" . implode(', ', $parent_ids) . ")" . $sql_post_types;
+							
+						} else {
+						
+							$pieces['where'] .= " OR ($wpdb->posts.ID in (" . implode(', ', $parent_ids) . ")" . $sql_post_types . ")";
+						
+						}
+						
+						//$query->translations = $translations->posts;
+					
+					}
+					
+				}
+				
+			}
+
+		}
+		
+		return $pieces;
+	}
+	
 	/**
 	 * enqueue post translation
 	 *
@@ -552,13 +907,83 @@ class Sublanguage_main {
 		
 		foreach ($lngs as $lng_id) {
 			
-			if ($lng_id != $this->options['main']) {
+			if ($this->is_sub($lng_id)) {
 			
 				foreach ($ids as $id) {
 				
 					if (!isset($this->post_translation_cache[$lng_id][$id])) {
 				
 						$this->post_translation_queue[$lng_id][$id] = true;
+				
+					}
+				
+				}
+				
+			}
+			
+		}
+		
+	}
+
+	/**
+	 * enqueue posts array for translation
+	 *
+	 * @from 1.4.6
+	 *
+	 * @param int|array $ids. Post ids.
+	 */
+	public function enqueue_post_id($id, $lngs = null) {
+
+		if (empty($lngs)) {
+			
+			$lngs = $this->get_language_column('ID');
+		
+		} else if (!is_array($lngs)) {
+			
+			$lngs = array($lngs);
+		
+		}
+		
+		foreach ($lngs as $lng_id) {
+			
+			if ($this->is_sub($lng_id) && !isset($this->post_translation_cache[$lng_id][$id])) {
+				
+				$this->post_translation_queue[$lng_id][$id] = true;
+				
+			}
+			
+		}
+		
+	}
+
+	/**
+	 * enqueue posts array for translation
+	 *
+	 * @from 1.4.6
+	 *
+	 * @param int|array $ids. Post ids.
+	 */
+	public function enqueue_posts($posts, $lngs = null) {
+
+		if (empty($lngs)) {
+			
+			$lngs = $this->get_language_column('ID');
+		
+		} else if (!is_array($lngs)) {
+			
+			$lngs = array($lngs);
+		
+		}
+		
+		foreach ($lngs as $lng_id) {
+			
+			if ($this->is_sub($lng_id)) {
+			
+				foreach ($posts as $post) {
+				
+					if (!isset($this->post_translation_cache[$lng_id][$post->ID])) {
+				
+						$this->post_translation_queue[$lng_id][$post->ID] = true;
 				
 					}
 				
@@ -590,12 +1015,16 @@ class Sublanguage_main {
 			));	
 			
 			foreach ($translations as $translation) {
-				
+				 
 				$language = $this->get_language_by_type($translation->post_type);
-				$this->post_translation_cache[$language->ID][$translation->post_parent] = $translation;
-		
-				unset($this->post_translation_queue[$language->ID][$translation->post_parent]);
-		
+				
+				if ($language) {
+				
+					$this->post_translation_cache[$language->ID][$translation->post_parent] = $translation;
+					unset($this->post_translation_queue[$language->ID][$translation->post_parent]);
+				
+				}
+				
 			}
 	  
 			// set false when query have no translation (avoid further queries)
@@ -641,17 +1070,17 @@ class Sublanguage_main {
 	public function get_post_translation($post_id, $language_id) {
 		
 		// added in 1.4
-		if ($language_id == $this->options['main']) {
+		if ($this->is_main($language_id)) {
 			
 			return get_post($post_id);
 			
 		}
 		
-		if (in_array(get_post($post_id)->post_type, $this->options['cpt'])) { // -> should be done before
+		if (in_array(get_post($post_id)->post_type, $this->get_post_types())) { // -> should be done before
 			
 			if (!isset($this->post_translation_cache[$language_id][$post_id])) {
 				
-				$this->enqueue_translation($post_id, $language_id);
+				$this->enqueue_post_id($post_id, $language_id);
 				$this->translate_queue();
 			
 			} 
@@ -677,7 +1106,7 @@ class Sublanguage_main {
 	 */
 	public function translate_post_field($post_id, $language_id, $field, $fallback) {
 		
-		if ($language_id != $this->options['main'] && in_array($field, $this->fields)) { // added in 1.4
+		if ($this->is_sub($language_id) && in_array($field, $this->fields)) { // added in 1.4
 		
 			$translation = $this->get_post_translation($post_id, $language_id);
 	
@@ -728,15 +1157,22 @@ class Sublanguage_main {
  /********* TERM TRANSLATION *********/ 
   
 
+	
 	/**
-	 * enqueue term to translate
+	 * enqueue terms to translate
 	 *
-	 * @from 1.1
+	 * @from 1.4.6
 	 *
 	 * @param int|array $ids. Term ids.
 	 * @param int|array $lngs. Language ids.
 	 */
-	public function enqueue_terms($ids, $lngs = null) {
+	public function enqueue_terms($terms, $lngs = null) {
+		
+		if (is_int($terms)) {
+			
+			$this->enqueue_term_id($terms, $lngs);
+		
+		}
 		
 		if (empty($lngs)) {
 			
@@ -748,21 +1184,15 @@ class Sublanguage_main {
 		
 		}
 		
-		if (!is_array($ids)) {
-			
-			$ids = array($ids);
-		
-		}
-		
 		foreach ($lngs as $lng_id) {
 			
-			if ($lng_id != $this->options['main']) {
+			if ($this->is_sub($lng_id)) {
 			
-				foreach ($ids as $id) {
+				foreach ($terms as $term) {
+					
+					if ($this->is_taxonomy_translatable($term->taxonomy) && !isset($this->term_translation_cache[$lng_id][$term->term_id])) {
 				
-					if (!isset($this->term_translation_cache[$lng_id][$id])) {
-				
-						$this->term_translation_queue[$lng_id][$id] = true;
+						$this->term_translation_queue[$lng_id][$term->term_id] = true;
 				
 					}
 				
@@ -772,15 +1202,47 @@ class Sublanguage_main {
 			
 		}
 		
-  } 
-  
+	}
+	
+	/**
+	 * enqueue term to translate
+	 *
+	 * @from 1.4.6
+	 *
+	 * @param int|array $ids. Term ids.
+	 * @param int|array $lngs. Language ids.
+	 */
+	public function enqueue_term_id($id, $lngs = null) {
+		
+		if (empty($lngs)) {
+			
+			$lngs = $this->get_language_column('ID');
+		
+		} else if (!is_array($lngs)) {
+			
+			$lngs = array($lngs);
+		
+		}
+		
+		foreach ($lngs as $lng_id) {
+			
+			if ($this->is_sub($lng_id) && !isset($this->term_translation_cache[$lng_id][$id])) {
+				
+				$this->term_translation_queue[$lng_id][$id] = true;
+				
+			}
+			
+		}
+		
+	}
+	  
 	/**
 	 * translate term queue
 	 *
 	 * @from 1.1
 	 */
 	public function translate_term_queue() {
-  	
+
 		if ($this->term_translation_queue) {
 			
 			// set all translations taxonomy ()
@@ -791,7 +1253,7 @@ class Sublanguage_main {
 				$taxonomies[] = $this->term_translation_prefix.$lng_id;
 			
 			}
-			
+		
 			$terms = get_terms($taxonomies, array(
 				'hide_empty' => false,
 				'sublanguage_query' => $this->term_translation_queue,
@@ -837,29 +1299,37 @@ class Sublanguage_main {
 	 */
 	public function get_term_translation($term, $taxonomy, $language_id) {
 		
-		if (isset($term->taxonomy) && in_array($term->taxonomy, $this->options['taxonomy']) && $language_id != $this->options['main']) {
+		if ($this->is_taxonomy_translatable($taxonomy)) {
 			
-			if (!isset($this->term_translation_cache[$language_id][$term->term_id])) {
+			if ($this->is_sub($language_id)) {
+			
+				if (!isset($this->term_translation_cache[$language_id][$term->term_id])) {
 				
-				if (empty($this->term_translation_cache[$language_id][$term->term_id])) {
+					if (empty($this->term_translation_cache[$language_id][$term->term_id])) {
+					
+						$this->enqueue_term_id($term->term_id, $language_id);
 				
-					$this->enqueue_terms($term->term_id, $language_id);
+					}
 				
+					$this->translate_term_queue();
+			
 				}
 				
-				$this->translate_term_queue();
+				return $this->term_translation_cache[$language_id][$term->term_id];
 			
+			} else {
+				
+				return $term;
+				
 			}
-			
-			return $this->term_translation_cache[$language_id][$term->term_id];
 			
 		}
 		
-    return false;
+    	return false;
+	
+	}  
 
-  }  
-
-  /**
+	/**
 	 * get term field translation
 	 *
 	 * @from 1.1
@@ -872,17 +1342,17 @@ class Sublanguage_main {
 	 */
 	public function translate_term_field($term, $taxonomy, $language_id, $field, $fallback) {
 	
-  	$translation = $this->get_term_translation($term, $taxonomy, $language_id);
-  		
-  	if ($translation && isset($translation->$field) && $translation->$field) {
-  	
-  		return $translation->$field;
-  		
-  	}
-  	
-  	return $fallback;
-  	
-  } 
+		$translation = $this->get_term_translation($term, $taxonomy, $language_id);
+	
+		if ($translation && isset($translation->$field) && $translation->$field) {
+
+			return $translation->$field;
+	
+		}
+
+		return $fallback;
+
+	} 
   
  
   
@@ -895,7 +1365,7 @@ class Sublanguage_main {
 	public function filter_terms_clauses($clauses, $taxonomies, $args) {
 		
 		if (isset($args['sublanguage_query'])) {
-			
+				
 			$conditions = array();
 			
 			foreach ($args['sublanguage_query'] as $lng_id => $ids) {
@@ -912,30 +1382,7 @@ class Sublanguage_main {
 		return $clauses;
 	
 	}
-	 
-
-  
-  
-  
-  
-  
-  
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	
 	/**
 	 *	@from 1.1
 	 */
@@ -961,23 +1408,21 @@ class Sublanguage_main {
 				'supports'           => array('title', 'editor', 'revisions')
 			));
 			
+			register_taxonomy($this->term_translation_prefix.$lng->ID, array(), array(
+				'hierarchical'      => true,
+				'labels'            => array(
+					'name' => sprintf(__('Translations - %s', 'sublanguage'), $lng->post_title)
+				),
+				'show_ui'           => false,
+				'show_admin_column' => false,
+				'public' 			=> false,
+				'query_var'         => false,
+				'rewrite'           => false,
 			
-
-		register_taxonomy($this->term_translation_prefix.$lng->ID, array('post'), array(
-			'hierarchical'      => true,
-			'labels'            => array(
-				'name' => sprintf(__('Translations - %s', 'sublanguage'), $lng->post_title)
-			),
-			'show_ui'           => false,
-			'show_admin_column' => false,
-			'public' 			=> false,
-			'query_var'         => false,
-			'rewrite'           => false,
-			
-		));
+			));
 			
 		}
-	
+		
 	}
 	
 	/**
@@ -1027,9 +1472,13 @@ class Sublanguage_main {
 		
 		$translation = $post;
 		
-		foreach ($this->fields as $field) {
+		if ($language) {
+		
+			foreach ($this->fields as $field) {
 				
-			$translation->$field = $this->translate_post_field($post->ID, $language->ID, $field, $post->$field);
+				$translation->$field = $this->translate_post_field($post->ID, $language->ID, $field, $post->$field);
+			
+			}
 			
 		}
 		
@@ -1048,7 +1497,7 @@ class Sublanguage_main {
 	 */	
 	public function translate_post_meta($translation, $post_id, $meta_key, $single = false, $language = null) {
 		
-		if ($language->ID != $this->options['main']) {
+		if ($this->is_sub($language->ID)) {
 		
 			$temp_language = $this->current_language; // save current language
 		
@@ -1075,6 +1524,11 @@ class Sublanguage_main {
 		return $translation;
 	}
 	
+
+ 	/********* TRANSLATE FILTERS *********/ 
+
+	
+	
 	/**
 	 *	Translate title to current language
 	 *	Filter for 'get_the_title'
@@ -1083,7 +1537,7 @@ class Sublanguage_main {
 	 */
 	public function translate_post_title($title, $id) {
 		
-		if ($this->current_language->ID != $this->options['main']) {
+		if ($this->is_sub()) {
 			
 			$post = get_post($id);
 			
@@ -1103,7 +1557,7 @@ class Sublanguage_main {
 	public function translate_post_content($content) {
 		global $post;
 		
-		if ($this->current_language->ID != $this->options['main']) {
+		if ($this->is_sub()) {
 			
 			return $this->translate_post_field($post->ID, $this->current_language->ID, 'post_content', $content);
 		
@@ -1121,7 +1575,7 @@ class Sublanguage_main {
 	public function translate_post_excerpt($excerpt) {
 		global $post;
 		
-		if ($this->current_language->ID != $this->options['main']) {
+		if ($this->is_sub()) {
 			
 			return $this->translate_post_field($post->ID, $this->current_language->ID, 'post_excerpt', $excerpt);
 		
@@ -1138,7 +1592,7 @@ class Sublanguage_main {
 	 */
 	public function translate_single_post_title($title, $post) {
 		
-		if ($this->current_language->ID != $this->options['main']) {
+		if ($this->is_sub()) {
 			
 			return $this->translate_post_field($post->ID, $this->current_language->ID, 'post_title', $title);
 		
@@ -1153,16 +1607,115 @@ class Sublanguage_main {
 	 *
 	 * @from 1.0
 	 */
-	public function translate_post_field_custom($original, $post, $field) {
+	public function translate_post_field_custom($original, $post, $field, $language = null, $by = null) {
 		
-		if ($this->current_language->ID != $this->options['main']) {
+		if ($this->is_post_type_translatable($post->post_type)) {
 			
-			return $this->translate_post_field($post->ID, $this->current_language->ID, $field, $original);
+			if (!isset($language)) {
+				
+				$language = $this->current_language;
+				
+			} else if (!$language) {
+			
+				$language = $this->get_language_by($this->get_option('main'), 'ID');
+			
+			} else if (is_int($language)) {
+			
+				$language = $this->get_language_by($language, 'ID');
+			
+			} else if (is_string($language)) {
+				
+				if (empty($by)) {
+					
+					$by = 'post_name';
+					
+				}
+				
+				$language = $this->get_language_by($language, $by);
+			
+			}
+			
+			if (!is_a($language, 'WP_Post')) {
+				
+				return $original;
+			
+			}
+			
+			return $this->translate_post_field($post->ID, $language->ID, $field, $original);
 		
 		}
 		
 		return $original;
 	}
+	
+	
+	/**
+	 * Translate term field. Public API
+	 * Filter for 'sublanguage_translate_term_field'
+	 *
+	 * @param string $original. Default value
+	 * @param object WP_Term $term. Term object
+	 * @param string $taxonomy. Taxonomy
+	 * @param string $field. Field to translate ('name', 'slug' or 'description')
+	 * @param mixed $language. Language. Null => current language. False => main language.
+	 * @param string $by. Language search mode ('post_name', 'post_title', 'post_content'). Default: 'post_name'.
+	 *
+	 * @from 1.4.6
+	 */
+	public function translate_term_field_custom($original, $term, $taxonomy, $field, $language = null, $by = null) {
+		
+		if ($this->is_taxonomy_translatable($taxonomy)) {
+			
+			if (!isset($language)) {
+				
+				$language = $this->current_language;
+				
+			} else if (!$language) {
+			
+				$language = $this->get_language_by($this->get_option('main'), 'ID');
+			
+			} else if (is_int($language)) {
+			
+				$language = $this->get_language_by($language, 'ID');
+			
+			} else if (is_string($language)) {
+				
+				if (empty($by)) {
+					
+					$by = 'post_name';
+					
+				}
+				
+				$language = $this->get_language_by($language, $by);
+			
+			}
+			
+			if (!is_a($language, 'WP_Post')) {
+				
+				return $original;
+			
+			}
+			
+			if (!$this->is_current($language)) {
+				
+				$current_language = $this->current_language;
+				
+				$this->current_language = $language;
+				
+				$term = get_term($term->term_id, $taxonomy);
+				
+				$this->current_language = $current_language;
+			
+			}
+			
+			return $this->translate_term_field($term, $taxonomy, $language->ID, $field, $term->$field);
+		
+		}
+		
+		return $original;
+	}
+	
+	
 	
 	/** 
 	 * hard translate posts for quick edit
@@ -1191,7 +1744,7 @@ class Sublanguage_main {
 	 */	
 	public function hard_translate_post($post) {
 		
-		if (in_array($post->post_type, $this->options['cpt']) && $this->current_language->ID != $this->options['main']) {
+		if (in_array($post->post_type, $this->get_post_types()) && $this->is_sub()) {
 			
 			foreach ($this->fields as $field) {
 				
@@ -1213,25 +1766,70 @@ class Sublanguage_main {
 	 */
 	public function translate_the_posts($posts, $wp_query = null) {
 		
-		foreach ($posts as $post) {
+		if ($this->is_sub()) {
+		
+			foreach ($posts as $post) {
 			
-			if (in_array($post->post_type, $this->options['cpt'])) {
+				if (in_array($post->post_type, $this->get_post_types())) {
 				
-				$this->enqueue_translation($post->ID, $this->current_language->ID);
+					$this->enqueue_post_id($post->ID, $this->current_language->ID);
 				
-				// added in 1.4
-				if ($post->post_parent) {
+					// added in 1.4
+					if ($post->post_parent) {
 					
-					$this->enqueue_translation($post->post_parent, $this->current_language->ID);
+						$this->enqueue_post_id($post->post_parent, $this->current_language->ID);
 				
-				}
+					}
 				
+				} 
+			
 			}
 			
 		}
 		
 		return $posts;
 	}
+
+	/**
+	 * Sort translated posts when ordered by title or name
+	 *
+	 * Filter for 'the_posts'
+	 *
+	 * @from 1.1
+	 */
+	public function sort_the_posts($posts, $wp_query = null) {
+	
+		if ($this->is_sub() && isset($wp_query->query_vars['orderby']) && is_string($wp_query->query_vars['orderby']) && in_array($wp_query->query_vars['orderby'], array('name', 'title')) && $this->filter_translatable_post_types($wp_query->query_vars['post_type'])) {
+			
+			$this->post_sort_cache = array(
+				'order' => (empty($wp_query->query_vars['order']) || $wp_query->query_vars['order'] === 'ASC' ? 1 : -1),
+				'orderby' => ($wp_query->query_vars['orderby'] == 'name' ? 'post_name' : 'post_title')
+			);
+			
+			usort($posts, array($this, 'sort_posts'));
+		}
+		
+		return $posts;
+	}
+	
+	/**
+	 * Sort by value
+	 * Callback for usort function
+	 *
+	 * @from 1.4.6
+	 *
+	 * @param object WP_Term $term
+	 */
+	public function sort_posts($item_a, $item_b) {
+		
+		return strcasecmp(
+			$this->translate_post_field($item_a->ID, $this->current_language->ID, $this->post_sort_cache['orderby'], $item_a->{$this->post_sort_cache['orderby']}),
+			$this->translate_post_field($item_b->ID, $this->current_language->ID, $this->post_sort_cache['orderby'], $item_b->{$this->post_sort_cache['orderby']})
+		)*$this->post_sort_cache['order'];
+		
+	}
+	
+	
 	
 	/**
 	 *	Translate term name
@@ -1247,7 +1845,7 @@ class Sublanguage_main {
 			
 		}
 		
-		if (isset($term->taxonomy) && in_array($term->taxonomy, $this->options['taxonomy']) && $this->current_language->ID != $this->options['main']) {
+		if ($this->is_taxonomy_translatable($term->taxonomy) && $this->is_sub()) {
 		
 			return $this->translate_term_field($term, $term->taxonomy, $this->current_language->ID, 'name', $name);
 			
@@ -1266,7 +1864,7 @@ class Sublanguage_main {
 	public function filter_single_term_title($title) {
 		$term = get_queried_object();
 		
-		if (isset($term->taxonomy) && in_array($term->taxonomy, $this->options['taxonomy']) && $this->current_language->ID != $this->options['main']) {
+		if ($this->is_taxonomy_translatable($term->taxonomy) && $this->is_sub()) {
 		
 			return $this->translate_term_field($term, $term->taxonomy, $this->current_language->ID, 'name', $title);
 		
@@ -1284,10 +1882,20 @@ class Sublanguage_main {
 	 */
 	public function translate_post_terms($terms, $post_id, $taxonomy) {
 		
-		foreach ($terms as $term) {
+		if ($this->is_sub() && $this->is_taxonomy_translatable($taxonomy)) {
 		
-			$this->translate_term($term, $this->current_language);
+			foreach ($terms as $term) {
 		
+				$this->translate_term($term, $this->current_language);
+		
+			}
+			
+			if ($this->has_taxonomy_terms_order($taxonomy)) { // -> added in 1.4.6
+			
+				usort($terms, array($this, 'sort_terms'));
+			
+			}
+			
 		}
 		
 		return $terms;
@@ -1302,7 +1910,11 @@ class Sublanguage_main {
 	 */		
 	public function translate_get_term($term, $taxonomy) {
 		
-		$this->translate_term($term, $this->current_language);
+		if ($this->is_sub() && $this->is_taxonomy_translatable($taxonomy)) {
+		
+			$this->translate_term($term, $this->current_language);
+			
+		}
 		
 		return $term;
 		
@@ -1316,26 +1928,61 @@ class Sublanguage_main {
 	 */		
 	public function translate_get_terms($terms, $taxonomies, $args) {
 		
-		if (isset($args['fields']) && $args['fields'] == 'names') { // -> Added in 1.4.4
+		if ($this->is_sub() && $this->filter_translatable_taxonomies($taxonomies)) {
 			
-			$terms = array(); // -> restart query
+			if (isset($args['fields']) && $args['fields'] == 'names') { // -> Added in 1.4.4
+		
+				$terms = array(); // -> restart query
+		
+				unset($args['fields']);
+		
+				$results = get_terms($taxonomies, $args);
+		
+				foreach ($results as $term) {
 			
-			unset($args['fields']);
-			
-			$results = get_terms($taxonomies, $args);
-			
-			foreach ($results as $term) {
+					$terms[] = $this->translate_term_field($term, $term->taxonomy, $this->current_language->ID, 'name', $term->name);
+		
+				}
+		
+				return $terms;
+			}
+	
+			if (empty($args['fields']) || $args['fields'] == 'all' || $args['fields'] == 'all_with_object_id') { // -> $terms may be an array of ids !
+		
+				$this->enqueue_terms($terms, $this->current_language->ID);
+		
+				foreach ($terms as $term) {
+		
+					$this->translate_term($term, $this->current_language);
 				
-				$terms[] = $this->translate_term_field($term, $term->taxonomy, $this->current_language->ID, 'name', $term->name);
+				}
 			
 			}
 			
-			return $terms;
 		}
 		
-		foreach ($terms as $term) {
+		return $terms;
+	}
+
+	/**
+	 * Register terms order for queried taxonomies
+	 * 
+	 * filter for 'get_terms'
+	 *
+	 * @from 1.4.6
+	 */		
+	public function register_taxonomy_terms_order($terms, $taxonomies, $args) {
+		
+		if ($this->is_sub() && isset($args['orderby']) && in_array($args['orderby'], array('name', 'slug', 'description'))) {
 			
-			$this->translate_term($term, $this->current_language);
+			foreach ($this->filter_translatable_taxonomies($taxonomies) as $taxonomy) {
+				
+				$this->term_sort_cache[$taxonomy] = array(
+					'order' => (empty($args['order']) || $args['order'] == 'ASC' ? 1 : -1),
+					'orderby' => $args['orderby']
+				);
+				
+			}
 			
 		}
 		
@@ -1343,6 +1990,53 @@ class Sublanguage_main {
 		
 	}
 
+	/**
+	 * Check if taxonomies have registered terms order
+	 * 
+	 * @params string|array $taxonomies. Taxonomy or taxonomies.
+	 * @return boolean.
+	 *
+	 * @from 1.4.6
+	 */		
+	public function has_taxonomy_terms_order($taxonomies) {
+		
+		if (!is_array($taxonomies)) {
+				
+			$taxonomies = array($taxonomies);
+			 
+		}
+		
+		foreach ($taxonomies as $taxonomy) {
+			
+			if (empty($this->term_sort_cache[$taxonomy])) {
+				
+				return false;
+			
+			}
+			
+		}
+			
+		return true;
+	}
+	
+	/**
+	 * Sort by translated value
+	 * Callback for usort function
+	 *
+	 * @from 1.4.6
+	 *
+	 * @param object WP_Term $term
+	 */
+	public function sort_terms($term_a, $term_b) {
+		
+		return strcasecmp(
+			$term_a->{$this->term_sort_cache[$term_a->taxonomy]['orderby']}, 
+			$term_b->{$this->term_sort_cache[$term_b->taxonomy]['orderby']}
+		)*$this->term_sort_cache[$term_a->taxonomy]['order'];
+		
+	}
+	 
+	 
 
 	/**
 	 *	Translate tag cloud
@@ -1351,9 +2045,13 @@ class Sublanguage_main {
 	 */
 	public function translate_tag_cloud($tags, $args) {
 		
-		foreach ($tags as $term) {
+		if ($this->is_sub()) {
+		
+			foreach ($tags as $term) {
 			
-			$this->translate_term($term, $this->current_language);
+				$this->translate_term($term, $this->current_language);
+			
+			}
 			
 		}
 		
@@ -1368,7 +2066,7 @@ class Sublanguage_main {
 	 */
 	public function translate_term($term, $language) {
 		
-		if (isset($term->taxonomy) && in_array($term->taxonomy, $this->options['taxonomy']) && $language->ID != $this->options['main']) {
+		if ($this->is_taxonomy_translatable($term->taxonomy) && $this->is_sub($language->ID)) {
 		
 			$term->name = $this->translate_term_field($term, $term->taxonomy, $language->ID, 'name', $term->name);
 			$term->slug = $this->translate_term_field($term, $term->taxonomy, $language->ID, 'slug', $term->slug);
@@ -1380,25 +2078,17 @@ class Sublanguage_main {
 	
 	/**
 	 *	Enqueue terms for translation as they are queried
-	 *	Filter for 'wp_get_object_terms', 'get_terms'
+	 *	Filter for 'get_object_terms'
 	 *
-	 * @from 1.0
+	 * @from 1.4.5
 	 */
-	public function filter_get_terms($terms) {
+	public function filter_get_object_terms($terms, $object_ids, $taxonomies, $args) {	
 		
-		$ids = array();
-		
-		foreach ($terms as $term) {
+		$this->register_taxonomy_terms_order($terms, $taxonomies, $args);
 			
-			if (isset($term->term_id)) $ids[] = $term->term_id;
-		
-		}
-		
-		$this->enqueue_terms($ids, $this->current_language->ID);
-		
-		return $terms;
-	}  
-
+		return $this->translate_get_terms($terms, $taxonomies, $args);
+			
+	}
 	
 	/**
 	 *	allow filters on menu get_posts
@@ -1406,14 +2096,14 @@ class Sublanguage_main {
 	 */
 	public function allow_filters(&$query) {
 		
-		if (isset($query->query_vars['post_type']) && in_array($query->query_vars['post_type'], $this->options['cpt'])) {
+		if (isset($query->query_vars['post_type']) && in_array($query->query_vars['post_type'], $this->get_post_types())) {
 		
 			$query->query_vars['suppress_filters'] = false;
 		
 		}
 		
 	}
-	
+
 	/**
 	 *	Append language slug to home url 
 	 *	Filter for 'home_url'
@@ -1423,8 +2113,9 @@ class Sublanguage_main {
 	public function translate_home_url($url, $path, $orig_scheme, $blog_id) {
 		
 		if (!$this->disable_translate_home_url
-			&& isset($this->current_language->ID) 
-			&& ($this->options['show_slug'] || $this->current_language->ID != $this->options['default'])) {
+			&& isset($this->current_language->post_name) 
+			&& $this->get_option('default')
+			&& ($this->get_option('show_slug') || !$this->is_default())) {
 			
 			if (get_option('permalink_structure')) {
 			
@@ -1450,7 +2141,7 @@ class Sublanguage_main {
 	 */
 	public function pre_translate_permalink($permalink, $post, $leavename) {
 		
-		if ($this->current_language->ID != $this->options['main']) {
+		if ($this->is_sub()) {
 		
 			$permalink = str_replace('%postname%', '%translated_postname%', $permalink);
 			$permalink = str_replace('%pagename%', '%translated_postname%', $permalink);
@@ -1481,7 +2172,7 @@ class Sublanguage_main {
 	 */
 	public function translate_permalink($permalink, $post, $leavename) {
 		
-		if ($this->current_language->ID != $this->options['main']) {
+		if ($this->is_sub()) {
 			
 			$translated_name = $this->translate_post_field($post->ID, $this->current_language->ID, 'post_name', $post->post_name);
 		
@@ -1502,7 +2193,7 @@ class Sublanguage_main {
 	 */
 	public function translate_page_link($link, $post_id, $sample = false) {
 		
-		if (!$sample && $this->current_language->ID != $this->options['main'] && in_array('page', $this->options['cpt'])) {
+		if (!$sample && $this->is_sub() && in_array('page', $this->get_post_types())) {
 		
 			$original = get_post($post_id);
 			
@@ -1536,11 +2227,11 @@ class Sublanguage_main {
 	 */
 	public function translate_custom_post_link($link, $post_id, $sample = false) {
 		
-		if (!$sample && $this->current_language->ID != $this->options['main']) {
+		if (!$sample && $this->is_sub()) {
 			
 			$post = get_post($post_id);
 			
-			if (in_array($post->post_type, $this->options['cpt'])) {
+			if (in_array($post->post_type, $this->get_post_types())) {
 			
 				// translate post type
 				
@@ -1586,7 +2277,7 @@ class Sublanguage_main {
 	public function translate_attachment_link($link, $post_id) {
 		global $wp_rewrite;
  		
- 		if ($this->current_language->ID != $this->options['main']) {
+ 		if ($this->is_sub()) {
  		
 			$link = trailingslashit($link);
 			$post = get_post( $post_id );
@@ -1625,11 +2316,11 @@ class Sublanguage_main {
 	 */
 	public function translate_edit_post_link($url, $post_id, $context) {
 		
-		if ($this->current_language->ID != $this->options['main']) {
+		if ($this->is_sub()) {
 		
 			$post = get_post($post_id);
 		
-			if (isset($post->post_type) && in_array($post->post_type, $this->options['cpt']) && $this->current_language->ID != $this->options['main']) {
+			if (isset($post->post_type) && in_array($post->post_type, $this->get_post_types()) && $this->is_sub()) {
 			
 				$url = add_query_arg(array($this->language_query_var => $this->current_language->post_name), $url);
 			
@@ -1662,7 +2353,7 @@ class Sublanguage_main {
 	 */
 	public function translate_term_link($termlink, $term, $taxonomy) {
 		
-		if ($this->current_language->ID != $this->options['main']) {
+		if ($this->is_sub()) {
 		
 			$termlink = $this->get_term_link($term, $this->current_language->ID);
 		
@@ -1735,7 +2426,7 @@ class Sublanguage_main {
 	function translate_post_type_archive_link($link, $post_type) {
 		global $wp_rewrite;
     	
-		if ($this->current_language->ID != $this->options['main'] && in_array($post_type, $this->options['cpt'])) {
+		if ($this->is_sub() && in_array($post_type, $this->get_post_types())) {
     
 			$translated_cpt = $this->translate_cpt($post_type, $this->current_language->ID, $post_type);
 			
@@ -1762,27 +2453,67 @@ class Sublanguage_main {
 	 */
 	public function translate_meta_data($null, $object_id, $meta_key, $single) {
 		
+		if ($this->disable_postmeta_filter) return $null;
+		
 		/**
 		 *	Deprecated. Use 'sublanguage_register_postmeta_key' filter instead
 		 *
 		 * @from 1.0
 		 */
-		$translatable = in_array($meta_key, $this->postmeta_keys) || apply_filters('sublanguage_translatable_postmeta', false, $meta_key, $object_id);
+		$translatable = !$meta_key || in_array($meta_key, $this->postmeta_keys) || apply_filters('sublanguage_translatable_postmeta', false, $meta_key, $object_id);
 		
-		if ($translatable && $this->current_language->ID != $this->options['main']) {
+		if ($translatable && $this->is_sub()) {
 			
 			$object = get_post($object_id);
 			
-			
-			if (in_array($object->post_type, $this->options['cpt'])) {
-			
+			if (in_array($object->post_type, $this->get_post_types())) {
+				
 				$translation = $this->get_post_translation($object_id, $this->current_language->ID);
 				
 				if ($translation) {
-		
+					
+					if (!$meta_key) { // meta_key is not defined -> more work
+						
+						$this->disable_postmeta_filter = true;
+						
+						$meta_vals = get_post_meta($object_id);
+						
+						foreach ($meta_vals as $key => $val) {
+							
+							if (in_array($key, $this->postmeta_keys)) {
+							
+								$meta_val = get_post_meta($translation->ID, $key);
+																
+								/**
+								 * Filter whether an empty translation inherit original value
+								 *
+								 * @from 1.4.5
+								 *
+								 * @param mixed $meta_value
+								 * @param string $meta_key
+								 * @param int $object_id
+								 */	
+								if (apply_filters('sublanguage_postmeta_override', $meta_val, $key, $object_id)) {
+									
+									$meta_vals[$key] = $meta_val;
+									
+								}
+								
+							}
+							
+						}
+						
+						$this->disable_postmeta_filter = false;
+						
+						return $meta_vals;
+					}
+					
 					$meta_val = get_post_meta($translation->ID, $meta_key, $single);
 					
-					if ($meta_val !== '') {
+					/**
+					 * Documented just above
+					 */	
+					if (apply_filters('sublanguage_postmeta_override', $meta_val, $meta_key, $object_id)) {
 					
 						return $meta_val;
 						
@@ -1804,7 +2535,7 @@ class Sublanguage_main {
 	 */
 	public function translate_list_pages($title, $page) {
 		
-		if ($this->current_language->ID != $this->options['main']) {
+		if ($this->is_sub()) {
 		
 			return $this->translate_post_field($page->ID, $this->current_language->ID, 'post_title', $title);
 		
@@ -1812,31 +2543,6 @@ class Sublanguage_main {
 		
 		return $title;
 	}	
-	
-	/** 
-	 *	Get current language
-	 *
-	 * @from 1.0
-	 */
-	public function find_current_language() {
-
-		if (isset($_REQUEST[$this->language_query_var])) {
-			
-			$this->current_language = $this->get_language_by($_REQUEST[$this->language_query_var], 'post_name');
-			
-			if (!$this->current_language) {
-				
-				$this->current_language = $this->get_language_by($this->options['main'], 'ID');
-				
-			}
-			
-		} else {
-			
-			$this->current_language = $this->get_language_by($this->options['main'], 'ID');
-			
-		}
-	
-	}
 	
 	/**
 	 * Print javascript data for ajax
@@ -1846,28 +2552,30 @@ class Sublanguage_main {
 	 * @from 1.4
 	 */	
 	public function ajax_enqueue_scripts() {
-	
-		$languages = array();
-			
-		foreach($this->get_languages() as $language) {
-			
-			$languages[] = array(
-				'name' => $language->post_title,
-				'slug' => $language->post_name
-			);
-			
-		}
 		
 		$sublanguage = array(
-			'current' => $this->current_language->post_name,
-			'languages' => $languages,
+			'current' => $this->current_language ? $this->current_language->post_name : 0,
+			'languages' => array(),
 			'query_var' => $this->language_query_var
 		);
 		
+		$languages = $this->get_languages();
+		
+		if ($languages) {
+			
+			foreach($languages as $language) {
+			
+				$sublanguage['languages'][] = array(
+					'name' => $language->post_title,
+					'slug' => $language->post_name
+				);
+			
+			}
+			
+		}
+		
 		wp_register_script('sublanguage-ajax', plugin_dir_url( __FILE__ ) . 'include/js/ajax.js', array('jquery'), false, true);
-		
 		wp_localize_script('sublanguage-ajax', 'sublanguage', $sublanguage);
-		
 		wp_enqueue_script('sublanguage-ajax');
 		
 	}
@@ -1882,6 +2590,11 @@ class Sublanguage_main {
 		register_widget( 'Sublanguage_Widget' );
 		
 	}
+	
+
+	
+	
+	
 	
   
 }
@@ -1921,7 +2634,7 @@ class Sublanguage_Widget extends WP_Widget {
 			
 		}
 		
-		do_action('sublanguage_print_language_switch');
+		do_action('sublanguage_print_language_switch', 'widget');
 		
 		echo $args['after_widget'];
 	}

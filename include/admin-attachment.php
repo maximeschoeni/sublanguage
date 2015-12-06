@@ -11,7 +11,7 @@ class Sublanguage_admin_attachment {
 	public function __construct() {
 		global $sublanguage_admin;
 		
-		if (isset($sublanguage_admin->options['cpt']) && in_array('attachment', $sublanguage_admin->options['cpt'])) {
+		if (in_array('attachment', $sublanguage_admin->get_post_types())) {
 			
 			add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_scripts'));
 			
@@ -33,8 +33,9 @@ class Sublanguage_admin_attachment {
 	 * Enqueue Javascript (only on post pages)
 	 */	
 	 public function admin_enqueue_scripts($hook) {
+		global $sublanguage_admin;
 		
-		if ($hook == 'post.php' || $hook == 'post-new.php' || $hook == 'upload.php') {
+		if ($sublanguage_admin->current_language && ($hook == 'post.php' || $hook == 'post-new.php' || $hook == 'upload.php')) {
 		
 			wp_enqueue_media();
 		
@@ -148,9 +149,13 @@ class Sublanguage_admin_attachment {
 	public function add_caption($caption, $id) {	
 		global $sublanguage_admin;
 		
-		return $sublanguage_admin->translate_post_field($id, $sublanguage_admin->current_language->ID, 'post_excerpt', $caption);
+		if ($sublanguage_admin->current_language) {
 		
-
+			return $sublanguage_admin->translate_post_field($id, $sublanguage_admin->current_language->ID, 'post_excerpt', $caption);
+		
+		}
+		
+		return $caption;
 	}
 
 	/**

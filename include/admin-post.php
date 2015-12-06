@@ -39,7 +39,7 @@ class Sublanguage_admin_post {
 		
 		$current_screen = get_current_screen();
 		
-		if (isset($current_screen->post_type) && in_array($current_screen->post_type, $sublanguage_admin->options['cpt'])) {
+		if ($sublanguage_admin->current_language && isset($current_screen->post_type) && in_array($current_screen->post_type, $sublanguage_admin->get_post_types())) {
 
 			add_filter('editable_slug', array($this, 'translate_slug'));
 			
@@ -56,6 +56,7 @@ class Sublanguage_admin_post {
 			
 			add_action('pre_get_posts', array($this, 'translate_revisions'));
 			
+			add_filter('home_url', array($sublanguage_admin,'translate_home_url'), 10, 4);
 			
 		}
 		
@@ -118,7 +119,7 @@ class Sublanguage_admin_post {
 	public function edit_form($post) {
 		global $sublanguage_admin;
 		
-		if ($sublanguage_admin->current_language->ID != $sublanguage_admin->options['main']) {
+		if ($sublanguage_admin->is_sub()) {
 		
 			$this->translation = $sublanguage_admin->get_post_translation($post->ID, $sublanguage_admin->current_language->ID);
 			
@@ -150,7 +151,7 @@ class Sublanguage_admin_post {
 	public function get_translation($post_id) {
 		global $sublanguage_admin;
 			
-		if ($sublanguage_admin->current_language->ID != $sublanguage_admin->options['main']) {
+		if ($sublanguage_admin->is_sub()) {
 	
 			return $sublanguage_admin->get_post_translation($post_id, $sublanguage_admin->current_language->ID);
 	
@@ -285,7 +286,7 @@ class Sublanguage_admin_post {
 		
 		// can be either the current post name or ancestor for hierarchical posts
 		
-		if ($postname && $sublanguage_admin->current_language->ID != $sublanguage_admin->options['main']) {
+		if ($postname && $sublanguage_admin->is_sub()) {
 
 			$translation = $this->get_postname_translation($postname, $sublanguage_admin->current_language->ID);
 		
@@ -340,7 +341,7 @@ class Sublanguage_admin_post {
 		$options = get_option($sublanguage_admin->option_name);
 		$current_screen = get_current_screen();
 		
-		if (isset($current_screen->post_type) && in_array($current_screen->post_type, $options['cpt'])) {
+		if ($sublanguage_admin->current_language && isset($current_screen->post_type) && in_array($current_screen->post_type, $options['cpt'])) {
 			
 			// print switch
 			add_filter('views_'.$current_screen->id, array($this, 'table_views'));
@@ -477,7 +478,7 @@ class Sublanguage_admin_post {
 	public function title_placeholder($title, $post) {
 		global $sublanguage_admin;
 		
-		if ($sublanguage_admin->current_language->ID != $sublanguage_admin->options['main']) {
+		if ($sublanguage_admin->is_sub()) {
 			
 			return get_post($post->post_parent)->post_title;
 		

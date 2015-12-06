@@ -31,11 +31,11 @@ class Sublanguage_admin_editor_button {
 		
 		$current_screen = get_current_screen();
 		
-		if (isset($current_screen->post_type) && in_array($current_screen->post_type, $sublanguage_admin->options['cpt']) && isset($_GET['post'])) {
+		if (isset($current_screen->post_type) && in_array($current_screen->post_type, $sublanguage_admin->get_post_types()) && isset($_GET['post'])) {
 			
 			$post_id = intval($_GET['post']);
 			
-			$sublanguage_admin->enqueue_translation($post_id);
+			$sublanguage_admin->enqueue_post_id($post_id);
 			
 			add_action('admin_footer-post.php', array($this, 'print_javascript_post_translations'));
 			
@@ -51,7 +51,7 @@ class Sublanguage_admin_editor_button {
 		
 		$current_screen = get_current_screen();
 		
-		if (isset($current_screen->post_type) && in_array($current_screen->post_type, $sublanguage_admin->options['cpt']) && isset($_GET['post']) && current_user_can( 'edit_posts')) {
+		if (isset($current_screen->post_type) && in_array($current_screen->post_type, $sublanguage_admin->get_post_types()) && isset($_GET['post']) && current_user_can( 'edit_posts')) {
 
 			add_filter('mce_buttons', array($this, 'register_tinymce_button'));
 			add_filter('mce_external_plugins', array($this, 'add_tinymce_button'));
@@ -151,7 +151,7 @@ class Sublanguage_admin_editor_button {
 		
 		foreach ($translations as $translation) {
 			
-			$sublanguage_admin->enqueue_translation($post_id, $translation['lng']);
+			$sublanguage_admin->enqueue_post_id($post_id, $translation['lng']);
 		
 		}
 		

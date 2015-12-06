@@ -110,7 +110,7 @@ class Sublanguage_permalink {
 						
 						if (($type == 'taxonomy' || $type == 'cpt') 
 							&& $sublanguage_admin->get_language_by($language_id, 'ID') !== false
-							&& in_array($original, $sublanguage_admin->options[$type])) {
+							&& in_array($original, $sublanguage_admin->get_option($type, array()))) {
 								
 							$translations[$type][$language_id][$original] = sanitize_title($translation);
 								
@@ -135,52 +135,48 @@ class Sublanguage_permalink {
 	 */
 	public function print_taxonomy_translation_form() {
 		global $sublanguage_admin;
-		
-		if (isset($sublanguage_admin->options['taxonomy']) && $sublanguage_admin->options['taxonomy']) {
-			
-			foreach ($sublanguage_admin->options['taxonomy'] as $taxonomy_name) {
-			
-				$taxonomy = get_taxonomy($taxonomy_name);
-				
-				if (isset($taxonomy) && $taxonomy->rewrite) {
-				
-					add_settings_section(
-						'sublanguage_taxis_section', 
-						__('Translate taxonomies', 'sublanguage'), 
-						array($this, 'add_taxonomy_section'), 
-						'permalink' 
-					);
 					
-					break;
-				}
+		foreach ($sublanguage_admin->get_taxonomies() as $taxonomy_name) {
+		
+			$taxonomy = get_taxonomy($taxonomy_name);
+			
+			if (isset($taxonomy->rewrite) && $taxonomy->rewrite) {
+			
+				add_settings_section(
+					'sublanguage_taxis_section', 
+					__('Translate taxonomies', 'sublanguage'), 
+					array($this, 'add_taxonomy_section'), 
+					'permalink' 
+				);
 				
+				break;
 			}
 			
-			foreach ($sublanguage_admin->options['taxonomy'] as $taxonomy_name) {
+		}
+		
+		foreach ($sublanguage_admin->get_taxonomies() as $taxonomy_name) {
+		
+			$taxonomy = get_taxonomy($taxonomy_name);
 			
-				$taxonomy = get_taxonomy($taxonomy_name);
-				
-				if (isset($taxonomy) && $taxonomy->rewrite) {
-				
-					add_settings_field( 
-						'sublanguage_'.$taxonomy_name, 
-						isset($taxonomy->labels->name) ? $taxonomy->labels->name : $taxonomy_name, 
-						array($this, 'add_field'), 
-						'permalink', 
-						'sublanguage_taxis_section', 
-						array(
-							'name' => $taxonomy_name, 
-							'slug' => $taxonomy->rewrite['slug'],
-							'type' => 'taxonomy'
-						) 
-					);
-					
-				}
+			if (isset($taxonomy->rewrite) && $taxonomy->rewrite) {
 			
+				add_settings_field( 
+					'sublanguage_'.$taxonomy_name, 
+					isset($taxonomy->labels->name) ? $taxonomy->labels->name : $taxonomy_name, 
+					array($this, 'add_field'), 
+					'permalink', 
+					'sublanguage_taxis_section', 
+					array(
+						'name' => $taxonomy_name, 
+						'slug' => $taxonomy->rewrite['slug'],
+						'type' => 'taxonomy'
+					) 
+				);
+				
 			}
 		
 		}
-		
+				
 	}
 
 
@@ -191,52 +187,48 @@ class Sublanguage_permalink {
 	 */
 	function print_cpt_translation_form() {
 		global $sublanguage_admin;
+					
+		foreach ($sublanguage_admin->get_post_types() as $cpt_name) {
 		
-		if (isset($sublanguage_admin->options['cpt']) && $sublanguage_admin->options['cpt']) {
-			
-			foreach ($sublanguage_admin->options['cpt'] as $cpt_name) {
-			
-				$cpt = get_post_type_object($cpt_name);
-					
-				if (isset($cpt) && $cpt->rewrite) {
+			$cpt = get_post_type_object($cpt_name);
 				
-					add_settings_section(
-						'sublanguage_cpt_section', 
-						__('Translate Custom Post Types', 'sublanguage'), 
-						array($this, 'add_cpt_section'), 
-						'permalink' 
-					);
-					break;
-					
-				}
+			if (isset($cpt) && $cpt->rewrite) {
 			
+				add_settings_section(
+					'sublanguage_cpt_section', 
+					__('Translate Custom Post Types', 'sublanguage'), 
+					array($this, 'add_cpt_section'), 
+					'permalink' 
+				);
+				break;
+				
 			}
 		
-			foreach ($sublanguage_admin->options['cpt'] as $cpt_name) {
+		}
+	
+		foreach ($sublanguage_admin->get_post_types() as $cpt_name) {
+		
+			$cpt = get_post_type_object($cpt_name);
 			
-				$cpt = get_post_type_object($cpt_name);
-				
-				if (isset($cpt) && $cpt->rewrite) {
-				
-					add_settings_field( 
-						'sublanguage_'.$cpt_name, 
-						isset($cpt->labels->name) ? $cpt->labels->name : $cpt_name, 
-						array($this, 'add_field'), 
-						'permalink', 
-						'sublanguage_cpt_section', 
-						array(
-							'name' => $cpt_name, 
-							'slug' => $cpt->rewrite['slug'],
-							'type' => 'cpt'
-						) 
-					);
-					
-				}
+			if (isset($cpt) && $cpt->rewrite) {
+			
+				add_settings_field( 
+					'sublanguage_'.$cpt_name, 
+					isset($cpt->labels->name) ? $cpt->labels->name : $cpt_name, 
+					array($this, 'add_field'), 
+					'permalink', 
+					'sublanguage_cpt_section', 
+					array(
+						'name' => $cpt_name, 
+						'slug' => $cpt->rewrite['slug'],
+						'type' => 'cpt'
+					) 
+				);
 				
 			}
 			
 		}
-		
+					
 	}
 
 	
@@ -322,7 +314,7 @@ class Sublanguage_permalink {
 				
 					$taxonomy_obj = get_taxonomy($original);
 				
-					if (in_array($original, $sublanguage_admin->options['taxonomy']) 
+					if (in_array($original, $sublanguage_admin->get_taxonomies()) 
 						&& isset($taxonomy_obj->query_var, $taxonomy_obj->rewrite) 
 						&& $taxonomy_obj->rewrite) {
 						

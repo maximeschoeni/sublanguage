@@ -231,7 +231,7 @@ class Sublanguage_languages {
 		
 		if ($data['post_type'] == $sublanguage_admin->language_post_type) {
 			
-			if (isset($_POST['language_locale_dropdown']) && $_POST['language_locale_dropdown']) {
+			if (isset($_POST['language_locale_dropdown'])) {
 				
 				require_once( ABSPATH . 'wp-admin/includes/translation-install.php' );
 				
@@ -244,6 +244,10 @@ class Sublanguage_languages {
 					
 					$data['post_title'] = $translations[$locale]['native_name'];
 				
+				} else { // -> added in 1.4.7
+					
+					$data['post_title'] = 'English';
+					
 				}
 				
 				if (isset($translations[$locale]['iso'])) {
@@ -255,6 +259,10 @@ class Sublanguage_languages {
 					}
 					
 					$data['post_name'] = $translations[$locale]['iso'];
+					
+				} else { // -> added in 1.4.7
+					
+					$data['post_name'] = 'en';
 					
 				}
 				
@@ -306,7 +314,7 @@ class Sublanguage_languages {
 				}
 				
 				
-				// save settings
+				// save language settings
 				
 				if (isset($_POST['language_settings_nonce']) 
 					&& wp_verify_nonce($_POST['language_settings_nonce'], 'language_settings_action')) {
@@ -317,6 +325,28 @@ class Sublanguage_languages {
 						
 					}
 					
+				}
+				
+				// verify settings -> added in 1.4.7
+				
+				if ($post->post_status == "trash" && $sublanguage_admin->is_main($post_id)) {
+					
+					$options = get_option($sublanguage_admin->option_name);
+					
+					$next_language = $this->get_valid_language($post_id);
+					
+					$options['main'] = $next_language ? $next_language->ID : false;
+					
+					update_option($sublanguage_admin->option_name, $options);
+					
+				} else if (!$sublanguage_admin->get_option('main')) {
+					
+					$options = get_option($sublanguage_admin->option_name);
+			
+					$options['main'] = $post_id;
+			
+					update_option($sublanguage_admin->option_name, $options);
+				
 				}
 								
 			}
@@ -431,6 +461,23 @@ class Sublanguage_languages {
 		}
 		
 		return $hidden;
+	}
+	
+	/**
+	 * find a language not in trash
+	 *
+	 * @from 1.4.7
+	 */
+	public function get_valid_language($except_post_id) {
+		global $sublanguage_admin;
+		
+		foreach ($sublanguage_admin->get_languages() as $language) {
+			
+			if ($language->post_status != 'trash' && $language->ID != $except_post_id) return $language;
+		
+		}
+		
+		return false;
 	}
 	
 	

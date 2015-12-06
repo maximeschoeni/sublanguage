@@ -49,7 +49,7 @@ class Sublanguage_hierarchical_pages {
 		global $sublanguage_admin;
 				
 		// only if post is hierarchical and translatable or translation
-		if ((in_array($post_after->post_type, $sublanguage_admin->options['cpt']) && is_post_type_hierarchical($post_after->post_type))
+		if ((in_array($post_after->post_type, $sublanguage_admin->get_post_types()) && is_post_type_hierarchical($post_after->post_type))
 			|| $sublanguage_admin->get_language_by_type($post_after->post_type) !== false) {
 			
 			// only if parent or name have changed
@@ -76,7 +76,7 @@ class Sublanguage_hierarchical_pages {
 		
 		$post = get_post($post_id);
 		
-		if (in_array($post->post_type, $sublanguage_admin->options['cpt'])) {
+		if (in_array($post->post_type, $sublanguage_admin->get_post_types())) {
 		
 			add_action('after_delete_post', array($this, 'after_delete_post'));
 		
@@ -141,7 +141,7 @@ class Sublanguage_hierarchical_pages {
 					
 					} else {
 					
-						$post_type_slug = $sublanguage_admin->get_cpt_translation($post_type, $sublanguage_admin->options['main']);
+						$post_type_slug = $sublanguage_admin->get_cpt_translation($post_type, $sublanguage_admin->get_option('main'));
 					
 						$path = $post_type_slug.'/';
 
@@ -179,7 +179,7 @@ class Sublanguage_hierarchical_pages {
 					
 					foreach ($languages as $language) {
 				
-						if ($language->ID != $sublanguage_admin->options['main']
+						if ($sublanguage_admin->is_sub($language->ID)
 							&& $sublanguage_admin->get_post_translation($node->page->ID, $language->ID) !== false) {
 				
 							if ($post_type == 'page') {
@@ -243,7 +243,7 @@ class Sublanguage_hierarchical_pages {
 				
 		$hierarchical_post_types = array();
 		
-		foreach ($sublanguage_admin->options['cpt'] as $post_type) {
+		foreach ($sublanguage_admin->get_post_types() as $post_type) {
 		
 			$obj = get_post_type_object($post_type);
 			

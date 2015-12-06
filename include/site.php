@@ -18,14 +18,41 @@ class Sublanguage_site extends Sublanguage_main {
 	 */
 	public function __construct() {
 		
-		parent::__construct();
-		
 		$this->detect_language();
 		
-		// Public API for ajax
-		add_action('sublanguage_prepare_ajax', array($this, 'ajax_enqueue_scripts'));
-				
-		add_action('init', array($this, 'init'));
+		add_action( 'plugins_loaded', array($this, 'load'));
+		
+	}
+	
+	/**
+	 * @from 1.4.7
+	 */
+	public function load() {
+		
+		if ($this->current_language) {
+			
+			if ($this->get_option('current_first')) {
+			
+				$this->set_current_language_first();
+		
+			}
+			
+			parent::load();
+			
+			add_filter('the_content', array($this, 'translate_post_content'), 9);
+			add_filter('the_title', array($this, 'translate_post_title'), 10, 2);
+			add_filter('get_the_excerpt', array($this, 'translate_post_excerpt'), 9);
+			add_filter('single_post_title', array($this, 'translate_single_post_title'), 10, 2);
+			add_filter('get_post_metadata', array($this, 'translate_meta_data'), 10, 4);
+			add_filter('wp_setup_nav_menu_item', array($this, 'translate_menu_nav_item'));
+			
+			add_filter('tag_cloud_sort', array($this,'translate_tag_cloud'), 10, 2);
+			add_action('parse_query', array($this, 'allow_filters')); // allow filters on menu get_posts
+			add_action('sublanguage_prepare_ajax', array($this, 'ajax_enqueue_scripts'));
+			
+			add_action('init', array($this, 'init'));
+			
+		}
 		
 	}
 
@@ -33,38 +60,6 @@ class Sublanguage_site extends Sublanguage_main {
 	 * @from 1.0
 	 */	
 	public function init() {
-		
-		add_action('parse_query', array($this, 'allow_filters')); // allow filters on menu get_posts
-		add_filter('the_posts', array($this, 'translate_the_posts'), 10, 2);
-		
-		add_filter('get_term', array($this, 'translate_get_term'), 10, 2); // hard translate term
-		
-		add_filter('the_content', array($this, 'translate_post_content'), 9);
-		add_filter('the_title', array($this, 'translate_post_title'), 10, 2);
-		add_filter('get_the_excerpt', array($this, 'translate_post_excerpt'), 9);
-		add_filter('single_post_title', array($this, 'translate_single_post_title'), 10, 2);
-		add_filter('get_post_metadata', array($this, 'translate_meta_data'), 10, 4);
-		add_filter('wp_setup_nav_menu_item', array($this, 'translate_menu_nav_item'));
-		add_filter('list_cats', array($this, 'translate_term_name'), 10, 2);
-		add_filter('get_the_terms', array($this, 'translate_post_terms'), 10, 3);
-		add_filter('get_terms', array($this, 'translate_get_terms'), 10, 3);
-		add_filter('tag_cloud_sort', array($this,'translate_tag_cloud'), 10, 2);
- 		add_filter('home_url', array($this,'translate_home_url'), 10, 4);
-		
-		// SEARCH
-		add_filter('posts_search', array($this, 'posts_search'), null, 2);
-		
-		// API
-		add_action('sublanguage_print_language_switch', array($this, 'print_language_switch'));
-		add_filter('sublanguage_custom_translate', array($this, 'custom_translate'), null, 3);
-		add_action('sublanguage_load_admin', array($this, 'load_admin'));
-		do_action('sublanguage_init', $this);
-		
-		if ($this->options['current_first']) {
-			
-			$this->set_current_language_first();
-		
-		}
 		
 		if (get_option('permalink_structure')) {
 		
@@ -100,7 +95,20 @@ class Sublanguage_site extends Sublanguage_main {
  			add_action('wp', array($this, 'redirect_uncanonical'), 11);
 			
 		}
-
+		
+		// link filters
+		add_filter('home_url', array($this,'translate_home_url'), 10, 4);
+		add_filter('pre_post_link', array($this, 'pre_translate_permalink'), 10, 3);
+		add_filter('post_link', array($this, 'translate_permalink'), 10, 3);
+		add_filter('page_link', array($this, 'translate_page_link'), 10, 3);
+		add_filter('post_type_link', array($this, 'translate_custom_post_link'), 10, 3);
+		add_filter('attachment_link', array($this, 'translate_attachment_link'), 10, 2);
+		add_filter('post_link_category', array($this, 'translate_post_link_category'), 10, 3); // not implemented yet
+		add_filter('post_type_archive_link', array($this, 'translate_post_type_archive_link'), 10, 2);
+		add_filter('term_link', array($this, 'translate_term_link'), 10, 3);
+		add_filter('year_link', array($this,'translate_month_link'));
+		add_filter('month_link', array($this,'translate_month_link'));
+		add_filter('day_link', array($this,'translate_month_link'));
 		
 		// login	
 		add_filter('login_url', array($this, 'translate_login_url'));
@@ -115,25 +123,28 @@ class Sublanguage_site extends Sublanguage_main {
 		add_filter('lostpassword_redirect', array($this, 'lostpassword_redirect'));
 		add_filter('registration_redirect', array($this, 'registration_redirect'));
 		
+		// print hreflang in template head
+		add_action('wp_head', array($this, 'print_hreflang')); // -> added in 1.4.5
+		
+		// API
+		add_action('sublanguage_print_language_switch', array($this, 'print_language_switch'));
+		add_filter('sublanguage_custom_translate', array($this, 'custom_translate'), 10, 3);
+		add_action('sublanguage_load_admin', array($this, 'load_admin')); // -> DEPRECATED
+		
+		/**
+		 * Hook called after initializing most hooks and filters
+		 *
+		 * @from 1.2
+		 *
+		 * @param Sublanguage_site object
+		 */	
+		do_action('sublanguage_init', $this);
 		
 	}
 	
-// 	/**
-// 	 * Public hook when plugin loads. Sublanguage API
-// 	 *
-// 	 * Hook for 'plugins_loaded'
-// 	 *
-// 	 * @from 1.0
-// 	 */	
-// 	public function load() {
-// 		
-// 		do_action('sublanguage_load', $this);
-// 	
-// 	}
-
-
-
 	/**
+	 * DEPRECATED
+	 *
 	 * Start admin session (if admin functions needed on frontend). Sublanguage API
 	 *
 	 * Hook for 'sublanguage_load_admin'
@@ -153,8 +164,6 @@ class Sublanguage_site extends Sublanguage_main {
 		}
 	
 	}
-
-
 		
 	/**
 	 * Custom translation. Sublanguage API
@@ -165,14 +174,17 @@ class Sublanguage_site extends Sublanguage_main {
 	 */	
 	public function custom_translate($content, $callback, $args = null) {
 		
-		return call_user_func($callback, $content, $this->current_language, $this, $args); 
-	
+		if ($this->current_language) {
+			
+			return call_user_func($callback, $content, $this->current_language, $this, $args); 
+		
+		}
+		
+		return $content;
 	}
 	
-
 	/**
 	 * Figure out the language. To be called as soon as possible.
-	 * Filter for 'plugins_loaded'
 	 *
 	 * @from 1.0
 	 */
@@ -194,7 +206,7 @@ class Sublanguage_site extends Sublanguage_main {
 		
 				$this->current_language = $this->get_language_by($matches[1], 'post_name');
 
-				if ($this->current_language->ID == $this->options['default'] && !$this->options['show_slug']) {
+				if ($this->is_default() && !$this->get_option('show_slug')) {
 					
 					$this->canonical = false;
 				
@@ -202,15 +214,15 @@ class Sublanguage_site extends Sublanguage_main {
 			
 			} else {
 		
-				$this->current_language = $this->get_language_by($this->options['default'], 'ID');
+				$this->current_language = $this->get_default_language();
 			
-				if ($this->options['show_slug']) {
+				if ($this->get_option('show_slug')) {
 					
 					$this->canonical = false;
 				
 				} 
 				
-				if ($this->options['autodetect']) { // auto detect language on home page
+				if ($this->get_option('autodetect')) { // auto detect language on home page
 				
 					// detect only on home page? --> rtrim($_SERVER['SCRIPT_URI'], '/') == rtrim(home_url())
 					
@@ -228,13 +240,14 @@ class Sublanguage_site extends Sublanguage_main {
 		
 		} else {
 
-			$this->current_language = $this->get_language_by($this->options['default'], 'ID');
+			$this->current_language = $this->get_default_language();
 			
 		}
 		
 		add_filter('locale', array($this, 'get_locale'));
 		
 		/**
+		 * DEPRECATED. Use 'sublanguage_init' instead.
 		 * Filter current language
 		 *
 		 * @from 1.0
@@ -245,7 +258,7 @@ class Sublanguage_site extends Sublanguage_main {
 		$this->current_language = apply_filters('sublanguage_current_language', $this->current_language);
 		
 		// rtl
-		if (get_post_meta($this->current_language->ID, 'rtl', true)) {
+		if ($this->current_language && get_post_meta($this->current_language->ID, 'rtl', true)) {
 			
 			$GLOBALS['text_direction'] = 'rtl';
 			
@@ -258,58 +271,16 @@ class Sublanguage_site extends Sublanguage_main {
 	 *
 	 * @from 1.0
 	 */
-	public function get_locale() {
+	public function get_locale($locale) {
 		
-		return $this->current_language->post_content;
+		if ($this->current_language) {
 		
+			return $this->current_language->post_content;
+		
+		}
+		
+		return $locale;
 	}	
-	
-	
-	/** // -> to be moved in read-post
-	 *	Change SQL query for search
-	 *	Filter for 'posts_search'
-	 *
-	 * @from 1.0
-	 */
-	public function posts_search($where, $wp_query) {
-		global $wpdb;
-		
-		if (isset($wp_query->query_vars['s']) && $wp_query->query_vars['s'] && $this->current_language->ID != $this->options['main']) {
-			
-			$where = str_replace($wpdb->posts, 'translation', $where);
-			
-			add_filter('posts_join', array($this, 'post_join_for_search'), null, 2);
-			
-		}
-		
-		return $where;
-	}
-	
-
-	
-	/** // -> to be moved in read-post
-	 *	Append SQL join for search
-	 *	Filter for 'posts_join'
-	 *
-	 * @from 1.0
-	 */
-	public function post_join_for_search($join, $wp_query) {
-		global $wpdb;
-		
-		if (isset($wp_query->query_vars['s']) && $wp_query->query_vars['s'] && $this->current_language->ID != $this->options['main']) {
-			
-			$join .= $wpdb->prepare(" 
-				INNER JOIN $wpdb->posts AS translation ON (translation.post_parent = $wpdb->posts.id AND translation.post_type = %s) ",
-				$this->post_translation_prefix.$this->current_language->ID
-			);
-		
-		}
-		
-		return $join;
-	}
-	
- 	
-	
 	
 	/**
 	 *	Translate menu nav items
@@ -319,7 +290,7 @@ class Sublanguage_site extends Sublanguage_main {
 		
 		if ($menu_item->type == 'post_type') {
 			
-			if (in_array($menu_item->object, $this->options['cpt'])) {
+			if (in_array($menu_item->object, $this->get_post_types())) {
 				
 				$original_post = get_post($menu_item->object_id);
 				
@@ -335,7 +306,7 @@ class Sublanguage_site extends Sublanguage_main {
 			
 		} else if ($menu_item->type == 'taxonomy') {
 			
-			if (in_array($menu_item->object, $this->options['taxonomy'])) {
+			if (in_array($menu_item->object, $this->get_taxonomies())) {
 				
 				$original_term = get_term($menu_item->object_id, $menu_item->object);
 				
@@ -385,9 +356,11 @@ class Sublanguage_site extends Sublanguage_main {
 	/**
 	 * Print language switch
 	 *
+	 * hook for 'sublanguage_print_language_switch'
+	 *
 	 * @from 1.0
 	 */
-	public function print_language_switch() {
+	public function print_language_switch($context = null) {
 		
 		$languages = $this->get_languages();
 		
@@ -400,8 +373,9 @@ class Sublanguage_site extends Sublanguage_main {
 			 *
 			 * @param array of WP_Post language custom post
 			 * @param Sublanguage_site $this The Sublanguage instance.
+			 * @param mixed context
 			 */
-			do_action('sublanguage_custom_switch', $languages, $this);		
+			do_action_ref_array('sublanguage_custom_switch', array($languages, $this, $context));
 		
 		} else if (has_filter('sublanguage_language_switch') || has_action('sublanguage_custom_language_switch')) {
 			
@@ -440,11 +414,11 @@ class Sublanguage_site extends Sublanguage_main {
 			do_action('sublanguage_custom_language_switch', $language_objs);
 			
 		} else {
-		
+			
 			$output = '<ul>';
 			
 			foreach ($languages as $language) {
-				
+			
 				/**
 				 * Filter language name
 				 *
@@ -461,7 +435,7 @@ class Sublanguage_site extends Sublanguage_main {
 				);
 
 			}
-		
+	
 			$output .= '</ul>';
 			
 			echo $output;
@@ -470,8 +444,6 @@ class Sublanguage_site extends Sublanguage_main {
 		
 	}
 	
-	
-
 	/**
 	 * Intercept query_vars to find out type of query and get parent.
 	 * Must be fired before filters are set
@@ -490,7 +462,7 @@ class Sublanguage_site extends Sublanguage_main {
 			$post_name = $query_vars['nodepage'];
 			$post_types = array($post_type);
 			
-			if (in_array('attachment', $this->options['cpt'])) {
+			if (in_array('attachment', $this->get_post_types())) {
 				
 				array_push($post_types, 'attachment');
 				
@@ -532,7 +504,7 @@ class Sublanguage_site extends Sublanguage_main {
 					
 				}
 				
-				$this->enqueue_translation($post->ID);
+				$this->enqueue_post_id($post->ID);
 				
 			} else { // -> post not found
 				
@@ -545,7 +517,7 @@ class Sublanguage_site extends Sublanguage_main {
 			unset($query_vars['nodepage_parent']);
 			unset($query_vars['nodepage_type']);
 			
-		} else if (isset($query_vars['attachment']) && in_array('attachment', $this->options['cpt'])) { // -> attachment (this is a child of a "post" post-type)
+		} else if (isset($query_vars['attachment']) && in_array('attachment', $this->get_post_types())) { // -> attachment (this is a child of a "post" post-type)
 			
 			$post = $this->query_post($query_vars['attachment'], 'attachment');
 			
@@ -571,7 +543,7 @@ class Sublanguage_site extends Sublanguage_main {
 					$query_vars['post_type'] = $custom_type;
 					$query_vars['name'] = $post->post_name; 
 					
-					$this->enqueue_translation($post->ID);
+					$this->enqueue_post_id($post->ID);
 					
 				} else {
 					
@@ -602,7 +574,7 @@ class Sublanguage_site extends Sublanguage_main {
 		
 			$custom_type = $query_vars['post_type'];
 			
-			if (in_array($custom_type, $this->options['cpt'])) {
+			if (in_array($custom_type, $this->get_post_types())) {
 				
 				if (isset($query_vars[$custom_type])) { // -> single cpt (not an archive)
 					
@@ -613,13 +585,13 @@ class Sublanguage_site extends Sublanguage_main {
 						$query_vars[$custom_type] = $post->post_name;
 						$query_vars['name'] = $post->post_name; 
 						
-						$this->enqueue_translation($post->ID);
+						$this->enqueue_post_id($post->ID);
 	
 					} 
 					
 				} 
 				
-				if ($this->current_language->ID != $this->options['main'] 
+				if ($this->is_sub()
 					&& $this->get_cpt_translation($custom_type, $this->current_language->ID)) { // -> there is a custom cpt translation for this
 					
 					$this->canonical = false;
@@ -647,7 +619,7 @@ class Sublanguage_site extends Sublanguage_main {
 				
 				}
 			
-				$this->enqueue_translation($post->ID);
+				$this->enqueue_post_id($post->ID);
 			
 			} 
 			
@@ -678,7 +650,7 @@ class Sublanguage_site extends Sublanguage_main {
 					
 				}
 				
-				$this->enqueue_terms($term->term_id);
+				$this->enqueue_term_id($term->term_id);
 				
 			} else {
 				
@@ -711,7 +683,7 @@ class Sublanguage_site extends Sublanguage_main {
 			
 				}
 				
-				$this->enqueue_terms($term->term_id);
+				$this->enqueue_term_id($term->term_id);
 				
 			} else {
 				
@@ -724,7 +696,7 @@ class Sublanguage_site extends Sublanguage_main {
 			unset($query_vars['sub_tax_t']);
 			unset($query_vars['sub_tax_term']);
 			
-		} else if ($results = array_intersect(array_keys($query_vars), array_map(array($this, 'taxonomy_to_query_var'), $this->options['taxonomy']))) { // -> untranslated taxonomy
+		} else if ($results = array_intersect(array_keys($query_vars), array_map(array($this, 'taxonomy_to_query_var'), $this->get_taxonomies()))) { // -> untranslated taxonomy
 			
 			$tax_qv = '';
 			
@@ -752,7 +724,7 @@ class Sublanguage_site extends Sublanguage_main {
 			
 				}
 				
-				$this->enqueue_terms($term->term_id);
+				$this->enqueue_term_id($term->term_id);
 				
 			} else {
 				
@@ -760,7 +732,7 @@ class Sublanguage_site extends Sublanguage_main {
 			
 			}
 			
-		} else if (isset($query_vars['error']) && $query_vars['error'] == '404' && in_array('attachment', $this->options['cpt'])) { // -> maybe an attachment translation (if it is a child of a subpage)
+		} else if (isset($query_vars['error']) && $query_vars['error'] == '404' && in_array('attachment', $this->get_post_types())) { // -> maybe an attachment translation (if it is a child of a subpage)
 			
 			// ./wp-include/class-wp.php, line 213
 			// no attachment were found through get_page_by_path(), but there is no filter...
@@ -772,18 +744,6 @@ class Sublanguage_site extends Sublanguage_main {
 			$this->canonical = true;
 			
 		}
-		
-		add_filter('pre_post_link', array($this, 'pre_translate_permalink'), 10, 3);
-		add_filter('post_link', array($this, 'translate_permalink'), 10, 3);
-		add_filter('page_link', array($this, 'translate_page_link'), 10, 3);
-		add_filter('post_type_link', array($this, 'translate_custom_post_link'), 10, 3);
-		add_filter('attachment_link', array($this, 'translate_attachment_link'), 10, 2);
-		add_filter('post_link_category', array($this, 'translate_post_link_category'), 10, 3); // not implemented yet
-		add_filter('post_type_archive_link', array($this, 'translate_post_type_archive_link'), 10, 2);
-		add_filter('term_link', array($this, 'translate_term_link'), 10, 3);
-		add_filter('year_link', array($this,'translate_month_link'));
-		add_filter('month_link', array($this,'translate_month_link'));
-		add_filter('day_link', array($this,'translate_month_link'));
 		
 		return $query_vars;
 		
@@ -944,8 +904,6 @@ class Sublanguage_site extends Sublanguage_main {
 		}
 		
 	}
-
-
 	
 	/**
 	 *	Find original term based on query vars info.
@@ -993,7 +951,7 @@ class Sublanguage_site extends Sublanguage_main {
 				$term = $wpdb->get_row($wpdb->prepare(
 					"SELECT t.term_id, t.slug, tt.taxonomy, tt.parent FROM $wpdb->terms AS t 
 					INNER JOIN $wpdb->term_taxonomy AS tt ON t.term_id = tt.term_id 
-					WHERE tt.taxonomy = %s AND tt.term_taxonomy_id ".(count($translation_parents) === 1 ? '= '.$translation_parents[0] : 'IN ('.implode(',',$translation_parents).')'),
+					WHERE tt.taxonomy = %s AND t.term_id ".(count($translation_parents) === 1 ? '= '.$translation_parents[0] : 'IN ('.implode(',',$translation_parents).')'),
 					$taxonomy
 				));
 			
@@ -1034,7 +992,7 @@ class Sublanguage_site extends Sublanguage_main {
 
 				if ($lng->post_status == 'publish') {
 					
-					$taxonomies[] = $this->term_translation_prefix.$lng->ID;
+					$taxonomies[] = $this->term_translation_prefix.intval($lng->ID);
 				
 				}
 
@@ -1044,7 +1002,7 @@ class Sublanguage_site extends Sublanguage_main {
 			$term = $wpdb->get_row($wpdb->prepare(
 				"SELECT t.term_id, t.slug, tt.taxonomy, tt.parent FROM $wpdb->terms AS t 
 				INNER JOIN $wpdb->term_taxonomy AS tt ON t.term_id = tt.term_id
-				INNER JOIN $wpdb->term_taxonomy AS subtt ON tt.term_taxonomy_id = subtt.parent
+				INNER JOIN $wpdb->term_taxonomy AS subtt ON t.term_id = subtt.parent
 				INNER JOIN $wpdb->terms AS subt ON subt.term_id = subtt.term_id
 				WHERE subt.slug = %s AND tt.taxonomy = %s AND subtt.taxonomy IN ('".implode("','",$taxonomies)."')",		
 				$slug,
@@ -1083,8 +1041,7 @@ class Sublanguage_site extends Sublanguage_main {
 		return $login_url;
 		
 	}	
-
-
+	
 	/**
 	 * Add language input in login forms
 	 *
@@ -1097,7 +1054,6 @@ class Sublanguage_site extends Sublanguage_main {
 		echo '<input type="hidden" name="'.$this->language_query_var.'" value="'.$this->current_language->post_name.'"/>';
 
 	}
-	
 	
 	/**
 	 * Translate link in retrieve password message
@@ -1138,7 +1094,6 @@ class Sublanguage_site extends Sublanguage_main {
 	
 	}	
 	
-	
 	/**
 	 * Detect language
 	 *
@@ -1157,7 +1112,6 @@ class Sublanguage_site extends Sublanguage_main {
 		return false;
 		
 	}
-	
 	
 	/**
 	 * Get language link
@@ -1202,6 +1156,10 @@ class Sublanguage_site extends Sublanguage_main {
 		} else if (is_author()) {
 		
 			$link = get_author_posts_url(get_user_by('slug', get_query_var('author_name'))->ID);
+		
+		} else if (is_search()) {
+			
+			$link = get_search_link( get_search_query() );
 			
 		} else { // is_home, is_404
 		
@@ -1299,17 +1257,42 @@ class Sublanguage_site extends Sublanguage_main {
 						
 		}
     
-    return $this->languages_cache;
+		return $this->languages_cache;
     
-  }
-
+	}
+	
+	/**
+	 * Print hreflang
+	 *
+	 * Filter for 'wp_head'
+	 *
+	 * @from 1.4.5
+	 */
+	public function print_hreflang() {
+	
+		$languages = $this->get_languages();
+		
+		$output = '';
+		
+		foreach ($languages as $language) {
+		
+			$output .= sprintf('<link rel="alternate" href="%s" hreflang="%s" />',
+				$this->get_translation_link($language),
+				$language->post_content ? strtolower(str_replace('_', '-', $language->post_content)) : 'en'
+			);
+			
+		}
+		
+		echo $output;
+		
+	}
+	
 	
 }
 
-
-
-
-	
+/**
+ * DEPRECATED
+ */	
 class Sublanguage_language {
 	
 	var $slug = '';
@@ -1320,9 +1303,3 @@ class Sublanguage_language {
 	var $default = false;
 	
 }
-
-
-
-
-
-

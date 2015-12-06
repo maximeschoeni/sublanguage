@@ -127,8 +127,8 @@ class Sublanguage_settings {
 	function field_version($args) {
 		global $sublanguage_admin;
       	
-      	echo '<input type="hidden" name="'.$sublanguage_admin->option_name.'[version]" value="'.$sublanguage_admin->options['version'].'"/>';
-		echo '<p>'.$sublanguage_admin->options['version'].'</p>';
+      	echo '<input type="hidden" name="'.$sublanguage_admin->option_name.'[version]" value="'.$sublanguage_admin->get_option('version').'"/>';
+		echo '<p>'.$sublanguage_admin->get_option('version').'</p>';
 		
 	}
 		
@@ -146,7 +146,7 @@ class Sublanguage_settings {
 		
 			foreach ($taxonomies as $taxonomy) {
 				
-				$checked = isset($sublanguage_admin->options['taxonomy']) && in_array($taxonomy->name, $sublanguage_admin->options['taxonomy']) ? ' checked' : '';
+				$checked = in_array($taxonomy->name, $sublanguage_admin->get_taxonomies()) ? ' checked' : '';
 				
 				echo '<input type="checkbox" name="'.$sublanguage_admin->option_name.'[taxonomy][]" value="'.$taxonomy->name.'" id="'.$sublanguage_admin->option_name.'-taxi-'.$taxonomy->name.'"'.$checked.'/>
 					<label for="'.$sublanguage_admin->option_name.'-taxi-'.$taxonomy->name.'">'.(isset($taxonomy->labels->name) ? $taxonomy->labels->name : $taxonomy->name).'</label><br/>';
@@ -174,7 +174,7 @@ class Sublanguage_settings {
 		
 			foreach ($cpts as $post_type) {
 				
-				$checked = isset($sublanguage_admin->options['cpt']) && in_array($post_type->name, $sublanguage_admin->options['cpt']) ? ' checked' : '';
+				$checked = in_array($post_type->name, $sublanguage_admin->get_post_types()) ? ' checked' : '';
 				
 				echo '<input type="checkbox" id="'.$sublanguage_admin->option_name.'-cpt-'.$post_type->name.'" name="'.$sublanguage_admin->option_name.'[cpt][]" value="'.$post_type->name.'" '.$checked.'/>
 					<label for="'.$sublanguage_admin->option_name.'-cpt-'.$post_type->name.'">'.(isset($post_type->labels->name) ? $post_type->labels->name : $post_type->name).'</label><br/>';
@@ -194,20 +194,27 @@ class Sublanguage_settings {
 		global $sublanguage_admin;
     
 		$languages = $sublanguage_admin->get_languages();
-   	
-		$html = sprintf('<label><select name="%s[main]">', $sublanguage_admin->option_name);
+   		
+   		$html = '';
+   		
+   		if ($languages) {
+   		
+			$html .= sprintf('<label><select name="%s[main]">', $sublanguage_admin->option_name);
 		
-		foreach ($languages as $lng) {
+			foreach ($languages as $lng) {
 		
-			$html .= sprintf('<option value="%d"%s>%s</option>',
-				$lng->ID,
-				($lng->ID == $sublanguage_admin->options['main']) ? ' selected' : '',
-				$lng->post_title);
+				$html .= sprintf('<option value="%d"%s>%s</option>',
+					$lng->ID,
+					($sublanguage_admin->is_main($lng->ID)) ? ' selected' : '',
+					$lng->post_title);
 			
-		}
+			}
 		
-		$html .= '</select> ';
-		$html .= __('This is the langage that will be used if a translation is missing for a post.', 'sublanguage').'</label>';
+			$html .= '</select> ';
+			$html .= __('This is the langage that will be used if a translation is missing for a post.', 'sublanguage').'</label>';
+			
+		} 
+		
 		$html .= ' <a href="'.admin_url('edit.php?post_type='.$sublanguage_admin->language_post_type).'">'.__('Add language', 'sublanguage').'</a>';
 		
 		echo $html;
@@ -221,20 +228,26 @@ class Sublanguage_settings {
 		global $sublanguage_admin;
     
 		$languages = $sublanguage_admin->get_languages();
-   	
-		$html = '<label><select name="'.$sublanguage_admin->option_name.'[default]">';
+   		
+   		$html = '';
+   		
+   		if ($languages) {
+   		
+			$html .= '<label><select name="'.$sublanguage_admin->option_name.'[default]">';
 		
-		foreach ($languages as $lng) {
+			foreach ($languages as $lng) {
 		
-			$html .= sprintf('<option value="%d"%s>%s</option>',
-				$lng->ID,
-				($lng->ID == $sublanguage_admin->options['default']) ? ' selected' : '',
-				$lng->post_title);
+				$html .= sprintf('<option value="%d"%s>%s</option>',
+					$lng->ID,
+					($sublanguage_admin->is_default($lng->ID)) ? ' selected' : '',
+					$lng->post_title);
 			
-		}
+			}
 		
-		$html .= '</select> ';
-		$html .= __('This is the langage visitors will see when language is not specified in url.', 'sublanguage').'</label>';
+			$html .= '</select> ';
+			$html .= __('This is the langage visitors will see when language is not specified in url.', 'sublanguage').'</label>';
+		
+		}
 		
 		echo $html;
 		
@@ -248,7 +261,7 @@ class Sublanguage_settings {
        
 		echo sprintf('<label><input type="checkbox" name="%s" value="1"%s/>%s</label>', 
 			$sublanguage_admin->option_name.'[show_slug]',
-			isset($sublanguage_admin->options['show_slug']) && $sublanguage_admin->options['show_slug'] ? ' checked' : '',
+			$sublanguage_admin->get_option('show_slug') ? ' checked' : '',
 			__('Show language slug for main language in site url', 'sublanguage')
 		);
 		
@@ -263,7 +276,7 @@ class Sublanguage_settings {
        
 		echo sprintf('<label><input type="checkbox" name="%s" value="1"%s/>%s</label>', 
     	$sublanguage_admin->option_name.'[show_edit_lng]',
-			isset($sublanguage_admin->options['show_edit_lng']) && $sublanguage_admin->options['show_edit_lng'] ? ' checked' : '',
+			$sublanguage_admin->get_option('show_edit_lng') ? ' checked' : '',
 			__('Display current language in content and title fields when editing post.', 'sublanguage')
 		);
 		
@@ -277,7 +290,7 @@ class Sublanguage_settings {
        
 		echo sprintf('<label><input type="checkbox" name="%s" value="1"%s/>%s</label>', 
 			$sublanguage_admin->option_name.'[autodetect]',
-			isset($sublanguage_admin->options['autodetect']) && $sublanguage_admin->options['autodetect'] ? ' checked' : '',
+			$sublanguage_admin->get_option('autodetect') ? ' checked' : '',
 			__('Auto-detect language when language is not specified in url.', 'sublanguage')
 		);
 		
@@ -292,7 +305,7 @@ class Sublanguage_settings {
     	   
 		echo sprintf('<label><input type="checkbox" name="%s" value="1"%s/>%s</label>', 
 			$sublanguage_admin->option_name.'[current_first]',
-			isset($sublanguage_admin->options['current_first']) && $sublanguage_admin->options['current_first'] ? ' checked' : '',
+			$sublanguage_admin->get_option('current_first') ? ' checked' : '',
 			__('Set the current language to be the first in the language selectors.', 'sublanguage')
 		);
 		
@@ -326,8 +339,8 @@ class Sublanguage_settings {
 		$output['cpt'] = isset($input['cpt']) ? array_map('esc_attr', $input['cpt']) : array();
 		$output['taxonomy'] = isset($input['taxonomy']) ? array_map('esc_attr', $input['taxonomy']) : array();
 		$output['show_slug'] = (isset($input['show_slug']) && $input['show_slug']);
-		$output['main'] = isset($input['main']) && $input['main'] ? $input['main'] : $input['lng'][0]['id'];
-		$output['default'] = isset($input['default']) && $input['default'] ? $input['default'] : $input['lng'][0]['id'];
+		$output['main'] = isset($input['main']) && $input['main'] ? $input['main'] : 0;
+		$output['default'] = isset($input['default']) && $input['default'] ? $input['default'] : 0;
 		$output['autodetect'] = (isset($input['autodetect']) && $input['autodetect']);
 		$output['current_first'] = (isset($input['current_first']) && $input['current_first']);
 		$output['version'] = isset($input['version']) ? esc_attr($input['version']) : '-';

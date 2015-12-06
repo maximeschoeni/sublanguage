@@ -41,7 +41,7 @@ class Sublanguage_terms extends Sublanguage_admin_post {
 		
 		$languages = $sublanguage_admin->get_languages();
 		
-		$sublanguage_admin->enqueue_terms($tag->term_id);
+		$sublanguage_admin->enqueue_term_id($tag->term_id);
 	
 ?>
 <tr>
@@ -51,7 +51,7 @@ class Sublanguage_terms extends Sublanguage_admin_post {
 <?php foreach ($languages as $language) { ?>
 	<?php 
 				
-		if ($language->ID == $sublanguage_admin->options['main']) continue;
+		if ($sublanguage_admin->is_main($language->ID)) continue;
 		
 		$slug = $sublanguage_admin->translate_term_field($tag, $taxonomy, $language->ID, 'slug', '');
 		$name = $sublanguage_admin->translate_term_field($tag, $taxonomy, $language->ID, 'name', '');
@@ -98,13 +98,13 @@ class Sublanguage_terms extends Sublanguage_admin_post {
 	public function save_term_translation($term_id, $tt_id, $taxonomy) {
 		global $sublanguage_admin;
 		
-		if (in_array($taxonomy, $sublanguage_admin->options['taxonomy'])
+		if (in_array($taxonomy, $sublanguage_admin->get_taxonomies())
 			&& isset($_POST[$this->nonce], $_POST[$this->term_translation][$taxonomy]) 
  			&& wp_verify_nonce($_POST[$this->nonce], $this->action)) {
 			
 			foreach ($_POST[$this->term_translation][$taxonomy] as $lng_id => $data) {
 				
-				if ($lng_id != $sublanguage_admin->options['main']) {
+				if ($sublanguage_admin->is_sub($lng_id)) {
 				
 					foreach ($data as $term_id => $translation) {
 					
@@ -132,7 +132,7 @@ class Sublanguage_terms extends Sublanguage_admin_post {
 		
 		$current_screen = get_current_screen();
 		
-		if (isset($current_screen->taxonomy) && in_array($current_screen->taxonomy, $sublanguage_admin->options['taxonomy'])) {
+		if ($sublanguage_admin->current_language && isset($current_screen->taxonomy) && in_array($current_screen->taxonomy, $sublanguage_admin->get_taxonomies())) {
 			
 			add_action($current_screen->taxonomy.'_edit_form_fields', array($this, 'add_term_edit_form'), 12, 2);
 			

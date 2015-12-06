@@ -47,7 +47,7 @@ class Sublanguage_hierarchical_taxonomies {
 				
 		$taxonomy_obj = get_taxonomy($taxonomy);
 		
-		if (in_array($taxonomy, $sublanguage_admin->options['taxonomy']) && $taxonomy_obj->hierarchical) {
+		if (in_array($taxonomy, $sublanguage_admin->get_taxonomies()) && $taxonomy_obj->hierarchical) {
 			
 			$sublanguage_admin->disable_translate_home_url = true;
 			flush_rewrite_rules();
@@ -72,7 +72,7 @@ class Sublanguage_hierarchical_taxonomies {
 			
 			foreach ($nodes as $node) {
 				
-				$sublanguage_admin->enqueue_terms($node->term->term_id);
+				$sublanguage_admin->enqueue_term_id($node->term->term_id);
 				
 			}
 					
@@ -85,7 +85,7 @@ class Sublanguage_hierarchical_taxonomies {
 				
 					if (isset($taxonomy_obj->query_var) && $taxonomy_obj->rewrite) {
 						
-						$taxonomy_name = $sublanguage_admin->translate_taxonomy($taxonomy, $sublanguage_admin->options['main'], $taxonomy_obj->rewrite['slug']);
+						$taxonomy_name = $sublanguage_admin->translate_taxonomy($taxonomy, $sublanguage_admin->get_option('main'), $taxonomy_obj->rewrite['slug']);
 						$ancestors = $node->get_ancestors();
 						$ancestors = array_reverse($ancestors);
 						$path = ''; //$path = $taxonomy_name.'/';
@@ -180,7 +180,7 @@ class Sublanguage_hierarchical_taxonomies {
 			'hierarchical' => true
 		), 'names');
 		
-		$taxonomies = array_intersect($taxonomies, $sublanguage_admin->options['taxonomy']);
+		$taxonomies = array_intersect($taxonomies, $sublanguage_admin->get_taxonomies());
 		
 		$nodes = array();
 		
