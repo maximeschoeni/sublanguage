@@ -31,7 +31,15 @@ Please read the faq on [wordpress plugin page](https://wordpress.org/plugins/sub
 ## Documentation
 
 - [Installation](#installation)
-- [Uninstallation](#faq)
+- [Uninstallation](#uninstallation)
+- [Language Switch](#language-switch)
+- [Translate posts fields](#translate-posts-fields)
+- [Translate terms fields](#translate-terms-fields)
+- [Translate meta fields](#translate-meta-fields)
+- [AJAX](#ajax)
+- [Accessing current language](#accessing-current-language)
+- [Translate options](#translate-options)
+- [Translate plugin](#translate-plugin)
 
 ### Installation
 
