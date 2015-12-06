@@ -30,6 +30,9 @@ Please read the faq on [wordpress plugin page](https://wordpress.org/plugins/sub
 
 ## Documentation
 
+- [Installation](#installation)
+- [Uninstallation](#faq)
+
 ### Installation
 
 1. Upload to the `/wp-content/plugins/` directory
