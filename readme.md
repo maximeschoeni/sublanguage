@@ -256,10 +256,12 @@ With something like this in your php:
 	}
 
 Also see [AJAX in Wordpress](https://codex.wordpress.org/AJAX_in_Plugins) documentation.
-		
-You can  use this function to enqueue a small helper javascript file. 
 
-	add_action('init', 'my_init');
+#### Ajax Helper
+	
+You can  use the following function to enqueue a small helper javascript file.
+
+	add_action('wp_enqueue_scripts', 'my_prepare_ajax');
 
 	function my_init() {
 		
@@ -283,7 +285,7 @@ Alternatively (and preferably) you can use `sublanguage_custom_translate` filter
 
 	apply_filters('sublanguage_custom_translate', $default, $callback, $context = null);
 
-This function use 6 parameters:
+This function use 4 parameters:
 
 - `'sublanguage_custom_translate'`: filter name
 - `default`: value to use if translation does not exist
