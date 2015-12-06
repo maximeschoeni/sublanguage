@@ -352,11 +352,11 @@ Example for translating blog description:
 
 ### Translate plugin
 	
-Example translating the [the yoast SEO plugin](https://wordpress.org/plugins/wordpress-seo/). This plugin has large UI with a lot of text inputs, which is quite challenging for multilingual use.
+This example show how to translate the [the yoast SEO plugin](https://wordpress.org/plugins/wordpress-seo/). This plugin has a large UI with a lot of text inputs, which is quite challenging for multilingual use.
 
-#### 1. translating options content
+#### 1. translating options
 
-The most convenient way is to translate texts directly into fields using a custom formating. Lets use something like this in each text input: `[:en]English text[:fr]Text français[:de]Deutche Inhalt` (for an english/french/german site).
+The most convenient way is probably to translate texts directly into fields using a custom formating. Lets use something like this in each text input: `[:en]English text[:fr]Texte français[:de]Deutche Inhalt` (for an english/french/german site).
 
 The following script will parse and recover the relevant value according to the current language:
 
