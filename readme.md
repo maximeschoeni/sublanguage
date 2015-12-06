@@ -20,13 +20,26 @@ Sublanguage is a [multi-language plugin for Wordpress](https://wordpress.org/plu
 
 Sublanguage is more a toolkit than a ready-made solution for building a multi-language website. It focuses on customizing public interface for visitors, and adapting user experience for editors. It is design to bring multilingual functionalities and let room for personalization. While UI configuration is quite minimal, multiple hooks and filters are available to fit every needs. 
 
-Sublanguage is based on the concept of inheritance. Translations are custom-post-types parented to original posts, pages or custom-posts. Each translations have 4 relevant fields: `post_title`, `post_content`, `post_name` and `post_excerpt`. If one field is empty, or if translation is missing, original language field content is inherited. The intention is to completely avoid duplicated or even synchronized content, because it is a pain for content editors.
+Sublanguage is based on the concept of inheritance. Translations are custom-post-types parented to original posts, pages or custom-posts. Each translations have 4 relevant fields: `post_title`, `post_content`, `post_name` and `post_excerpt`. If one field is empty, or if translation is missing, original language field content is inherited. The intention is to completely avoid duplicated or even synchronized content.
 
-Sublanguage cares about SEO. It uses rewrite URL to structures language content into subdirectories, accordingly with [Google recommendations](https://support.google.com/webmasters/answer/182192?hl=en). Moreover, URL permalink are fully translatable, not only post slugs but also terms, taxonomies and post-type archives slugs.
+To comply with SEO standards, Sublanguage uses rewrite URL to structures language content into subdirectories. Moreover, URL permalink are fully translatable, not only post slugs but also terms, taxonomies and post-type archives slugs.
+
+## FAQ
+
+Please read the faq on [wordpress plugin page](https://wordpress.org/plugins/sublanguage/faq/)
 
 ## Documentation
 
-Additional documentation is available on [Wordpress plugin FAQ](https://wordpress.org/plugins/sublanguage/faq/)
+- [Installation](#installation)
+- [Uninstallation](#uninstallation)
+- [Language Switch](#language-switch)
+- [Translate posts fields](#translate-posts-fields)
+- [Translate terms fields](#translate-terms-fields)
+- [Translate meta fields](#translate-meta-fields)
+- [AJAX](#ajax)
+- [Accessing current language](#accessing-current-language)
+- [Translate options](#translate-options)
+- [Translate plugin](#translate-plugin)
 
 ### Installation
 
@@ -45,13 +58,11 @@ For erasing all content added by Sublanguage:
 
 Deleting a language will permanently delete all translations associated to this language. Deleting main language will NOT delete original posts.
 
-
 ### Language Switch
 
 Add this function in your template file to echo the language switch.
 
 	do_action('sublanguage_print_language_switch');
-
 
 For customization, use `sublanguage_custom_switch` filter in your `function.php`.
 
@@ -67,7 +78,7 @@ For customization, use `sublanguage_custom_switch` filter in your `function.php`
 	<ul>
 	<?php foreach ($languages as $language) { ?>
 		<li class="<?php echo $language->post_name; ?> <?php if ($sublanguage->current_language->ID == $language->ID) echo 'current'; ?>">
-			<a href="<?php echo $sublanguage->get_translation_link($language); ?>"><?php echo apply_filters('sublanguage_language_name', $language->post_title, $language); ?></a>
+			<a href="<?php echo $sublanguage->get_translation_link($language); ?>"><?php echo $language->post_title; ?></a>
 		</li>
 	<?php } ?>
 	</ul>
@@ -75,50 +86,132 @@ For customization, use `sublanguage_custom_switch` filter in your `function.php`
 
 	}
 
-### Template Loop
+When different language switches are needed in different places of the template, a `context` Parameter may be used:
 
-Most translations are done automatically through template filters. But you must ensure proper filters are called. 
+	do_action('sublanguage_print_language_switch', 'top');
 
-For echoing post title, you need to ensure ´the_title´ filter is called.
+        // ...
+
+	do_action('sublanguage_print_language_switch', 'footer');
+
+This parameter is then available in the `sublanguage_custom_switch` filter:
+
+	add_action('sublanguage_custom_switch', 'my_custom_switch', 10, 3); 
+
+	/**
+	 * @param array of WP_Post language custom post
+	 * @param Sublanguage_site $this Sublanguage instance.
+	 */
+	function my_custom_switch($languages, $sublanguage, $context) {
+
+		if ($context == 'top') {
+
+			// -> print custom switch
+
+		} else if ($context == 'footer') {
+
+			// -> print custom switch
+
+		}
+
+	}
+
+### Translate posts fields
+
+You can use `sublanguage_translate_post_field` filter to translate any post field.
+
+	apply_filters( 'sublanguage_translate_post_field', $default, $post, $field, $language = null, $by = null)
+
+This function use 6 parameters:
+
+- `'sublanguage_translate_post_field'`: filter name
+- `default`: value to use if translation does not exist
+- `post`: the Post object you want to translate the field of
+- `field`: field name ('post_title', 'post_content', 'post_name' or 'post_excerpt')
+- `language`: Optional. Language slug, id, locale or object. By default, the current language will be used
+- `by`: Optional. Use 'ID' or 'post_content' only if language is set to id or locale.
+
+Example:
+
+	echo apply_filters( 'sublanguage_translate_post_field', $some_post->post_title, 'hello', 'post_title' );
+
+Most translations are done automatically within template filters though. Calling `get_title()`, `get_the_title($id)`, `the_content()`, `the_excerpt()` or `get_permalink($id)` will automatically return or echo translated text.
+
+Example for echoing post title:
 
 	// echoing post title inside the loop
 	the_title();
 	
-	// echoing post title outside the loop
-	echo get_the_title($some_post->ID);
+	// echoing post title inside or outside the loop
+	echo get_the_title( $some_post->ID );
 	
-	// but...
-	echo $post->post_title;	// -> Does not work !
+	// or
+	echo apply_filters( 'the_title', $some_post->post_title, $some_post->ID );
+	
+	// or
+	echo apply_filters( 'sublanguage_translate_post_field', $some_post->post_title, $some_post, 'post_title' );
 
-For echoing post content, you need to ensure ´the_content´ filter is called.
+Example for echoing post content:
 
 	// echoing content inside the loop
 	the_content();
 	
-	// or...
+	// or
 	echo apply_filters('the_content', get_the_content());
 
-	// but...
-	echo $post->post_content; // -> Does not work !
-	echo get_the_content(); // -> Does not work !
-	
 	// echoing post content outside the loop:
 	echo apply_filters( 'sublanguage_translate_post_field', $some_post->post_content, $some_post, 'post_content' );
 	
-Idem for post excerpt, you need to ensure ´the_excerpt´ filter is called.
+Most links are automatically translated through specific function:
 	
-For echoing permalink, term link, archive post or home url, just use the usual functions:
-
-	get_permalink();
+	// get post, page, media or custom post link:
+	get_permalink( $id );
+	
+	// get catgory, tag or term:
 	get_term_link( $term_id, $taxonomy );
+	
+	// get custom post type archive:
 	get_post_type_archive_link( $post_type_name );
+	
+	// get home
 	home_url();
 
+You can also translate post field into non-current language:
 
+	// echo post title in spanish by slug
+	echo apply_filters( 'sublanguage_translate_post_field', $some_post->post_title, $some_post, 'post_title', 'es' );
+	
+	// echo post title in spanish by locale
+	echo apply_filters( 'sublanguage_translate_post_field', $some_post->post_title, $some_post, 'post_title', 'es_ES', 'post_content' );
 
-### Meta fields
+### Translate terms fields
 
-If you want to use translatable meta fields, you need to register related meta key using the `sublanguage_register_postmeta_key` hook. For example:
+All fields of fetched terms are automatically translated to current language. Example:
+
+	// echo translated term name
+	echo $term->name;
+
+For translating term fields in non-current language, use `sublanguage_translate_term_field` filter.
+
+	apply_filters( 'sublanguage_translate_term_field', $default, term, $field, $language = null, $by = null)
+
+This function use 6 parameters:
+
+- `'sublanguage_translate_term_field'`: filter name
+- `default`: value to use if translation does not exist
+- `term`: the Post object you want to translate the field of
+- `field`: field name ('name', 'slug', or 'description')
+- `language`: Optional. Language slug, id, locale or object. By default, the current language will be used
+- `by`: Optional. Use 'ID' or 'post_content' only if language is set to id or locale.
+
+Example:
+	
+	// translate term name in Korean:
+	echo apply_filters( 'sublanguage_translate_term_field', term->name, term, $field, 'ko')
+
+### Translate meta fields
+
+By default, meta fields are not translatable: the value is the same in all language. If you want to use translatable meta fields, you need to register related meta key using the `sublanguage_register_postmeta_key` hook. Example:
 
 	add_filter( 'sublanguage_register_postmeta_key', 'my_translate_postmeta' );
 
@@ -133,7 +226,7 @@ If you want to use translatable meta fields, you need to register related meta k
 Then you can use the translated value in your template file just by calling `get_post_meta()` function. It will automatically translate 
 accordingly to current language. If translation meta value is empty, it will still inherit from the original post.
 
-	echo get_post_meta($post_id, '_my_postmeta_key', true);
+	echo get_post_meta( $post_id, '_my_postmeta_key', true );
 
 Please note the Wordpress builtin Custom Fields box is not supported. You need to use your own [custom meta box](https://codex.wordpress.org/Function_Reference/add_meta_box) in order to edit the translation meta values in admin.
 
@@ -141,7 +234,7 @@ Please note the Wordpress builtin Custom Fields box is not supported. You need t
 
 If you need to access data through AJAX, you just need to add the wanted language slug into the ajax request:
 
-	$.get(wp.url, {action:'my_action', id:myID, language:'fr'}, function(result){
+	$.get(ajaxurl, {action:'my_action', id:myID, language:'fr'}, function(result){
 		$(body).append(result); 
 	});
 	
@@ -152,7 +245,7 @@ With something like this in your php:
 	
 	function my_action() {
 		
-		$post = get_post( intval($GET_['id']) );
+		$post = get_post( intval($_GET['id']) );
 		
 		echo '<h1>' . get_the_title( $post->ID ) . '</h1>';
 		
@@ -161,10 +254,14 @@ With something like this in your php:
 		exit;
 		
 	}
-		
-You can also use this function to enqueue a small helper javascript file. 
 
-	add_action('init', 'my_init');
+Also see [AJAX in Wordpress](https://codex.wordpress.org/AJAX_in_Plugins) documentation.
+
+#### Ajax Helper
+	
+You can  use the following function to enqueue a small helper javascript file.
+
+	add_action('wp_enqueue_scripts', 'my_prepare_ajax');
 
 	function my_init() {
 		
@@ -174,9 +271,9 @@ You can also use this function to enqueue a small helper javascript file.
 
 This script will automatically send current language within every ajax call. Moreover, it will register some useful variables under `sublanguage` javascript global. Use `console.log(sublanguage)` to explore it.
 
-### Current language and PHP Globals
+### Accessing current language
 
-You can use `$sublanguage` global to access most plugins properties and function. For example if you need to access the current language:
+You can use `$sublanguage` global to access most plugins properties and function. For example if you need to access the current language (lets say it is french):
 
 	global $sublanguage;
 	echo $sublanguage->current_language // -> WP_Post object
@@ -184,9 +281,18 @@ You can use `$sublanguage` global to access most plugins properties and function
 	echo $sublanguage->current_language->post_name; // -> fr
 	echo $sublanguage->current_language->post_content; // -> fr_FR
 
-Alternatively (and preferably) you can use a sublanguage filter to call a user function with `$current_language` value in parameters:
+Alternatively (and preferably) you can use `sublanguage_custom_translate` filter to call a user function with `$current_language` value in parameters:
 
-Function to use in your template file: 
+	apply_filters('sublanguage_custom_translate', $default, $callback, $context = null);
+
+This function use 4 parameters:
+
+- `'sublanguage_custom_translate'`: filter name
+- `default`: value to use if translation does not exist
+- `$callback`: user function to be called
+- `$context`: Optional value.
+
+Example. Function to use in your template file: 
 
 	echo apply_filters('sublanguage_custom_translate', 'hello', 'my_custom_translation', 'optional value');
 
@@ -195,24 +301,124 @@ Code to add in your `function.php` file:
 	/**
 	 * @param string $original_text. Original text to translate.
 	 * @param WP_Post object $current_language
-	 * @param mixed $args. Optional arguments
+	 * @param Sublanguage_site object $sublanguage
+	 * @param mixed $args. Optional argument passed.
 	 */
-	function my_custom_translation($original_text, $current_language, $optional_arg) {
+	function my_custom_translation($original_text, $current_language, $sublanguage, $optional_arg) {
 	
-		if ($current_language->post_content == 'fr_FR') {
+		if ($current_language->post_content == 'it_IT') {
 			
-			return 'Bonjour!';
+			return 'Ciao!';
 		
 		} else if ($current_language->post_content == 'de_DE') {
 			
-			return 'Guten Tag!';
+			return 'Hallo!';
 		
 		}
 	
 		return $original_text;
-	
 	}
 
+### Translate options
 
+Example for translating blog description:
+
+	if ( !is_admin() ) {
+	
+		add_filter( 'option_blogdescription', 'my_translate_option_field' );
+		
+	}
+
+	function my_translate_option_field( $value ) {
+
+		return apply_filters( 'sublanguage_custom_translate', $value, 'my_get_description' );
+
+	}
+
+	function my_custom_language_parser( $original, $language ) {
+
+		if ( $language->post_content == 'fr_FR' ) {
+		
+			return 'Description en français';
+			
+		} else if ( $language->post_content == 'ko_KR' ) {
+
+			return '한국어 설명';
+			
+		}
+		
+		return $original;
+	}
+
+### Translate plugin
+	
+This example show how to translate the [the yoast SEO plugin](https://wordpress.org/plugins/wordpress-seo/). This plugin has a large UI with a lot of text inputs, which is quite challenging for multilingual use.
+
+#### 1. translating options
+
+The most convenient way is probably to translate texts directly into fields using a custom formating. Lets use something like this in each text input: `[:en]English text[:fr]Texte français[:de]Deutche Inhalt` (for an english/french/german site).
+
+The following script will parse and recover the relevant value according to the current language:
+
+	if ( !is_admin() ) {
+	
+		add_filter('option_wpseo', 'my_wpseo_option');
+		add_filter('option_wpseo_titles', 'my_wpseo_option');
+		add_filter('option_wpseo_social', 'my_wpseo_option');
+
+	}
+	
+	function my_wpseo_option($value) {
+
+		foreach ($value as $key => $val) {
+
+			$value[$key] = apply_filters('sublanguage_custom_translate', $val, 'my_custom_language_parser');
+
+		}
+
+		return $value;
+
+	}
+
+	function my_custom_language_parser($original, $language) {
+
+		if (preg_match('/\[:'.$language->post_name.'\]([^[]*)/', $original, $matches)) {
+
+			return $matches[1];
+
+		}
+
+		return $original;
+
+	}
+
+#### 2. translate post meta fields
+
+No need to use the previous formating here. Once registered, post meta will just behave like any other post translatable field.
+
+	add_filter('sublanguage_register_postmeta_key', 'my_translate_postmeta');
+
+	function my_translate_postmeta($postmeta_keys) {
+
+		$postmeta_keys[] = '_yoast_wpseo_title';
+		$postmeta_keys[] = '_yoast_wpseo_metadesc';
+		$postmeta_keys[] = '_yoast_wpseo_opengraph-title';
+		$postmeta_keys[] = '_yoast_wpseo_opengraph-description';
+		$postmeta_keys[] = '_yoast_wpseo_twitter-title';
+		$postmeta_keys[] = '_yoast_wpseo_twitter-description';
+
+    		return $postmeta_keys;
+
+	}
+
+#### 3. translating term meta fields
+
+Current version of plugin (3.0.4) still use do-it-yourself term meta values (WP < 4.4 did not supoort term meta), which are stored into blog options. So lets use the exact same way as for translating options (and use the `[:en]...[:fr]etc.` formating):
+
+	if ( !is_admin() ) {
+	
+		add_filter('wpseo_taxonomy_meta', 'my_wpseo_option');
+
+	}	
 
 
