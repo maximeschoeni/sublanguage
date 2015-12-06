@@ -339,48 +339,74 @@ Example for translating blog description:
 
 ### Translate plugin
 	
-Example translating the [the yoast SEO plugin](https://wordpress.org/plugins/wordpress-seo/).
+Example translating the [the yoast SEO plugin](https://wordpress.org/plugins/wordpress-seo/). This plugin has large UI with a lot of text inputs, which is quite challenging for multilingual use.
 
-To start with, lets translate the site-wide options. We are going to define a custom language format: in all plugin user interface textual fields by 
+#### 1. translating options content
 
+The most convenient way is to translate texts directly into fields using a custom formating. Lets use something like this in each text input: ´[:en]English text[:fr]Text français[:de]Deutche Inhalt´ (for an english/french/german site).
 
-Lets say we have a french-german site. 
+The following script will parse and recover the relevant value according to the current language:
 
-if (!is_admin()) {
+	if ( !is_admin() ) {
+	
+		add_filter('option_wpseo', 'my_wpseo_option');
+		add_filter('option_wpseo_titles', 'my_wpseo_option');
+		add_filter('option_wpseo_social', 'my_wpseo_option');
 
-	add_filter('option_wpseo', 'my_wpseo_option');
-	add_filter('option_wpseo_titles', 'my_wpseo_option');
-	add_filter('option_wpseo_social', 'my_wpseo_option');
+	}
+	
+	function my_wpseo_option($value) {
 
-}
+		foreach ($value as $key => $val) {
 
-function my_wpseo_option($value) {
+			$value[$key] = apply_filters('sublanguage_custom_translate', $val, 'my_custom_language_parser');
 
-	foreach ($value as $key => $val) {
+		}
 
-		$value[$key] = apply_filters('sublanguage_custom_translate', $val, 'my_custom_language_parser');
+		return $value;
 
 	}
 
-	return $value;
+	function my_custom_language_parser($original, $language) {
 
-}
+		if (preg_match('/\[:'.$language->post_name.'\]([^[]*)/', $original, $matches)) {
 
-function my_custom_language_parser($original, $language) {
+			return $matches[1];
 
-	if (preg_match('/\[:'.$language->post_name.'\]([^[]*)/', $original, $matches)) {
+		}
 
-		return $matches[1];
+		return $original;
 
 	}
 
-	return $original;
+#### 2. translate post meta fields
 
-}
+No need to use the previous formating here. Once registered, post meta will just behave like any other post translatable field.
 
+	add_filter('sublanguage_register_postmeta_key', 'my_translate_postmeta');
 
+	function my_translate_postmeta($postmeta_keys) {
 
+		$postmeta_keys[] = '_yoast_wpseo_title';
+		$postmeta_keys[] = '_yoast_wpseo_metadesc';
+		$postmeta_keys[] = '_yoast_wpseo_opengraph-title';
+		$postmeta_keys[] = '_yoast_wpseo_opengraph-description';
+		$postmeta_keys[] = '_yoast_wpseo_twitter-title';
+		$postmeta_keys[] = '_yoast_wpseo_twitter-description';
 
+    		return $postmeta_keys;
+
+	}
+
+#### 3. translating term meta fields
+
+Current version of plugin (3.0.4) still use do-it-yourself term meta values (WP < 4.4 did not supoort term meta), which are stored into blog options. So lets use the exact same way as for translating options (and use the ´[:en]...[:fr]etc.´ formating):
+
+	if ( !is_admin() ) {
+	
+		add_filter('wpseo_taxonomy_meta', 'my_wpseo_option');
+
+	}	
 
 
 
