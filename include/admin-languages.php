@@ -53,7 +53,7 @@ class Sublanguage_languages {
 				'new_item'           => __( 'New language', 'sublanguage' ),
 				'edit_item'          => __( 'Edit language', 'sublanguage' ),
 				'view_item'          => __( 'View language', 'sublanguage' ),
-				'all_items'          => __( 'All languages', 'sublanguage' ),
+				'all_items'          => __( 'Languages', 'sublanguage' ),
 				'search_items'       => __( 'Search languages', 'sublanguage' ),
 				'parent_item_colon'  => __( 'Parent language:', 'sublanguage' ),
 				'not_found'          => __( 'No language found.', 'sublanguage' ),
@@ -62,7 +62,8 @@ class Sublanguage_languages {
 			'public'             => false,
 			'publicly_queryable' => false,
 			'show_ui'            => true,
-			'show_in_menu'       => true,
+			//'show_in_menu'       => true,
+			'show_in_menu'       => $sublanguage_admin->page_name,
 			'query_var'          => false,
 			'rewrite'						 => false,
 			'capabilities' => array(

@@ -39,18 +39,25 @@ class Sublanguage_site extends Sublanguage_main {
 			
 			parent::load();
 			
-			add_filter('the_content', array($this, 'translate_post_content'), 9);
+			add_filter('the_content', array($this, 'translate_post_content'), 5);
 			add_filter('the_title', array($this, 'translate_post_title'), 10, 2);
 			add_filter('get_the_excerpt', array($this, 'translate_post_excerpt'), 9);
 			add_filter('single_post_title', array($this, 'translate_single_post_title'), 10, 2);
+			
+// 			add_filter('the_posts', array($this, 'hard_translate_posts'), 20, 2);
+// 			add_filter('the_post', array($this, 'hard_translate_post'));
+			
 			add_filter('get_post_metadata', array($this, 'translate_meta_data'), 10, 4);
 			add_filter('wp_setup_nav_menu_item', array($this, 'translate_menu_nav_item'));
+			add_filter('wp_nav_menu_objects', array($this, 'filter_nav_menu_objects'), 10, 2); // -> @from 1.5. Filter list for hidden items 
 			
 			add_filter('tag_cloud_sort', array($this,'translate_tag_cloud'), 10, 2);
 			add_action('parse_query', array($this, 'allow_filters')); // allow filters on menu get_posts
 			add_action('sublanguage_prepare_ajax', array($this, 'ajax_enqueue_scripts'));
 			
 			add_action('init', array($this, 'init'));
+			
+			$this->add_options_filters();
 			
 		}
 		
@@ -91,7 +98,10 @@ class Sublanguage_site extends Sublanguage_main {
 			add_rewrite_tag('%preview_language%', '([^&]+)');
 		
 			add_filter('request', array($this, 'catch_translation')); // detect query type and language out of query vars
-		
+			
+			// added in 1.5
+			add_action('wp', array($this, 'filter_permastructs'), 9);
+						
  			add_action('wp', array($this, 'redirect_uncanonical'), 11);
 			
 		}
@@ -105,7 +115,6 @@ class Sublanguage_site extends Sublanguage_main {
 		add_filter('attachment_link', array($this, 'translate_attachment_link'), 10, 2);
 		add_filter('post_link_category', array($this, 'translate_post_link_category'), 10, 3); // not implemented yet
 		add_filter('post_type_archive_link', array($this, 'translate_post_type_archive_link'), 10, 2);
-		add_filter('term_link', array($this, 'translate_term_link'), 10, 3);
 		add_filter('year_link', array($this,'translate_month_link'));
 		add_filter('month_link', array($this,'translate_month_link'));
 		add_filter('day_link', array($this,'translate_month_link'));
@@ -140,7 +149,9 @@ class Sublanguage_site extends Sublanguage_main {
 		 */	
 		do_action('sublanguage_init', $this);
 		
+		
 	}
+	
 	
 	/**
 	 * DEPRECATED
@@ -294,7 +305,9 @@ class Sublanguage_site extends Sublanguage_main {
 				
 				$original_post = get_post($menu_item->object_id);
 				
-				if (!$menu_item->post_title) {
+				$menu_item = $this->translate_nav_menu_item($menu_item);
+				
+				if (empty($menu_item->title)) {
 				
 					$menu_item->title = $this->translate_post_field($original_post->ID, $this->current_language->ID, 'post_title', $menu_item->title);
 					
@@ -310,7 +323,9 @@ class Sublanguage_site extends Sublanguage_main {
 				
 				$original_term = get_term($menu_item->object_id, $menu_item->object);
 				
-				if (!$menu_item->post_title) {
+				$menu_item = $this->translate_nav_menu_item($menu_item);
+				
+				if (empty($t_nav_item->post_title)) {
 					
 					$menu_item->title = $this->translate_term_field($original_term, $original_term->taxonomy, $this->current_language->ID, 'name', $menu_item->title);
 					
@@ -345,13 +360,67 @@ class Sublanguage_site extends Sublanguage_main {
 			
 				}
 			
-			} 
+			}
+			
+			$menu_item = $this->translate_nav_menu_item($menu_item, true);
 			
 		}
 		
 		return $menu_item;
 		
 	}
+	
+	/**
+	 * Translate a nav menu item
+	 *
+	 * @param object WP_Post $menu_item
+	 * @return object WP_Post
+	 *
+	 * @from 1.5
+	 */
+	public function translate_nav_menu_item($menu_item, $fill_default_title = false) {
+	
+		if ($this->is_sub() && in_array('nav_menu_item', $this->get_post_types())) {
+		
+			$menu_item->title = $this->translate_post_field($menu_item->ID, $this->current_language->ID, 'post_title', ($fill_default_title ? $menu_item->title : ''));
+			$menu_item->description = $this->translate_post_field($menu_item->ID, $this->current_language->ID, 'post_content', $menu_item->description);
+			$menu_item->attr_title = $this->translate_post_field($menu_item->ID, $this->current_language->ID, 'post_excerpt', $menu_item->attr_title);
+			
+		}
+		
+		return $menu_item;	
+	}
+	
+	/**
+	 * Remove items that need to be hidden in current language 
+	 *
+	 * Filter for 'wp_nav_menu_objects'
+	 *
+	 * @from 1.5
+	 */
+	public function filter_nav_menu_objects($sorted_menu_items, $args) {
+		
+		if (in_array('sublanguage_hide', $this->get_postmeta_keys()) && in_array('nav_menu_item', $this->get_post_types())) {
+			
+			$filtered_items = array();
+			
+			foreach ($sorted_menu_items as $menu_item) {
+				
+				if (!get_post_meta($menu_item->ID, 'sublanguage_hide', true)) {
+					
+					$filtered_items[] = $menu_item;
+				
+				}
+				
+			}
+			
+			return $filtered_items;
+		}
+		
+		return $sorted_menu_items;
+	}
+		
+	
 	
 	/**
 	 * Print language switch
@@ -630,6 +699,11 @@ class Sublanguage_site extends Sublanguage_main {
 			$term_parent = $query_vars['nodeterm_parent'];
 			$term_name = $query_vars['nodeterm'];
 			
+			// added in 1.4.9
+			$taxonomy_obj = get_taxonomy($taxonomy);
+			$taxonomy_qv = isset($taxonomy_obj->rewrite, $taxonomy_obj->rewrite['slug']) ? $taxonomy_obj->rewrite['slug'] : $taxonomy;
+			
+			
 			$term = $this->query_taxonomy($term_name, $taxonomy);
 			
 			if ($term) {
@@ -642,7 +716,7 @@ class Sublanguage_site extends Sublanguage_main {
 				
 				}
 				
-				$ttax = $this->translate_taxonomy($taxonomy, $this->current_language->ID, $taxonomy);
+				$ttax = $this->translate_taxonomy($taxonomy, $this->current_language->ID, $taxonomy_qv);
 				
 				if ($ttax != $query_vars['nodeterm_ttax']) {
 				
@@ -748,7 +822,20 @@ class Sublanguage_site extends Sublanguage_main {
 		return $query_vars;
 		
 	}
-
+	
+	/**
+	 * Redirection when not canoncal url
+	 * Must be called before getting term links but after all taxonomies are registered
+	 *
+	 * Hook for 'wp'
+	 *
+	 * @from 1.5
+	 */
+	public function filter_permastructs() {
+		
+		$this->translate_taxonomies_permastructs($this->current_language->ID);
+		
+	}
 	
 	/**
 	 * Redirection when not canoncal url
@@ -1119,9 +1206,10 @@ class Sublanguage_site extends Sublanguage_main {
 	 * @from 1.2
 	 */
 	public function get_translation_link($language) {
-		global $wp_query;
+		global $wp_query, $wp_rewrite;
 		
 		$current_language = $this->current_language; // save current_language value
+		
 		$query_object = get_queried_object();
 		
 		$this->current_language = $language; // -> pretend this is the current language
@@ -1132,12 +1220,16 @@ class Sublanguage_site extends Sublanguage_main {
 						
 			$original_term = get_term($query_object->term_id, $query_object->taxonomy);
 			
-			$link = get_term_link($original_term, $language->ID);
+			$this->translate_taxonomy_permastruct($query_object->taxonomy, $language->ID);
+			
+			$link = get_term_link($original_term, $original_term->taxonomy);
+			
+			$this->restore_permastruct($query_object->taxonomy);
 			
 		} else if (is_post_type_archive()) {
 			
 			$link = get_post_type_archive_link($query_object->name);
-				
+			
 		} else if (is_singular() || $wp_query->is_posts_page) {
 					
 			$link = get_permalink($query_object->ID);
@@ -1286,6 +1378,76 @@ class Sublanguage_site extends Sublanguage_main {
 		echo $output;
 		
 	}
+	
+	/**
+	 * Add filters for options translation
+	 *
+	 * @from 1.5
+	 */
+	public function add_options_filters() {
+		
+		$translations = get_option($this->translation_option_name);
+		
+		if (isset($translations['option'][$this->current_language->ID])) {
+			
+			foreach ($translations['option'][$this->current_language->ID] as $option => $val) {
+				
+				add_filter('option_' . $option, array($this,  'filter_option'), 10, 2);
+				
+			}
+			
+		}
+		
+	}
+	
+	/**
+	 * Add filters for options translation
+	 *
+	 * @from 1.5
+	 */
+	public function filter_option($value, $option = null) {
+		
+		if (empty($option)) return $value; // $option is only defined since wp 4.4
+		
+		$translations = get_option($this->translation_option_name);
+		
+		if (isset($this->current_language->ID, $translations['option'][$this->current_language->ID][$option])) {
+
+			$this->translate_option($value, $translations['option'][$this->current_language->ID][$option]);
+		
+		}
+		
+		return $value;
+	}
+
+	/**
+	 * translate options
+	 *
+	 * @from 1.5
+	 */	
+	private function translate_option(&$option, $translation ) {
+		
+		if (is_array($translation)) {
+		
+			foreach ($translation as $key => $value) {
+				
+				if (isset($option[$key])) {
+				
+					$item = $this->translate_option($option[$key], $value );
+					
+				}
+				
+			}
+			
+		} else {
+			
+			$option = $translation;
+			
+		}
+		
+	}
+
+	
 	
 	
 }

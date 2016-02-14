@@ -64,24 +64,20 @@ class Sublanguage_terms extends Sublanguage_admin_post {
 			<input type=hidden name="<?php echo $sublanguage_admin->language_query_var; ?>" value="<?php echo $sublanguage_admin->get_main_language()->post_name; ?>"/>
 		</th>
 		<td>
-			<table>
-				<tr>
-					<td>
-						<input name="<?php echo $this->term_translation; ?>[<?php echo $taxonomy; ?>][<?php echo $language->ID; ?>][<?php echo $tag->term_id; ?>][name]" type="text" value="<?php echo $name; ?>" size="40">
-						<p class="description"><?php echo sprintf(__('Term name. Default: %s', 'sublanguage'), "<code>$tag->name</code>"); ?></p>
-					</td>
-					<td>
-						<input name="<?php echo $this->term_translation; ?>[<?php echo $taxonomy; ?>][<?php echo $language->ID; ?>][<?php echo $tag->term_id; ?>][slug]" type="text" value="<?php echo $slug; ?>" size="40">
-						<p class="description"><?php echo sprintf(__('Term slug. Default: %s', 'sublanguage'), "<code>$tag->slug</code>"); ?></p>
-					</td>
-				</tr>
-				<tr>
-					<td colspan="2">
-						<textarea name="<?php echo $this->term_translation; ?>[<?php echo $taxonomy; ?>][<?php echo $language->ID; ?>][<?php echo $tag->term_id; ?>][description]"><?php echo $desc; ?></textarea>
-						<p class="description"><?php echo __('Term description.', 'sublanguage'); ?></p>
-					</td>
-				</tr>
-			</table>
+			<div style="display:flex;display: -webkit-flex;flex-wrap:wrap;-webkit-flex-wrap:wrap">
+				<div style="margin-bottom:1em">
+					<input name="<?php echo $this->term_translation; ?>[<?php echo $taxonomy; ?>][<?php echo $language->ID; ?>][<?php echo $tag->term_id; ?>][name]" type="text" value="<?php echo $name; ?>" size="40" style="box-sizing:border-box">
+					<p class="description"><?php echo sprintf(__('Term name. Default: %s', 'sublanguage'), "<code>$tag->name</code>"); ?></p>
+				</div>
+				<div style="margin-bottom:1em">
+					<input name="<?php echo $this->term_translation; ?>[<?php echo $taxonomy; ?>][<?php echo $language->ID; ?>][<?php echo $tag->term_id; ?>][slug]" type="text" value="<?php echo $slug; ?>" size="40" style="box-sizing:border-box">
+					<p class="description"><?php echo sprintf(__('Term slug. Default: %s', 'sublanguage'), "<code>$tag->slug</code>"); ?></p>
+				</div>
+				<div style="margin-bottom:1em; width:100%">
+					<textarea name="<?php echo $this->term_translation; ?>[<?php echo $taxonomy; ?>][<?php echo $language->ID; ?>][<?php echo $tag->term_id; ?>][description]" style="box-sizing:border-box;width:100%"><?php echo $desc; ?></textarea>
+					<p class="description"><?php echo __('Term description.', 'sublanguage'); ?></p>
+				</div>
+			</div>
 		</td>
 	</tr>
 <?php } 

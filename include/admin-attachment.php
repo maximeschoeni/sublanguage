@@ -18,9 +18,7 @@ class Sublanguage_admin_attachment {
 			add_filter('wp_prepare_attachment_for_js', array($this, 'prepare_attachment_for_js'), 10, 3);
 			add_filter('wp_insert_attachment_data', array($this, 'insert_attachment'), 10, 2);
 			add_action('edit_attachment', array($sublanguage_admin, 'save_translation_post_data'));
-			
-			add_filter('sublanguage_register_postmeta_key', array($this, 'register_alt_meta'));
-						
+									
 			add_filter('image_add_caption_text', array($this, 'add_caption'), 10, 2); // translate caption when send to editor
 			add_filter('get_image_tag', array($this, 'get_image_tag'), 10, 6); // translate alt when send to editor
 		}
@@ -123,21 +121,6 @@ class Sublanguage_admin_attachment {
 		
 		return $sublanguage_admin->insert_post($data, $postarr);
 	}
-	
-	/**
-	 * Register attachment "alt" field in translatable metadata
-	 *
-	 * Filter for 'sublanguage_register_postmeta_key'
-	 *
-	 * @from 1.4
-	 */
-	public function register_alt_meta($postmeta_keys) {	
-		
-		$postmeta_keys[] = '_wp_attachment_image_alt';
-		
-		return $postmeta_keys;
-			
-	}	
 	
 	/**
 	 * Translate caption when sending image in editor

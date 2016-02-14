@@ -21,6 +21,11 @@ class Sublanguage_admin extends Sublanguage_main {
 	 * @from 1.0
 	 */
 	var $sublanguage_data;
+	
+	/**
+	 * @from 1.0
+	 */
+	var $page_name = 'sublanguage';
 
 	
 	/**
@@ -48,6 +53,7 @@ class Sublanguage_admin extends Sublanguage_main {
 			add_action('init', array($this, 'update'), 15);
 		
 			add_filter('get_post_metadata', array($this, 'translate_meta_data'), null, 4);
+			add_filter('sublanguage_postmeta_override', '__return_true');
 
 			add_filter('the_posts', array($this, 'hard_translate_posts'), 20, 2);
 			add_filter('the_post', array($this, 'hard_translate_post'));
@@ -91,8 +97,42 @@ class Sublanguage_admin extends Sublanguage_main {
 		
 			// translate walker for pages dropdown
 			add_filter('list_pages', array($this, 'translate_list_pages'), 10 , 2);
-					
+			
+			// API import post
+			add_action('sublanguage_import_post', array($this, 'import_post'));
+			
+			// API import term
+			add_action('sublanguage_import_term', array($this, 'import_term'), 10, 2);
+			
 		}
+		
+		include( plugin_dir_path( __FILE__ ) . 'admin-settings.php');
+		include( plugin_dir_path( __FILE__ ) . 'admin-permalink.php');
+		include( plugin_dir_path( __FILE__ ) . 'admin-post.php');
+		include( plugin_dir_path( __FILE__ ) . 'admin-terms.php');
+		include( plugin_dir_path( __FILE__ ) . 'admin-languages.php');
+		include( plugin_dir_path( __FILE__ ) . 'admin-pagenode.php');
+		include( plugin_dir_path( __FILE__ ) . 'admin-taxnode.php');
+		include( plugin_dir_path( __FILE__ ) . 'admin-menu.php');
+		include( plugin_dir_path( __FILE__ ) . 'admin-editor-button.php');
+		include( plugin_dir_path( __FILE__ ) . 'admin-attachment.php');
+		include( plugin_dir_path( __FILE__ ) . 'admin-options-explorer.php');
+		
+		include( plugin_dir_path( __FILE__ ) . 'admin-custom-post.php');
+	
+		new Sublanguage_settings();
+		new Sublanguage_permalink();
+		new Sublanguage_admin_post();
+		new Sublanguage_terms();
+		new Sublanguage_languages();
+		new Sublanguage_hierarchical_pages();
+		new Sublanguage_hierarchical_taxonomies();
+		new Sublanguage_menu();
+		new Sublanguage_admin_editor_button();
+		new Sublanguage_admin_attachment();
+		new Sublanguage_options_explorer();
+		
+		new Sublanguage_custom_post();
 		
 	}
 
@@ -236,6 +276,7 @@ class Sublanguage_admin extends Sublanguage_main {
 	
 	}
 	
+	
 
 	/**
 	 * Restore main language post data before post saves.
@@ -244,7 +285,7 @@ class Sublanguage_admin extends Sublanguage_main {
 	 * @from 1.0
 	 */	
 	public function insert_post($data, $postarr) {
-					
+		
 		if (isset($data['post_type']) && in_array($data['post_type'], $this->get_post_types())) { // -> only for translatable post
 			
 			if ($this->is_sub()) { 
@@ -252,6 +293,8 @@ class Sublanguage_admin extends Sublanguage_main {
 				$this->sublanguage_data = array();
 			
 				$post = get_post($postarr['ID']); // original post
+				
+				
 				
 				// set default post name
 				if ($data['post_title'] == '') {
@@ -288,7 +331,7 @@ class Sublanguage_admin extends Sublanguage_main {
 			}
 		
 		}
-			
+		
 		return $data;
 	
 	}
@@ -430,7 +473,7 @@ class Sublanguage_admin extends Sublanguage_main {
 			
 		} else if (in_array($post->post_type, $this->get_post_types())) {
 			
-			$translatable = in_array($meta_key, $this->postmeta_keys) || apply_filters('sublanguage_translatable_postmeta', false, $meta_key, $object_id);
+			$translatable = in_array($meta_key, $this->get_postmeta_keys()) || apply_filters('sublanguage_translatable_postmeta', false, $meta_key, $object_id);
 		
 			if ($translatable) {
 				
@@ -478,10 +521,10 @@ class Sublanguage_admin extends Sublanguage_main {
 			
 		} else if (in_array($post->post_type, $this->get_post_types())) {
 			
-			$translatable = in_array($meta_key, $this->postmeta_keys) || apply_filters('sublanguage_translatable_postmeta', false, $meta_key, $object_id);
+			$translatable = in_array($meta_key, $this->get_postmeta_keys()) || apply_filters('sublanguage_translatable_postmeta', false, $meta_key, $object_id);
 
 			if ($translatable) {
-		
+
 				if ($this->is_sub()) {
 		
 					$translation = $this->get_post_translation($object_id, $this->current_language->ID);
@@ -528,7 +571,7 @@ class Sublanguage_admin extends Sublanguage_main {
 			
 			} else if (in_array($post->post_type, $this->get_post_types())) {
 			
-				$translatable = in_array($meta_key, $this->postmeta_keys) || apply_filters('sublanguage_translatable_postmeta', false, $meta_key, $object_id);
+				$translatable = in_array($meta_key, $this->get_postmeta_keys()) || apply_filters('sublanguage_translatable_postmeta', false, $meta_key, $object_id);
 		
 				if ($translatable) {
 				
@@ -610,16 +653,20 @@ class Sublanguage_admin extends Sublanguage_main {
 		$original_term = get_term_by('id', $term_id, $taxonomy);
 
 		$translation = $this->get_term_translation($original_term, $taxonomy, $language_id);
+	
+		$data = array(
+			'name' => isset($data['name']) ? $data['name'] : '',
+			'slug' => isset($data['slug']) ? $data['slug'] : '',
+			'description' => isset($data['description']) ? $data['description'] : ''
+		);
 		
-		$data = array_intersect_key($data, array(
-			'name' => true,
-			'slug' => true,
-			'description' => true
-		));
 		
 		if ($translation)	{
 			
-			if ($data['name'] || $data['slug']) {
+			if ($data['name'] || $data['slug'] || $data['description']) {
+				
+				if ($data['name'] == '') $data['name'] = $translation->name;
+				if ($data['slug'] == '') $data['slug'] = $translation->slug;
 				
 				if ($data['name'] == '') $data['name'] = $original_term->name;
 				if ($data['slug'] == '') $data['slug'] = $original_term->slug;
@@ -870,6 +917,197 @@ class Sublanguage_admin extends Sublanguage_main {
 		}
 		
 	}
+	
+	
+	
+	/**	 
+	 * Import post
+	 *
+	 * Hook for 'sublanguage_import_post'
+	 *
+	 * @from 1.5
+	 */
+	public function import_post($postarr) {
+		global $wpdb;
+		
+		if ($this->current_language) {
+			
+			$current_language = $this->current_language;
+		
+		}
+		
+		if (isset($postarr['ID']) && $postarr['ID']) {
+			
+			$post_id = $wpdb->get_var( $wpdb->prepare( "SELECT  post.ID FROM $wpdb->posts AS post WHERE post.ID = %d", $postarr['ID'] ));
+			
+		} else if (isset($postarr['post_name']) && $postarr['post_name']) {
+			
+			$post_id = $wpdb->get_var( $wpdb->prepare( "SELECT  post.ID FROM $wpdb->posts AS post WHERE post.post_name = %s", $postarr['post_name']));
+			
+		}
+		
+		if (empty($post_id)) {
+			
+			$this->current_language = $this->get_main_language();
+			
+			$post_id = wp_insert_post($postarr);
+			
+		}
+		
+		if (isset($post_id, $postarr['sublanguages'], $postarr['post_type']) && in_array($postarr['post_type'], $this->get_post_types())) {
+			
+			foreach ($postarr['sublanguages'] as $data) {
+				
+				if (isset($data['language'])) {
+				
+					$data['ID'] = $post_id;
+					$data['post_type'] = $postarr['post_type'];
+					$data['post_status'] = get_post_field('post_status', $post_id);
+					
+					$language = $this->get_language_by($data['language'], 'ID');
+					
+					if (empty($language)) {
+						
+						$language = $this->get_language_by($data['language'], 'post_name');
+					
+					}
+					
+					if (empty($language)) {
+						
+						$language = $this->get_language_by($data['language'], 'post_content');
+					
+					}
+					
+					if (empty($language)) {
+						
+						$language = $this->get_language_by($data['language'], 'post_title');
+					
+					}
+					
+					if (isset($language)) {
+						
+						$this->current_language = $language;
+						
+						wp_insert_post($data);
+						
+					}
+					
+				}
+		
+			}
+			
+		}
+		
+		if (isset($current_language)) {
+			
+			$this->current_language = $current_language;
+		
+		}
+		
+	}
+	
+	
+	/**	 
+	 * Import term
+	 *
+	 * Hook for 'sublanguage_import_term'
+	 *
+	 * @from 1.5
+	 */
+	public function import_term($taxonomy, $data) {
+		
+		if (in_array($taxonomy, $this->get_taxonomies())) {
+			
+			if ($this->current_language) {
+			
+				$current_language = $this->current_language;
+		
+			}
+			
+			$this->current_language = $this->get_main_language();
+			
+			if (isset($data['term_id']) && $data['term_id']) {
+				
+				$term = get_term_by( 'id', $data['term_id'], $taxonomy );
+				
+			} else if (isset($data['id']) && $data['id']) {
+				
+				$term = get_term_by( 'id', $data['id'], $taxonomy );
+				
+			} else if (isset($data['slug']) && $data['slug']) {
+				
+				$term = get_term_by( 'slug', $data['slug'], $taxonomy );
+				
+			}
+			
+			if (isset($term)) {
+				
+				$term_id = $term->term_id;
+				
+			}
+			
+			if (empty($term_id) && $data['name']) {
+				
+				$results = wp_insert_term( $data['name'], $taxonomy, $data );
+				
+				if (isset($results['term_id'])) {
+				
+					$term_id = $results['term_id'];
+					
+				}
+			
+			}
+		
+			if (isset($term_id) && isset($data['sublanguages'])) {
+			
+				foreach ($data['sublanguages'] as $sub_data) {
+					
+					if (isset($sub_data['language'])) {
+					
+						$language = $this->get_language_by($sub_data['language'], 'ID');
+					
+						if (empty($language)) {
+						
+							$language = $this->get_language_by($sub_data['language'], 'post_name');
+					
+						}
+					
+						if (empty($language)) {
+						
+							$language = $this->get_language_by($sub_data['language'], 'post_content');
+					
+						}
+					
+						if (empty($language)) {
+						
+							$language = $this->get_language_by($sub_data['language'], 'post_title');
+					
+						}
+						
+						if (isset($language)) {
+						
+							$this->update_term_translation($term_id, $taxonomy, $sub_data, $language->ID);
+							
+						}
+						
+					}
+					
+				}
+				
+			}
+			
+			if (isset($current_language)) {
+			
+				$this->current_language = $current_language;
+		
+			}
+			
+		}
+		
+	}
+	
+	
+	
 
 }
 

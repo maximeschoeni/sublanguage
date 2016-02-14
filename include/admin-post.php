@@ -44,13 +44,17 @@ class Sublanguage_admin_post {
 			add_filter('editable_slug', array($this, 'translate_slug'));
 			
 			// add translate meta box for posts
-			add_action('add_meta_boxes', array($this, 'add_meta_box'));
+			if (!$sublanguage_admin->get_option('ajax_post_admin', false)) {
+			
+				add_action('add_meta_boxes', array($this, 'add_meta_box'));
+			
+			}
 			
 			// display current language
 			add_action('edit_form_top', array($this, 'display_current_language'));
 			
 			// post title placeholder
-			add_filter('enter_title_here', array($this, 'title_placeholder'), null, 2);
+			add_filter('enter_title_here', array($this, 'title_placeholder'), 10, 2);
 			
 			add_action('edit_form_top', array($this, 'edit_form')); 
 			
@@ -367,9 +371,10 @@ class Sublanguage_admin_post {
 		
 		foreach ($views as $view) {
 			
-			if (preg_match('/href=[\'|"]([^\'"]*)/', $view, $matches)) {
+			if (preg_match('/href=[\'"]([^\'"]*)/', $view, $matches)) {
 			
-				$new_views[] = str_replace($matches[1], add_query_arg(array($sublanguage_admin->language_query_var => $sublanguage_admin->current_language->post_name), $matches[1]), $view);
+				$match_decoded = html_entity_decode($matches[1]); //handle HTML encoding in links with existing parameters (IE in WooCommerce "Sort Products" link) // thx to @delacqua
+				$new_views[] = str_replace($matches[1], add_query_arg(array($sublanguage_admin->language_query_var => $sublanguage_admin->current_language->post_name), $match_decoded), $view);
 			
 			} else {
 				
@@ -460,11 +465,17 @@ class Sublanguage_admin_post {
 			 */
 			do_action('sublanguage_admin_display_current_language', $sublanguage_admin);
 		
+		} else if ($sublanguage_admin->get_option('ajax_post_admin', false)) {
+			
+			echo $this->print_language_tabs();
+		
 		} else {
 		
 			echo '<h3 style="margin-top:60px">'.$sublanguage_admin->current_language->post_title.'</h3>';
 		
 		}
+		
+		
 		
 	}
 	
@@ -485,6 +496,48 @@ class Sublanguage_admin_post {
 		}
 		
 		return $title;
+	}
+	
+	/*
+	 * Renders language switch tab
+	 * 
+	 * @from 1.5
+	 */
+	public function print_language_tabs() {
+		global $sublanguage_admin;
+		
+		$languages = $sublanguage_admin->get_languages();
+		
+		$name = 'post_language_switch';
+		
+		$html = '<input type="hidden" name="'. $name . '" value="' . $sublanguage_admin->current_language->post_name . '">';
+		$html .= '<input type="hidden" name="'.$sublanguage_admin->language_query_var.'" value="'.$sublanguage_admin->current_language->post_name.'"/>';
+		$html .= '<h2 style="margin-top:20px" class="nav-tab-wrapper sublanguage_language_tabs">';
+		
+		foreach ($languages as $lng) {
+			
+			$html .= '<a id="' . $lng->post_name . '" class="nav-tab' . ($sublanguage_admin->current_language->ID == $lng->ID ? ' nav-tab-active' : '') . '" href="#">' . $lng->post_title . '</a>';
+
+		}
+		
+		$html .= '</h2>';
+		
+		$html .= '		
+<script type="text/javascript">
+	//<![CDATA[
+		jQuery(document).ready(function($) {
+			$(".sublanguage_language_tabs a").click(function() {
+				var $form = $(this).closest("form");
+				$form.find("input[name=' . $name . ']").val(this.id);
+				$form.find("input:submit").first().click();
+				return false;
+			});
+		});
+	//]]>
+</script>';
+			
+		return $html;
+		
 	}
 	
 }

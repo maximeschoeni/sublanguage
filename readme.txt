@@ -3,7 +3,7 @@ Contributors: maximeschoeni
 Tags: multilanguage, multilingual, language, translation
 Requires at least: 4.2
 Tested up to: 4.4
-Stable tag: 1.4.8
+Stable tag: 1.4.9
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -13,55 +13,28 @@ Sublanguage is a lightweight multilanguage plugin for wordpress.
 
 = Philosophy =
 
-Sublanguage is more a toolkit than a ready-made solution for building a multi-language website. It focuses on customizing public interface for visitors, and adapting user experience for editors. It is designed to bring multilingual functionalities and let room for personalization. While UI configuration is quite minimal, multiple hooks and filters are available to fit every needs.
+Sublanguage is more a toolkit than a ready-made solution for building a multi-language website. It focuses on customizing public interface for visitors, and adapting user experience for editors. It is design to bring multilingual functionalities and let room for personalization. While UI configuration is quite minimal, multiple hooks and filters are available to fit every needs. 
 
-Sublanguage is based on the concept of inheritance. Translations are custom-post-types parented to original posts, pages or custom-posts. If translation field is empty, or if translation is missing, original language field content is inherited. The intention is to completely avoid duplicated or even synchronized content, because it is unhandy for content editors.
+Sublanguage is based on the concept of inheritance. Translations are custom-post-types parented to original posts, pages or custom-posts. Each translations have 4 relevant fields: `post_title`, `post_content`, `post_name` and `post_excerpt`. If one field is empty, or if translation is missing, original language field content is inherited. The intention is to completely avoid duplicated or even synchronized content.
 
-Sublanguage pays attention to SEO directives. It uses rewrite URL to structures language content into subdirectories. Moreover URL permalink are fully translatable, not only post slugs but also terms, taxonomies and post-type archives slugs.
+To comply with SEO standards, Sublanguage uses rewrite URL to structures language content into subdirectories. Moreover, URL permalink are fully translatable, not only post slugs but also terms, taxonomies and post-type archives slugs.
+
+= Features =
+
+- allow translation of `title`, `content`, `excerpt`, `permalink` and `meta fields` for `posts`, `page` and `custom post types`
+- allow translation of `title`, `caption`, `alt field` and `description` for `medias`
+- allow translation of `name`, `slug` and `description` for `categories`, `tags` and `custom taxonomies`
+- allow translation of `post type archive slug` and `taxonomies slugs`
+- allow translation of localized texts and login screens
+- use URL rewrite
+- support quick edit
+- support multisite
+- support ajax
+- extendable
 
 = Documentation =
 
 Plugin documentation is available on [github](https://github.com/maximeschoeni/sublanguage)
-
-= Translate posts, pages, medias and custom posts =
-
-You can translate title, content, excerpt, permalink (url) and meta fields for any kind of post types, and title, caption, alt field and description for medias (attachment). When a field is let blank, it will inherit value from "main language". By default, only posts and pages are translatable. Go to `Settings` > `Sublanguage` to enable other post types. You can also translate meta fields, but you need first to register them using `sublanguage_register_postmeta_key` filter. Read the [faq](https://wordpress.org/plugins/sublanguage/faq/) for more information.
-
-= Translate categories, tags and custom taxonomies =
-
-You can translate the name, slug and description field for any term. As for posts, blank fields will also inherit the main language value. You cannot translate term relationship: all translation of a post inherit the same term relationship. By default, only categories are translatable. Go to `Settings` > `Sublanguage` to enable other taxonomies.
-
-= Quick edit =
-
-Sublanguage support the quick edit interface in post list table, and adds a custom button in the mce editor for opening a javascript interface to handle quick posts translation.
-
-= No additional tables in database =
-
-All translation data is stored using the standard Wordpress API for custom posts and taxonomies. So you won't run into problems if you have other plugins dealing with database (import/export plugin, archive plugin, cache plugin, etc.)
-
-= Support ajax =
-
-You can get or update posts translations from front-end with ajax, using the [conventional way](https://codex.wordpress.org/AJAX_in_Plugins). Read the [faq](https://wordpress.org/plugins/sublanguage/faq/) for more information.
-
-= Support multisite =
-
-Sublanguage works fine on a multisite installation. Each site may have its own languages.
-
-= Translate login screens =
-
-Translate screens for login, reset password, register, and email alerts.
-
-= Extensible =
-
-You can extend functionalities by using some hooks/filters. Read the [faq](https://wordpress.org/plugins/sublanguage/faq/) for more information.
-
-= No automatic translations ! =
-
-Sublanguage provide an interface to deal with multilanguage but does not handle automatic translations.
-
-= Github =
-
-[Sublanguage is on github](https://github.com/maximeschoeni/sublanguage). Any contribution is welcome!
 
 = Thanks =
 
@@ -72,8 +45,8 @@ Sublanguage provide an interface to deal with multilanguage but does not handle 
 1. Upload to the `/wp-content/plugins/` directory
 1. Activate the plugin through the 'Plugins' menu in WordPress
 1. Use `do_action('sublanguage_print_language_switch')` in your template file to print the language switch. Please read the faq if you need to customize it.
-1. Add language in `Language -> Add language`
-1. Configure further options in `Settings -> Sublanguage`
+1. Add language in `Sublanguage>Languages` and click on `Add language`
+1. Configure further options in `Sublanguage>Settings`
 
 == Frequently Asked Questions ==
 
@@ -104,7 +77,7 @@ Add this in your `function.php` file and customize it:
 	<ul>
 	<?php foreach ($languages as $language) { ?>
 		<li class="<?php echo $language->post_name; ?> <?php if ($sublanguage->current_language->ID == $language->ID) echo 'current'; ?>">
-			<a href="<?php echo $sublanguage->get_translation_link($language); ?>"><?php echo apply_filters('sublanguage_language_name', $language->post_title, $language); ?></a>
+			<a href="<?php echo $sublanguage->get_translation_link($language); ?>"><?php echo $language->post_title; ?></a>
 		</li>
 	<?php } ?>
 	</ul>
@@ -112,19 +85,6 @@ Add this in your `function.php` file and customize it:
 
 	}
 
-By the way, if you just want to replace the language name by the slug, use this instead:
-
-	add_filter('sublanguage_language_name', 'my_language_name', 10, 2); 
-	/**
-	 * @param string language name
-	 * @param WP_Post language custom post
-	 */
-	function my_language_name($name, $language) {
-
-		return $language->post_name;
-
-	}
-	
 = How to have language switch in navigation menus ? =
 
 If you are using menus and you want the language switch into a menu, 
@@ -135,7 +95,7 @@ If you need current language to be on the first level and further language on th
 
 = Post title, content or excerpt does not translate as expected in my theme =
 
-First go to `Settings -> Sublanguages` and verify the relevant post type is set to be translatable.
+First go to `Sublanguage>Settings` and verify the relevant post type is set to be translatable.
 
 Then verify you are using the proper filters in you template file.
 
@@ -165,12 +125,6 @@ For echoing post content, you need to ensure ´the_content´ filter is called.
 	// echoing post content outside the loop:
 	echo apply_filters('sublanguage_translate_post_field', $some_post->post_content, $some_post, 'post_content');
 	
-	// or...
-	global $post;
-	$post = $some_post;
-	the_content();
-	wp_reset_postdata();	
-
 Same for Excerpts.
 
 Permalinks are automatically translated, inside or outside the loop: 
@@ -219,55 +173,17 @@ Code to add in your `function.php` file:
 
 Note: of course, for a basic usage like this, you should use the standard localization way: `__('text to translate', 'my_domain')`.
 
-= How to translate various entries like blog title, blog description, or user descriptions ? =
+= How to translate wordpress options like 'blog name' or 'blog description' ? =
 
-Sublanguage does not provide an dedicated interface to translate this, so you need to exend it. 
-
-Here is one solution you may try. Let's say we need to translate the blog description:
-
-1. Go to `Settings -> General` and enter something like this into `tagline` (for an english/french site): `[:en]Just another WordPress site[:fr]Encore un vieux site Wordpress`
-1. Add the following into your `function.php`.
-
-		add_filter('option_blogdescription', 'my_translate_like_old_qtranslate'); 
-
-		function my_translate_like_old_qtranslate($original) {
-
-			return apply_filters('sublanguage_custom_translate', $original, 'my_custom_language_parser');
-
-		}
-
-		function my_custom_language_parser($original, $language) {
-
-			if (preg_match('/\[:'.$language->post_name.'\]([^[]*)/', $original, $matches)) {
-
-				return $matches[1];
-
-			}
-
-			return $original;
-
-		}
+Go to `Sublanguage>Translate Options` and try to find the corresponding option key. Options may be nested in a data tree.
 
 = How to make a custom post-meta value translatable? =
 
-You need to register the relevant meta key using the following hook. Add this to your `function.php` file:
-
-	add_filter('sublanguage_register_postmeta_key', 'my_translate_postmeta');
-
-	function my_translate_postmeta($postmeta_keys) {
-
-		$postmeta_keys[] = '_my_postmeta_key';
-	
-		return $postmeta_keys;
-
-	}
-
-Then you can access it in your template files using `get_post_meta($post->ID, '_my_postmeta_key')`. It will automatically translate 
-accordingly to current language. If translation's meta value is empty, it will still inherit from the original post.
+Go to `Sublanguage>Settings` and select custom post-meta key in the checkbox list under "Translate Meta". A meta key needs to be at least used once to appear in this list.
 
 = How to make post thumbnails translatable (different picture for each language)? =
 
-Use the same code as above and replace `'_my_postmeta_key'` by `'_thumbnail_id'`
+Go to `Sublanguage>Settings` and select '_thumbnail_id' in the checkbox list under "Translate Meta". At least one thumbnail must be set before metakey appears in this list.
 
 = How to access language data in javascript for ajax usage ? =
 
@@ -285,54 +201,6 @@ This will first define a global in javascript. Use `console.log(sublanguage)` to
 
 Furthermore, a small script will automatically add a language attribute in every jquery ajax call. You can change this language using `sublanguage.current` (in javascript). This language will be used if you need to get/update posts/terms using ajax.
 
-= How to translate login pages? =
-
-First verify your language packages are [properly installed](http://codex.wordpress.org/Installing_WordPress_in_Your_Language).
-
-To get the link to the localized login page, you need to add a `language` parameter in login url: `www.exemple.com/wp-login.php?language=fr`.
-
-If you are using `wp_login_url()` function to get the link, it should be automatically localized.
-
-= May I customize the admin language interface ? =
-
-Use the following hooks to customize sublanguage admin interface.
-
-To modify or remove the language indication in the top of the form, add this action:
-
-	add_action('sublanguage_admin_display_current_language', 'my_display_language');
-
-	function my_display_language($sublanguage_admin) {
-		
-		echo 'put this instead.';
-		
-		// call this to get the current language object: $sublanguage_admin->current_language;
-		
-		// call this to get a list of all language objects: $sublanguage_admin->get_languages();
-		
-	}
-
-To change language switch output in metabox:
-
-	add_action('sublanguage_admin_custom_switch', 'my_admin_language_switch');
-
-	function my_admin_language_switch($sublanguage_admin) {
-		
-		echo 'put this instead.';
-		
-		// please refer to 'print_language_switch()' function in 'sublanguage/include/admin-post.php'
-		
-	}
-
-To remove completely the language metabox:
-
-	add_action('add_meta_boxes', 'my_remove_admin_language_switch', 12);
-
-	function my_remove_admin_language_switch($post_type) {
-		
-		remove_meta_box('sublanguage-switch', $post_type, 'side');
-
-	}
-
 = Will this plugin affect my site performance? =
 
 Yes it will, unfortunately. A few more database queries are necessary to load every page.
@@ -340,25 +208,48 @@ If performance drops noticeably, you may want to install a cache plugin. Sublang
 
 Sublanguage also works with [SQLite Integration plugin](https://wordpress.org/plugins/sqlite-integration/).
 
+= My language is not in the language list =
+
+Use any language instead, then update, then edit language title, slug and locale, then update again.
+
 == Screenshots ==
 
-1. Every language correspond to a language custom post
-2. edit.php screen for translatable posts.
-3. post.php screen for translatable post.
-4. edit-tags.php screen for translatable term.
-5. edit-tags.php screen for translatable term.
-6. options-permalink.php screen for taxonomy slug or custom post archive slug translation.
-7. custom settings for Sublanguage
-8. tinymce plugin: quick interface for translation
-9. media interface for translation
+1. Add or edit language screen.
+2. Post.php screen with language switch and tinyMCE button for quick interface.
+3. Tinymce plugin: quick interface for translation
+4. Wp.media interface width language tabs for medias translation
+5. Edit-tags.php screen.
+6. Nav-menus.php screen with language custom metabox
+7. Options-permalink.php screen with inputs for taxonomy slug or custom post archive slug translation.
+8. Minimal UI settings
+
+
 
 == Changelog ==
 
+= 1.5 =
+
+- New UI for options translation
+- New UI for postmeta registration
+- New UI for nav menu item translation
+- New UI for custom post type translation (when no admin_ui provided)
+- New API for import posts and terms
+- New language switch interface in post admin
+- Changes in admin menu: Sublanguage is now a top level page
+- Improvement and simplification in term url (get_term_link) translation
+
+= 1.4.9 =
+
+- Bug fix: Sub-taxonomy archive pages returned incorrect results when taxonomy rewrite slug was different from taxonomy name
+- Bug fix: embed shortcodes were not active because the_content filter was called too late
+- Bug fix: some table views buttons were unproperly encoded and did't work
+
 = 1.4.8 =
 
-- Adds `get_default_language_switch` function
-- Bug fix: terms were not translated correctly when using shared terms (on `wp_term_taxonomy` DB table).
-- Bug fix: removed use of filter for `'home_url'` except in `post.php` page, in order to prevent bugs when rebuilding permalinks
+- Adds `Sublanguage_site::get_default_language_switch` function
+- Bug fix: terms were not translated correctly when using shared terms (on `wp_term_taxonomy` table).
+- Bug fix: removed use of filter for `'home_url'` except in `post.php` page, in order to prevent possible bugs when rebuilding permalinks
+- Bug fix: styles in admin terms UI 
 
 = 1.4.7 =
 
