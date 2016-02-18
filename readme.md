@@ -38,8 +38,7 @@ Please read the faq on [wordpress plugin page](https://wordpress.org/plugins/sub
 - [Translate meta fields](#translate-meta-fields)
 - [AJAX](#ajax)
 - [Accessing current language](#accessing-current-language)
-- [Translate options](#translate-options)
-- [Translate plugin](#translate-plugin)
+- [Import posts and terms](#import-posts-and-terms)
 
 ### Installation
 
@@ -211,24 +210,14 @@ Example:
 
 ### Translate meta fields
 
-By default, meta fields are not translatable: the value is the same in all language. If you want to use translatable meta fields, you need to register related meta key using the `sublanguage_register_postmeta_key` hook. Example:
+Translatable postmeta keys need to be registered in Admin -> Sublanguage.
 
-	add_filter( 'sublanguage_register_postmeta_key', 'my_translate_postmeta' );
-
-	function my_translate_postmeta( $postmeta_keys ) {
-
-		$postmeta_keys[] = '_my_postmeta_key';
-	
-		return $postmeta_keys;
-
-	}
-
-Then you can use the translated value in your template file just by calling `get_post_meta()` function. It will automatically translate 
-accordingly to current language. If translation meta value is empty, it will still inherit from the original post.
+Postmeta translated value is accessible in template file by calling `get_post_meta()` function. It will automatically translate 
+accordingly to current language. If meta value is empty for a translation, it will inherit from the original post.
 
 	echo get_post_meta( $post_id, '_my_postmeta_key', true );
 
-Please note the Wordpress builtin Custom Fields box is not supported. You need to use your own [custom meta box](https://codex.wordpress.org/Function_Reference/add_meta_box) in order to edit the translation meta values in admin.
+Note: the Wordpress builtin Custom Fields box is not supported. [Custom meta box](https://codex.wordpress.org/Function_Reference/add_meta_box) are needed in order to edit the translation meta values in admin.
 
 ### AJAX
 
@@ -319,106 +308,156 @@ Code to add in your `function.php` file:
 		return $original_text;
 	}
 
-### Translate options
+### Import posts and terms
 
-Example for translating blog description:
+Sublanguage does not provide any importer tool, but these two functions can be useful for importing data from various place.
 
-	if ( !is_admin() ) {
+#### Importing post
+
+This Function create or update one post and add or update associated translations.
+
+	/**	 
+	 * Import post
+	 *
+	 * Hook for 'sublanguage_import_post'
+	 *
+	 * @param array $data {
+	 *		List of parameters.
+	 *		If $id or $post_name is not provided, an original post (of main language) is created by passing this array to wp_insert_post().
+	 *		Else only translations are created and parented to this post.
+	 *
+	 *		@int 	$ID (Optional) post Id
+	 *		@string $post_name (Optional) post name
+	 *		@string $post_type (Optional) post type. Required if ID or post_name is not set
+	 *		@string $post_title (Optional) post title
+	 *		@string $post_content (Optional) post content
+	 *		@string $post_status (Optional) post status
+	 *		@array  $sublanguages (Required) {
+	 *			List of translation. One array by language
+	 *
+	 *			@array {
+	 *				List of parameters for translation
+	 *
+	 *				@int|string $language (Required) Language id, slug, locale or title (123, 'en', 'en_US', 'English')
+	 *				@string $post_name (Optional) Translation name
+	 *				@string $post_title (Optional) Translation title
+	 *				@string $post_content (Optional) Translation content
+	 *				@string $post_excerpt (Optional) Translation excerpt
+	 *			}
+	 *		}
+	 *		@mixed $xxx Refer to wp_insert_post() $postarr for a complete list of parameters
+	 * }
+	 *
+	 * @from 1.5
+	 */
+	do_action( 'sublanguage_import_post', $data);
 	
-		add_filter( 'option_blogdescription', 'my_translate_option_field' );
-		
-	}
+Examples:
 
-	function my_translate_option_field( $value ) {
+This code creates an english page (provided that english is main language) with translations for french and italian.
 
-		return apply_filters( 'sublanguage_custom_translate', $value, 'my_get_description' );
+	do_action( 'sublanguage_import_post', array(
+		'post_type' => 'page',
+		'post_title' => 'Hello',
+		'post_content' => 'Sample content'
+		'sublanguages' => array(
+			array(
+				'language' => 'fr',
+				'post_title' => 'Bonjour'
+				'post_content' => 'Exemple de contenu'
+			),
+			array(
+				'language' => 'it',
+				'post_title' => 'Ciao'
+				'post_content' => 'Contenuto di esempio'
+			)
+		)
+	));
 
-	}
+This code find an existing post whose ID equals 123 and adds translations for french and italian.
 
-	function my_custom_language_parser( $original, $language ) {
+	do_action( 'sublanguage_import_post', array(
+		'ID' => 123,
+		'sublanguages' => array(
+			array(
+				'language' => 'fr',
+				'post_title' => 'Bonjour'
+				'post_content' => 'Exemple de contenu'
+			),
+			array(
+				'language' => 'it',
+				'post_title' => 'Ciao'
+				'post_content' => 'Contenuto di esempio'
+			)
+		)
+	));
 
-		if ( $language->post_content == 'fr_FR' ) {
-		
-			return 'Description en français';
-			
-		} else if ( $language->post_content == 'ko_KR' ) {
+#### Importing term
 
-			return '한국어 설명';
-			
-		}
-		
-		return $original;
-	}
-
-### Translate plugin
+	/**	 
+	 * Import term
+	 *
+	 * Hook for 'sublanguage_import_term'
+	 *
+	 * @param string $taxonomy Taxonomy name
+	 * @param array $data {
+	 *		List of parameters.
+	 *		If $id or $slug is not provided, original term (of main language) is created by passing $name and this array to wp_insert_term().
+	 *		Else only translation are created and parented to this term.
+	 *
+	 *		@int 	$id term Id
+	 *		@string $slug term slug
+	 *		@string $name term name
+	 *		@string $description term description
+	 *		@int 	$parent term parent
+	 *		@array  $sublanguages (Required) {
+	 *			List of translation. One array by language
+	 *
+	 *			@array {
+	 *				List of parameters for translation
+	 *
+	 *				@int|string $language (Required) Language id, slug, locale or title (123, 'en', 'en_US', 'English')
+	 *				@string $slug (Optional) Translation slug
+	 *				@string $name (Optional) Translation name
+	 *				@string $name (Optional) Translation description
+	 *			}
+	 *		}
+	 * }
+	 *
+	 * @from 1.5
+	 */
+	do_action( 'sublanguage_import_term', $taxonomy, $data);
 	
-This example show how to translate the [the yoast SEO plugin](https://wordpress.org/plugins/wordpress-seo/). This plugin has a large UI with a lot of text inputs, which is quite challenging for multilingual use.
+Examples:
 
-#### 1. translating options
+This code creates an english tag (provided that english is main language) with translations for french and italian.
 
-The most convenient way is probably to translate texts directly into fields using a custom formating. Lets use something like this in each text input: `[:en]English text[:fr]Texte français[:de]Deutche Inhalt` (for an english/french/german site).
-
-The following script will parse and recover the relevant value according to the current language:
-
-	if ( !is_admin() ) {
+	do_action( 'sublanguage_import_term', 'post_tag' array(
+		'name' => 'Example',
+		'sublanguages' => array(
+			array(
+				'language' => 'fr',
+				'name' => 'Exemple'
+			),
+			array(
+				'language' => 'it',
+				'name' => 'Esempio'
+			)
+		)
+	));
 	
-		add_filter('option_wpseo', 'my_wpseo_option');
-		add_filter('option_wpseo_titles', 'my_wpseo_option');
-		add_filter('option_wpseo_social', 'my_wpseo_option');
+This code find an existing category with slug 'uncategorized' and adds translations for french and italian.
 
-	}
-	
-	function my_wpseo_option($value) {
-
-		foreach ($value as $key => $val) {
-
-			$value[$key] = apply_filters('sublanguage_custom_translate', $val, 'my_custom_language_parser');
-
-		}
-
-		return $value;
-
-	}
-
-	function my_custom_language_parser($original, $language) {
-
-		if (preg_match('/\[:'.$language->post_name.'\]([^[]*)/', $original, $matches)) {
-
-			return $matches[1];
-
-		}
-
-		return $original;
-
-	}
-
-#### 2. translate post meta fields
-
-No need to use the previous formating here. Once registered, post meta will just behave like any other post translatable field.
-
-	add_filter('sublanguage_register_postmeta_key', 'my_translate_postmeta');
-
-	function my_translate_postmeta($postmeta_keys) {
-
-		$postmeta_keys[] = '_yoast_wpseo_title';
-		$postmeta_keys[] = '_yoast_wpseo_metadesc';
-		$postmeta_keys[] = '_yoast_wpseo_opengraph-title';
-		$postmeta_keys[] = '_yoast_wpseo_opengraph-description';
-		$postmeta_keys[] = '_yoast_wpseo_twitter-title';
-		$postmeta_keys[] = '_yoast_wpseo_twitter-description';
-
-    		return $postmeta_keys;
-
-	}
-
-#### 3. translating term meta fields
-
-Current version of plugin (3.0.4) still use do-it-yourself term meta values (WP < 4.4 did not supoort term meta), which are stored into blog options. So lets use the exact same way as for translating options (and use the `[:en]...[:fr]etc.` formating):
-
-	if ( !is_admin() ) {
-	
-		add_filter('wpseo_taxonomy_meta', 'my_wpseo_option');
-
-	}	
-
-
+	do_action( 'sublanguage_import_term', 'category', array(
+		'slug' => 'uncategorized',
+		'sublanguages' => array(
+			array(
+				'language' => 'fr',
+				'name' => 'Non-categorisé'
+			),
+			array(
+				'language' => 'it',
+				'name' => 'Non è stato classificato'
+			)
+		)
+	));
