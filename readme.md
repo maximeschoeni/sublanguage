@@ -316,40 +316,6 @@ Sublanguage does not provide any importer tool, but these two functions can be u
 
 This Function create or update one post and add or update associated translations.
 
-	/**	 
-	 * Import post
-	 *
-	 * Hook for 'sublanguage_import_post'
-	 *
-	 * @param array $data {
-	 *		List of parameters.
-	 *		If $id or $post_name is not provided, an original post (of main language) is created by passing this array to wp_insert_post().
-	 *		Else only translations are created and parented to this post.
-	 *
-	 *		@int 	$ID (Optional) post Id
-	 *		@string $post_name (Optional) post name
-	 *		@string $post_type (Optional) post type. Required if ID or post_name is not set
-	 *		@string $post_title (Optional) post title
-	 *		@string $post_content (Optional) post content
-	 *		@string $post_status (Optional) post status
-	 *		@array  $sublanguages (Required) {
-	 *			List of translation. One array by language
-	 *
-	 *			@array {
-	 *				List of parameters for translation
-	 *
-	 *				@int|string $language (Required) Language id, slug, locale or title (123, 'en', 'en_US', 'English')
-	 *				@string $post_name (Optional) Translation name
-	 *				@string $post_title (Optional) Translation title
-	 *				@string $post_content (Optional) Translation content
-	 *				@string $post_excerpt (Optional) Translation excerpt
-	 *			}
-	 *		}
-	 *		@mixed $xxx Refer to wp_insert_post() $postarr for a complete list of parameters
-	 * }
-	 *
-	 * @from 1.5
-	 */
 	do_action( 'sublanguage_import_post', $data);
 	
 Examples:
@@ -394,38 +360,6 @@ This code find an existing post whose ID equals 123 and adds translations for fr
 
 #### Importing term
 
-	/**	 
-	 * Import term
-	 *
-	 * Hook for 'sublanguage_import_term'
-	 *
-	 * @param string $taxonomy Taxonomy name
-	 * @param array $data {
-	 *		List of parameters.
-	 *		If $id or $slug is not provided, original term (of main language) is created by passing $name and this array to wp_insert_term().
-	 *		Else only translation are created and parented to this term.
-	 *
-	 *		@int 	$id term Id
-	 *		@string $slug term slug
-	 *		@string $name term name
-	 *		@string $description term description
-	 *		@int 	$parent term parent
-	 *		@array  $sublanguages (Required) {
-	 *			List of translation. One array by language
-	 *
-	 *			@array {
-	 *				List of parameters for translation
-	 *
-	 *				@int|string $language (Required) Language id, slug, locale or title (123, 'en', 'en_US', 'English')
-	 *				@string $slug (Optional) Translation slug
-	 *				@string $name (Optional) Translation name
-	 *				@string $name (Optional) Translation description
-	 *			}
-	 *		}
-	 * }
-	 *
-	 * @from 1.5
-	 */
 	do_action( 'sublanguage_import_term', $taxonomy, $data);
 	
 Examples:
