@@ -115,6 +115,7 @@ class Sublanguage_site extends Sublanguage_main {
 		add_filter('attachment_link', array($this, 'translate_attachment_link'), 10, 2);
 		add_filter('post_link_category', array($this, 'translate_post_link_category'), 10, 3); // not implemented yet
 		add_filter('post_type_archive_link', array($this, 'translate_post_type_archive_link'), 10, 2);
+		//add_filter('term_link', array($this, 'translate_term_link'), 10, 3);
 		add_filter('year_link', array($this,'translate_month_link'));
 		add_filter('month_link', array($this,'translate_month_link'));
 		add_filter('day_link', array($this,'translate_month_link'));
@@ -307,10 +308,14 @@ class Sublanguage_site extends Sublanguage_main {
 				
 				$menu_item = $this->translate_nav_menu_item($menu_item);
 				
-				if (empty($menu_item->title)) {
+				if (empty($menu_item->post_title)) {
 				
 					$menu_item->title = $this->translate_post_field($original_post->ID, $this->current_language->ID, 'post_title', $menu_item->title);
 					
+				} else {
+					
+					$menu_item->title = $menu_item->post_title;
+				
 				}
 				
 				$menu_item->url = get_permalink($original_post); 
@@ -325,10 +330,14 @@ class Sublanguage_site extends Sublanguage_main {
 				
 				$menu_item = $this->translate_nav_menu_item($menu_item);
 				
-				if (empty($t_nav_item->post_title)) {
+				if (empty($menu_item->post_title)) {
 					
 					$menu_item->title = $this->translate_term_field($original_term, $original_term->taxonomy, $this->current_language->ID, 'name', $menu_item->title);
 					
+				} else {
+					
+					$menu_item->title = $menu_item->post_title;
+				
 				}
 				
 				// url already filtered
@@ -382,7 +391,7 @@ class Sublanguage_site extends Sublanguage_main {
 	
 		if ($this->is_sub() && in_array('nav_menu_item', $this->get_post_types())) {
 		
-			$menu_item->title = $this->translate_post_field($menu_item->ID, $this->current_language->ID, 'post_title', ($fill_default_title ? $menu_item->title : ''));
+			$menu_item->post_title = $this->translate_post_field($menu_item->ID, $this->current_language->ID, 'post_title', ($fill_default_title ? $menu_item->title : ''));
 			$menu_item->description = $this->translate_post_field($menu_item->ID, $this->current_language->ID, 'post_content', $menu_item->description);
 			$menu_item->attr_title = $this->translate_post_field($menu_item->ID, $this->current_language->ID, 'post_excerpt', $menu_item->attr_title);
 			

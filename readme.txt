@@ -1,9 +1,9 @@
 === Sublanguage ===
 Contributors: maximeschoeni
 Tags: multilanguage, multilingual, language, translation
-Requires at least: 4.2
+Requires at least: 4.4
 Tested up to: 4.4
-Stable tag: 1.4.9
+Stable tag: 1.5.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,11 +21,14 @@ To comply with SEO standards, Sublanguage uses rewrite URL to structures languag
 
 = Features =
 
-- allow translation of `title`, `content`, `excerpt`, `permalink` and `meta fields` for `posts`, `page` and `custom post types`
-- allow translation of `title`, `caption`, `alt field` and `description` for `medias`
-- allow translation of `name`, `slug` and `description` for `categories`, `tags` and `custom taxonomies`
-- allow translation of `post type archive slug` and `taxonomies slugs`
-- allow translation of localized texts and login screens
+- can translate `title`, `content`, `excerpt`, `permalink` and `meta fields` for `posts`, `page` and `custom post types`
+- can translate `title`, `caption`, `alt field` and `description` for `medias`
+- can translate `name`, `slug` and `description` for `categories`, `tags` and `custom taxonomies`
+- can translate `post type archive slug` and `taxonomies slugs`
+- can translate nav menus items
+- can translate options
+- can translate localized texts and login screens
+- fields inherit original language by default
 - use URL rewrite
 - support quick edit
 - support multisite
@@ -177,13 +180,24 @@ Note: of course, for a basic usage like this, you should use the standard locali
 
 Go to `Sublanguage>Translate Options` and try to find the corresponding option key. Options may be nested in a data tree.
 
+= How to translate texts in widgets? =
+
+Go to `Sublanguage>Translate Options` and find the corresponding widget option name (like 'widget_somthing'). Expand items with value corresponding to 'DATA' until you find the text you need to translate.
+
+= How to translate nav menu items? =
+
+Your nav menu items that are linked to translated posts, pages or terms should be automatically translated.
+
+If you need to translate custom link or to change the default value for items name, you can select "Nav Menu Item" in "Translate post types" section of Sublanguage settings.
+Then open `Sublanguage>Nav Menu Item` and edit like a normal post.
+
 = How to make a custom post-meta value translatable? =
 
-Go to `Sublanguage>Settings` and select custom post-meta key in the checkbox list under "Translate Meta". A meta key needs to be at least used once to appear in this list.
+Go to Sublanguage settings and select custom post-meta key in the checkbox list under "Translate Meta". A meta key needs to be at least used once to appear in this list.
 
 = How to make post thumbnails translatable (different picture for each language)? =
 
-Go to `Sublanguage>Settings` and select '_thumbnail_id' in the checkbox list under "Translate Meta". At least one thumbnail must be set before metakey appears in this list.
+Go to Sublanguage settings and select '_thumbnail_id' in the checkbox list under "Translate Meta". At least one thumbnail must be set before metakey appears in this list.
 
 = How to access language data in javascript for ajax usage ? =
 
@@ -200,6 +214,17 @@ Add this action to enqueue a small script to define values in javascript:
 This will first define a global in javascript. Use `console.log(sublanguage)` to explore it.
 
 Furthermore, a small script will automatically add a language attribute in every jquery ajax call. You can change this language using `sublanguage.current` (in javascript). This language will be used if you need to get/update posts/terms using ajax.
+
+= How to import/export my blog ? =
+
+You cannot export or import using the wordpress builtin tool. It just does not work yet. But this feature will come in a future release.
+
+If you want to create a custom importer for posts and terms, you can use these 2 functions:
+
+    do_action( 'sublanguage_import_post', $data);
+    do_action( 'sublanguage_import_term', $taxonomy, $data);
+    
+These functions are documented in sublanguage/include/admin.php. See examples on [github](https://github.com/maximeschoeni/sublanguage#import-posts-and-terms).
 
 = Will this plugin affect my site performance? =
 
@@ -226,6 +251,11 @@ Use any language instead, then update, then edit language title, slug and locale
 
 
 == Changelog ==
+
+= 1.5.1 =
+
+- Correct an error when translating nav menu titles
+- Correct an error in javascript when saving option translation
 
 = 1.5 =
 

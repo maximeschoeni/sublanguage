@@ -89,9 +89,8 @@
 			$li.toggleClass("open").find(".handle").toggleClass("dashicons-arrow-right dashicons-arrow-down");
 			if (!$li.children("ul").length) {
 				var $ul = $("<ul></ul>");
-				path.push(key);
 				jQuery.each(sublanguage.languages, function(i, language) {
-					var nodePath = [language.id].concat(path);
+					var nodePath = [language.id].concat(path, key);
 					var id = nodePath.join("-");
 					var nodeName = explorer.translationbaseName + "[" + nodePath.join("][") + "]";
 					var val = explorer.getTranslation(nodePath);

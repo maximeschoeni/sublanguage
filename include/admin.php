@@ -925,9 +925,36 @@ class Sublanguage_admin extends Sublanguage_main {
 	 *
 	 * Hook for 'sublanguage_import_post'
 	 *
+	 * @param array $data {
+	 *		List of parameters.
+	 *		If $id or $post_name is not provided, an original post (of main language) is created by passing this array to wp_insert_post().
+	 *		Else only translations are created and parented to this post.
+	 *
+	 *		@int 	$ID (Optional) post Id
+	 *		@string $post_name (Optional) post name
+	 *		@string $post_type (Optional) post type. Required if ID or post_name is not set
+	 *		@string $post_title (Optional) post title
+	 *		@string $post_content (Optional) post content
+	 *		@string $post_status (Optional) post status
+	 *		@array  $sublanguages (Required) {
+	 *			List of translation. One array by language
+	 *
+	 *			@array {
+	 *				List of parameters for translation
+	 *
+	 *				@int|string $language (Required) Language id, slug, locale or title (123, 'en', 'en_US', 'English')
+	 *				@string $post_name (Optional) Translation name
+	 *				@string $post_title (Optional) Translation title
+	 *				@string $post_content (Optional) Translation content
+	 *				@string $post_excerpt (Optional) Translation excerpt
+	 *			}
+	 *		}
+	 *		@mixed $xxx Refer to wp_insert_post() $postarr for a complete list of parameters
+	 * }
+	 *
 	 * @from 1.5
 	 */
-	public function import_post($postarr) {
+	public function import_post($data) {
 		global $wpdb;
 		
 		if ($this->current_language) {
@@ -936,13 +963,13 @@ class Sublanguage_admin extends Sublanguage_main {
 		
 		}
 		
-		if (isset($postarr['ID']) && $postarr['ID']) {
+		if (isset($data['ID']) && $data['ID']) {
 			
-			$post_id = $wpdb->get_var( $wpdb->prepare( "SELECT  post.ID FROM $wpdb->posts AS post WHERE post.ID = %d", $postarr['ID'] ));
+			$post_id = $wpdb->get_var( $wpdb->prepare( "SELECT  post.ID FROM $wpdb->posts AS post WHERE post.ID = %d", $data['ID'] ));
 			
-		} else if (isset($postarr['post_name']) && $postarr['post_name']) {
+		} else if (isset($data['post_name']) && $data['post_name']) {
 			
-			$post_id = $wpdb->get_var( $wpdb->prepare( "SELECT  post.ID FROM $wpdb->posts AS post WHERE post.post_name = %s", $postarr['post_name']));
+			$post_id = $wpdb->get_var( $wpdb->prepare( "SELECT  post.ID FROM $wpdb->posts AS post WHERE post.post_name = %s", $data['post_name']));
 			
 		}
 		
@@ -950,37 +977,37 @@ class Sublanguage_admin extends Sublanguage_main {
 			
 			$this->current_language = $this->get_main_language();
 			
-			$post_id = wp_insert_post($postarr);
+			$post_id = wp_insert_post($data);
 			
 		}
 		
-		if (isset($post_id, $postarr['sublanguages'], $postarr['post_type']) && in_array($postarr['post_type'], $this->get_post_types())) {
+		if (isset($post_id, $data['sublanguages'], $data['post_type']) && in_array($data['post_type'], $this->get_post_types())) {
 			
-			foreach ($postarr['sublanguages'] as $data) {
+			foreach ($data['sublanguages'] as $sub_data) {
 				
-				if (isset($data['language'])) {
+				if (isset($sub_data['language'])) {
 				
-					$data['ID'] = $post_id;
-					$data['post_type'] = $postarr['post_type'];
-					$data['post_status'] = get_post_field('post_status', $post_id);
+					$sub_data['ID'] = $post_id;
+					$sub_data['post_type'] = $data['post_type'];
+					$sub_data['post_status'] = get_post_field('post_status', $post_id);
 					
-					$language = $this->get_language_by($data['language'], 'ID');
+					$language = $this->get_language_by($sub_data['language'], 'ID');
 					
 					if (empty($language)) {
 						
-						$language = $this->get_language_by($data['language'], 'post_name');
+						$language = $this->get_language_by($sub_data['language'], 'post_name');
 					
 					}
 					
 					if (empty($language)) {
 						
-						$language = $this->get_language_by($data['language'], 'post_content');
+						$language = $this->get_language_by($sub_data['language'], 'post_content');
 					
 					}
 					
 					if (empty($language)) {
 						
-						$language = $this->get_language_by($data['language'], 'post_title');
+						$language = $this->get_language_by($sub_data['language'], 'post_title');
 					
 					}
 					
@@ -988,7 +1015,7 @@ class Sublanguage_admin extends Sublanguage_main {
 						
 						$this->current_language = $language;
 						
-						wp_insert_post($data);
+						wp_insert_post($sub_data);
 						
 					}
 					
@@ -1011,6 +1038,31 @@ class Sublanguage_admin extends Sublanguage_main {
 	 * Import term
 	 *
 	 * Hook for 'sublanguage_import_term'
+	 *
+	 * @param string $taxonomy Taxonomy name
+	 * @param array $data {
+	 *		List of parameters.
+	 *		If $id or $slug is not provided, original term (of main language) is created by passing $name and this array to wp_insert_term().
+	 *		Else only translation are created and parented to this term.
+	 *
+	 *		@int 	$id term Id
+	 *		@string $slug term slug
+	 *		@string $name term name
+	 *		@string $description term description
+	 *		@int 	$parent term parent
+	 *		@array  $sublanguages (Required) {
+	 *			List of translation. One array by language
+	 *
+	 *			@array {
+	 *				List of parameters for translation
+	 *
+	 *				@int|string $language (Required) Language id, slug, locale or title (123, 'en', 'en_US', 'English')
+	 *				@string $slug (Optional) Translation slug
+	 *				@string $name (Optional) Translation name
+	 *				@string $name (Optional) Translation description
+	 *			}
+	 *		}
+	 * }
 	 *
 	 * @from 1.5
 	 */
