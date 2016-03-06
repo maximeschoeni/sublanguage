@@ -44,12 +44,10 @@ class Sublanguage_site extends Sublanguage_main {
 			add_filter('get_the_excerpt', array($this, 'translate_post_excerpt'), 9);
 			add_filter('single_post_title', array($this, 'translate_single_post_title'), 10, 2);
 			
-// 			add_filter('the_posts', array($this, 'hard_translate_posts'), 20, 2);
-// 			add_filter('the_post', array($this, 'hard_translate_post'));
-			
 			add_filter('get_post_metadata', array($this, 'translate_meta_data'), 10, 4);
 			add_filter('wp_setup_nav_menu_item', array($this, 'translate_menu_nav_item'));
-			add_filter('wp_nav_menu_objects', array($this, 'filter_nav_menu_objects'), 10, 2); // -> @from 1.5. Filter list for hidden items 
+			add_filter('wp_nav_menu_objects', array($this, 'filter_nav_menu_objects'), 10, 2); // -> @from 1.5 Filter list for hidden items 
+			add_filter('wp_nav_menu', array($this, 'reset_menu_index'));// -> @from 1.5.2 reset menu index after printing menu.
 			
 			add_filter('tag_cloud_sort', array($this,'translate_tag_cloud'), 10, 2);
 			add_action('parse_query', array($this, 'allow_filters')); // allow filters on menu get_posts
@@ -227,7 +225,7 @@ class Sublanguage_site extends Sublanguage_main {
 			} else {
 		
 				$this->current_language = $this->get_default_language();
-			
+				
 				if ($this->get_option('show_slug')) {
 					
 					$this->canonical = false;
@@ -245,7 +243,7 @@ class Sublanguage_site extends Sublanguage_main {
 						$this->current_language = $detected_language;
 						
 					}
-		
+					
 				}
 				
 			}
@@ -428,7 +426,20 @@ class Sublanguage_site extends Sublanguage_main {
 		
 		return $sorted_menu_items;
 	}
+
+	/**
+	 * Reset menu_language_index after printing menu
+	 *
+	 * Filter for 'wp_nav_menu'
+	 *
+	 * @from 1.5.2
+	 */	
+	public function reset_menu_index($nav_menu) {
 		
+		$this->menu_language_index = 0;
+		
+		return $nav_menu;
+	}	
 	
 	
 	/**
@@ -1193,6 +1204,7 @@ class Sublanguage_site extends Sublanguage_main {
 	/**
 	 * Detect language
 	 *
+	 * @from 1.5.1 Better language detection
 	 * @from 1.2
 	 */
 	public function auto_detect_language() {
@@ -1201,13 +1213,49 @@ class Sublanguage_site extends Sublanguage_main {
 			
 			$locale = Locale::acceptFromHttp($_SERVER['HTTP_ACCEPT_LANGUAGE']); 
 			
-			return $this->get_language_by($locale, 'post_content');
-		
+			return $this->find_language_by_locale($locale);
+			
 		}
 		
 		return false;
 		
 	}
+	
+	/**
+	 * Find best matching language from locale code
+	 * 
+	 * @from 1.5.2
+	 *
+	 * @param string $locale Locale code
+	 * @return object|false Language Object
+	 */
+	public function find_language_by_locale($locale) {
+		
+		$language = $this->get_language_by($locale, 'post_content');
+		
+		if (!$language) {
+			
+			$locale = preg_replace("/^([a-z]+).*/", '$1', $locale);
+			
+			$language = $this->get_language_by($locale, 'post_content');
+			
+			if (!$language) {
+				
+				$locales = preg_grep("/$locale/", $this->get_language_column('post_content'));
+				
+				if ($locales) {
+					
+					$language = $this->get_language_by(array_shift($locales), 'post_content');
+					
+				}
+				
+			}
+			
+		}
+		
+		return $language;
+	}
+	
 	
 	/**
 	 * Get language link

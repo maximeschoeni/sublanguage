@@ -104,6 +104,8 @@ class Sublanguage_admin extends Sublanguage_main {
 			// API import term
 			add_action('sublanguage_import_term', array($this, 'import_term'), 10, 2);
 			
+			// WP Editor AJAX links @from 1.5.2
+			add_filter('wp_link_query_args', array($this, 'filter_links'));	
 		}
 		
 		include( plugin_dir_path( __FILE__ ) . 'admin-settings.php');
@@ -918,6 +920,20 @@ class Sublanguage_admin extends Sublanguage_main {
 		
 	}
 	
+	/**
+	 * Catch ajax request when quering links in editor link popup
+	 *
+	 * Filter for 'wp_link_query_args'
+	 *
+	 * @from 1.5.2
+	 */
+	public function filter_links( $query ) {
+		
+		add_filter('home_url', array($this,'translate_home_url'), 10, 4);
+		
+		return $query;
+		
+	}
 	
 	
 	/**	 

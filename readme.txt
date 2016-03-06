@@ -215,9 +215,9 @@ This will first define a global in javascript. Use `console.log(sublanguage)` to
 
 Furthermore, a small script will automatically add a language attribute in every jquery ajax call. You can change this language using `sublanguage.current` (in javascript). This language will be used if you need to get/update posts/terms using ajax.
 
-= How to import/export my blog ? =
+= How to import/export my blog with translations ? =
 
-You cannot export or import using the wordpress builtin tool. It just does not work yet. But this feature will come in a future release.
+You cannot export or import using the wordpress builtin tool while Sublanguage is active. It just does not work yet. But this feature will come in a future release.
 
 If you want to create a custom importer for posts and terms, you can use these 2 functions:
 
@@ -251,6 +251,12 @@ Use any language instead, then update, then edit language title, slug and locale
 
 
 == Changelog ==
+
+= 1.5.2 =
+
+- Correct link url when inserting internal link from editor links popup in admin
+- Better language detection with Autodetect Language option
+- Fix a bug occuring when language switch is used in more than one menu 
 
 = 1.5.1 =
 
