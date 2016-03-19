@@ -257,6 +257,9 @@ Use any language instead, then update, then edit language title, slug and locale
 - Correct link url when inserting internal link from editor links popup in admin
 - Better language detection with Autodetect Language option
 - Fix a bug occuring when language switch is used in more than one menu 
+- Redirect correctly when Auto-detect language is on and show language slug is off
+- Syntaxical changes to prepare 2.0 migration
+- Remove html escaping when saving option translation
 
 = 1.5.1 =
 

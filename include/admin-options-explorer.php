@@ -302,6 +302,7 @@ class Sublanguage_options_explorer {
 	/**
 	 * Format option
 	 *
+	 * @from 1.5.2 remove default html escaping
 	 * @from 1.5
 	 */	
 	public function format_option($value) {
@@ -315,11 +316,7 @@ class Sublanguage_options_explorer {
 				
 			case 'true':
 				return true;
-				
-			default:
-				$value = esc_attr($value);
-				$value = wp_unslash($value);
-		
+			
 		}
 		
 		return $value;

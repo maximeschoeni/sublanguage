@@ -295,9 +295,11 @@ class Sublanguage_main {
 			
 		}
     
-    return $this->languages_cache;
+    	return $this->languages_cache;
     
-  }
+	}
+	
+	
 
 	/**
 	 * Select language object by translation post-type
@@ -547,6 +549,7 @@ class Sublanguage_main {
 	/**
 	 * Check whether language is sub-language
 	 *
+	 * @from 1.5.2 $language_id may be an object
 	 * @from 1.4.7
 	 *
 	 * @return boolean
@@ -554,6 +557,13 @@ class Sublanguage_main {
 	 public function is_default($language_id = null) {
 		
 		if (isset($language_id)) {
+			
+			// @from 1.5.2
+			if (is_object($language_id)) {
+				
+				$language_id = $language_id->ID;
+			
+			}
 			
 			return $language_id == $this->get_option('default');
 		

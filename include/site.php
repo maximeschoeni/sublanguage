@@ -242,6 +242,13 @@ class Sublanguage_site extends Sublanguage_main {
 					
 						$this->current_language = $detected_language;
 						
+						// @from 1.5.2
+						if (!$this->is_default()) {
+							
+							$this->canonical = false;
+							
+						}
+						
 					}
 					
 				}
@@ -1503,7 +1510,34 @@ class Sublanguage_site extends Sublanguage_main {
 		}
 		
 	}
-
+	
+	
+	/**
+	 * Get current language
+	 *
+	 * @from 1.5.2
+	 *
+	 * @return WP_post object
+	 */
+	public function get_language() {
+		
+    	return $this->current_language;
+    
+	}
+	
+	/**
+	 * Set current language
+	 *
+	 * @from 1.5.2
+	 *
+	 * @param WP_post object $language
+	 * @param bool $canonical
+	 */
+	public function set_language($language) {
+		
+    	$this->current_language = $language;
+    
+	}
 	
 	
 	
