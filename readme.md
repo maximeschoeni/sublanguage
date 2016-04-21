@@ -132,7 +132,7 @@ This function use 6 parameters:
 
 Example:
 
-	echo apply_filters( 'sublanguage_translate_post_field', $some_post->post_title, 'hello', 'post_title' );
+	echo apply_filters( 'sublanguage_translate_post_field', $some_post->post_title, $some_post, 'post_title' );
 
 Most translations are done automatically within template filters though. Calling `get_title()`, `get_the_title($id)`, `the_content()`, `the_excerpt()` or `get_permalink($id)` will automatically return or echo translated text.
 
