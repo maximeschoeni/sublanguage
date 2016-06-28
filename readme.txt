@@ -2,8 +2,8 @@
 Contributors: maximeschoeni
 Tags: multilanguage, multilingual, language, translation
 Requires at least: 4.4
-Tested up to: 4.4
-Stable tag: 1.5.1
+Tested up to: 4.5
+Stable tag: 1.5.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -252,6 +252,11 @@ Use any language instead, then update, then edit language title, slug and locale
 
 == Changelog ==
 
+= 1.5.3 =
+
+- Removed translation filter on 'posts_clause' when posts were queried by name or postname. Issue with 'page_for_posts'.
+- Hard translate post_content, post_title, post_excerpt to resolve issue with "more" tag
+
 = 1.5.2 =
 
 - Correct link url when inserting internal link from editor links popup in admin
@@ -260,6 +265,7 @@ Use any language instead, then update, then edit language title, slug and locale
 - Redirect correctly when Auto-detect language is on and show language slug is off
 - Syntaxical changes to prepare 2.0 migration
 - Remove html escaping when saving option translation
+- When gettign translate, "sublanguage_hide" meta key never inherit value
 
 = 1.5.1 =
 

@@ -4,7 +4,7 @@ Plugin Name: Sublanguage
 Plugin URI: http://sublanguageplugin.wordpress.com
 Description: Plugin for building a site with multiple languages
 Author: Maxime Schoeni
-Version: 1.5.2
+Version: 1.5.3
 Author URI: http://sublanguageplugin.wordpress.com
 Text Domain: sublanguage
 Domain Path: /languages
@@ -921,11 +921,12 @@ class Sublanguage_main {
 	 * filter for 'posts_clauses'
 	 *
 	 * @from 1.4.5
+	 * @from 1.5.3 don't allow filter anymore for query_vars 'name' or 'postname'. 
 	 */
 	public function filter_search_query($pieces, $query) {
 		global $wpdb;
 		
-		if (!empty($query->query_vars['name']) || !empty($query->query_vars['pagename']) || !empty($query->query_vars['s'])) {
+		if (!empty($query->query_vars['s'])) {
 		
 			$post_types = $this->filter_translatable_post_types($query->query_vars['post_type']);
 		
@@ -2601,7 +2602,7 @@ class Sublanguage_main {
 								 * @param string $meta_key
 								 * @param int $object_id
 								 */	
-								if (apply_filters('sublanguage_postmeta_override', $meta_val, $key, $object_id)) {
+								if ($meta_key === 'sublanguage_hide' || apply_filters('sublanguage_postmeta_override', $meta_val, $key, $object_id)) {
 									
 									$meta_vals[$key] = $meta_val;
 									
@@ -2621,7 +2622,7 @@ class Sublanguage_main {
 					/**
 					 * Documented just above
 					 */	
-					if (apply_filters('sublanguage_postmeta_override', $meta_val, $meta_key, $object_id)) {
+					if ($meta_key === 'sublanguage_hide' || apply_filters('sublanguage_postmeta_override', $meta_val, $meta_key, $object_id)) {
 					
 						return $meta_val;
 						

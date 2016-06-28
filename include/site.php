@@ -26,6 +26,7 @@ class Sublanguage_site extends Sublanguage_main {
 	
 	/**
 	 * @from 1.4.7
+	 * @from 1.5.3 post_content, post_title and post_excerpt are hard-translated
 	 */
 	public function load() {
 		
@@ -39,9 +40,8 @@ class Sublanguage_site extends Sublanguage_main {
 			
 			parent::load();
 			
-			add_filter('the_content', array($this, 'translate_post_content'), 5);
-			add_filter('the_title', array($this, 'translate_post_title'), 10, 2);
-			add_filter('get_the_excerpt', array($this, 'translate_post_excerpt'), 9);
+			add_filter('the_posts', array($this, 'hard_translate_posts'), 20, 2);
+			
 			add_filter('single_post_title', array($this, 'translate_single_post_title'), 10, 2);
 			
 			add_filter('get_post_metadata', array($this, 'translate_meta_data'), 10, 4);
@@ -1539,6 +1539,33 @@ class Sublanguage_site extends Sublanguage_main {
     
 	}
 	
+	/**
+	 * don't hard translate post_name on front-end
+	 *
+	 * @override Sublanguage::hard_translate_post()
+	 *
+	 * Hook for 'the_post' (triggered on setup_postdata)
+	 *
+	 * @from 1.5.3
+	 */	
+	public function hard_translate_post($post) {
+		
+		if ($this->is_sub() && in_array($post->post_type, $this->get_post_types())) {
+			
+			foreach ($this->fields as $field) {
+				
+				if ($field !== 'post_name') {
+				
+					$post->$field = $this->translate_post_field($post->ID, $this->current_language->ID, $field, $post->$field);
+				
+				}
+				
+			}
+			
+		}
+		
+		return $post;
+	}	
 	
 	
 }
