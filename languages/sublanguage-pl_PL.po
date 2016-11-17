@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Sublanguage\n"
-"POT-Creation-Date: 2015-06-14 13:18+0100\n"
-"PO-Revision-Date: 2015-06-14 13:20+0100\n"
+"POT-Creation-Date: 2016-11-17 12:21+0100\n"
+"PO-Revision-Date: 2016-11-17 12:40+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: pl_PL\n"
@@ -15,203 +15,289 @@ msgstr ""
 "X-Poedit-KeywordsList: __;_e;_n:1,2;_x:1,2c;_ex:1,2c;_nx:4c,1,2;esc_attr__;"
 "esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c;_n_noop:1,2;"
 "_nx_noop:3c,1,2;__ngettext_noop:1,2\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
+"|| n%100>=20) ? 1 : 2);\n"
 "X-Poedit-SearchPath-0: .\n"
 "X-Poedit-SearchPathExcluded-0: *.js\n"
 
-#: include/admin-languages.php:48 include/admin-languages.php:50
-#: include/admin-languages.php:51
+#: include/admin-custom-post.php:80
+msgid "Parameters"
+msgstr "Parametry"
+
+#: include/admin-languages.php:47 include/admin-languages.php:49
+#: include/admin-languages.php:50 include/admin-languages.php:56
+#: sublanguage.php:2760
 msgid "Languages"
 msgstr "Języki"
 
-#: include/admin-languages.php:49 include/admin-menu.php:18
-#: include/admin-post.php:171
+#: include/admin-languages.php:48 include/admin-menu.php:46
+#: include/admin-post.php:176
 msgid "Language"
 msgstr "Język"
 
-#: include/admin-languages.php:52 include/admin-languages.php:53
-#: include/admin-settings.php:210
+#: include/admin-languages.php:51 include/admin-languages.php:52
+#: include/admin-settings.php:244
 msgid "Add language"
 msgstr "Dodaj język"
 
-#: include/admin-languages.php:54
+#: include/admin-languages.php:53
 msgid "New language"
 msgstr "Nowy język"
 
-#: include/admin-languages.php:55
+#: include/admin-languages.php:54
 msgid "Edit language"
 msgstr "Edytuj język"
 
-#: include/admin-languages.php:56
+#: include/admin-languages.php:55
 msgid "View language"
 msgstr "Zobacz język"
 
 #: include/admin-languages.php:57
-msgid "All languages"
-msgstr "Wszystkie języki"
+msgid "Search languages"
+msgstr "Szukaj w językach"
 
 #: include/admin-languages.php:58
-msgid "Search languages"
-msgstr "Szukaj języków"
+msgid "Parent language:"
+msgstr "Język nadrzędny:"
 
 #: include/admin-languages.php:59
-msgid "Parent language:"
-msgstr "Rodzic:"
+msgid "No language found."
+msgstr "Nie znaleziono żadnego języka."
 
 #: include/admin-languages.php:60
-msgid "No language found."
-msgstr "Nie znaleziono języka."
-
-#: include/admin-languages.php:61
 msgid "No language found in Trash."
-msgstr "Nie znaleziono języka w Koszu."
+msgstr "Nie znaleziono żadnego języka w Koszu."
 
-#: include/admin-languages.php:160 include/admin-languages.php:187
+#: include/admin-languages.php:161 include/admin-languages.php:188
 msgid "Locale"
-msgstr ""
+msgstr "Ustawienia regionalne"
 
-#: include/admin-languages.php:196 include/admin-settings.php:46
+#: include/admin-languages.php:197
 msgid "Settings"
 msgstr "Ustawienia"
 
-#: include/admin-languages.php:219
+#: include/admin-languages.php:220
 msgid "Right-to-left"
-msgstr "Z prawej do lewej"
+msgstr "Od prawej do lewej"
 
-#: include/admin-menu.php:37
+#: include/admin-menu.php:66
+msgid "Menu Item Object"
+msgstr "Element menu"
+
+#: include/admin-menu.php:85
 msgid "Add one of this for each of your languages"
-msgstr "Dodaj jedno z poniższych dla każdego z języków"
+msgstr "Dodaj po jednym dla każdego z Twoich języków"
 
-#: include/admin-permalink.php:149
+#: include/admin-menu.php:115
+msgid "Nav Menu Items"
+msgstr "Elementy menu"
+
+#: include/admin-menu.php:116
+msgid "Nav Menu Item"
+msgstr "Element menu"
+
+#: include/admin-menu.php:133
+msgid "Nav Menus"
+msgstr "Menu nawigacyjne"
+
+#: include/admin-menu.php:185
+msgid "Page Title"
+msgstr "Tytuł strony"
+
+#: include/admin-menu.php:185
+msgid "edit"
+msgstr "edytuj"
+
+#: include/admin-menu.php:187
+msgid "Term Name"
+msgstr "Nazwa atrybutu"
+
+#: include/admin-menu.php:189
+msgid "URL"
+msgstr "URL"
+
+#: include/admin-menu.php:191
+msgid "Title Attribute"
+msgstr "Atrybut - Tytuł"
+
+#: include/admin-menu.php:192
+msgid "Description"
+msgstr "Opis"
+
+#: include/admin-menu.php:193
+msgid "Hide"
+msgstr "Ukryj"
+
+#: include/admin-menu.php:193
+msgid "Hide this menu item in this language"
+msgstr "Ukryj ten element menu w języku"
+
+#: include/admin-options-explorer.php:73
+msgid "Translate Options"
+msgstr "Tłumaczenia ustawień"
+
+#: include/admin-permalink.php:147
 msgid "Translate taxonomies"
-msgstr "Tłumacz taxonomie"
+msgstr "Tłumacz taksonomie"
 
-#: include/admin-permalink.php:205
+#: include/admin-permalink.php:199
 msgid "Translate Custom Post Types"
-msgstr "Tłumacz własnie typy postów"
+msgstr "Tłumacz niestandardowe rodzaje postów"
 
-#: include/admin-permalink.php:252
+#: include/admin-permalink.php:244
 msgid ""
 "You can enter translations for taxonomies. These translations will be used "
 "in the url of category/tag/term pages or taxonomy archive pages. If you "
 "leave these blank the defaults will be used."
 msgstr ""
-"Możesz wprowadzić tłumaczenia dla taxonomi. Ich tłumaczenia zostaną użyte "
-"w adresie url dla strony z kategorią/tagiem/atrybutem lub stroną z taxonometrią. Jeśli "
-"pozostawisz pola puste - zostaną użyte domyślne wartości."
+"Można wprowadzić tłumaczenia taksonomii. Tłumaczenia te będą wykorzystywane "
+"w adresie URL stron kategorii / tagów / atrybutów lub stron archiwalnych "
+"taksonomii. Jeśli zostawisz je puste zostaną użyte wartości domyślne."
 
-#: include/admin-permalink.php:265
+#: include/admin-permalink.php:257
 msgid ""
 "You can enter translations for custom post-types. These translations will be "
 "used in the url of custom post-type pages or custom post-type archive pages. "
 "If you leave these blank the defaults will be used."
 msgstr ""
-"Możesz wprowadzić tłumaczenia dla własnych typów podstron. Ich tłumaczenia zostaną użyte "
-"w adresie url dla strony z własnym typem posta. "
-"Jeśli pozostawisz pola puste - zostaną użyte domyślne wartości."
+"Można wprowadzić tłumaczenia niestandardowych rodzajów postów. Tłumaczenia "
+"te będą wykorzystywane w adresie URL stron niestandardowych rodzajów postów "
+"lub niestandardowych typów stron archiwalnych. Jeśli zostawisz je puste "
+"zostaną użyte wartości domyślne."
 
-#: include/admin-permalink.php:303
+#: include/admin-permalink.php:295
 #, php-format
 msgid "default: %s"
-msgstr "domyślne: %s"
+msgstr "Domyślny: %s"
 
-#: include/admin-settings.php:27 include/admin-settings.php:28
+#: include/admin-settings.php:30 include/admin-settings.php:50
+msgid "Sublanguage Settings"
+msgstr "Ustawienia tłumaczeń"
+
+#: include/admin-settings.php:31 sublanguage.php:2724
 msgid "Sublanguage"
 msgstr "Tłumaczenia"
 
-#: include/admin-settings.php:53
+#: include/admin-settings.php:57
 msgid "Translate post types"
-msgstr "Tłumacz typy postów"
+msgstr "Tłumacz rodzaje postów"
 
-#: include/admin-settings.php:61
+#: include/admin-settings.php:65
 msgid "Translate Taxonomies"
-msgstr "Tłumacz taxonomie"
+msgstr "Tłumacz taksonomie"
 
-#: include/admin-settings.php:69
+#: include/admin-settings.php:73
 msgid "Original language"
 msgstr "Oryginalny język"
 
-#: include/admin-settings.php:77
+#: include/admin-settings.php:81
 msgid "Default language"
 msgstr "Domyślny język"
 
-#: include/admin-settings.php:85
+#: include/admin-settings.php:89
 msgid "Show slug for main language"
-msgstr "Pokazuj slug dla głównego języka w adresie"
+msgstr "Pokazuj sług języka w adresie URL dla języka głównego."
 
-#: include/admin-settings.php:93
+#: include/admin-settings.php:97
 msgid "Auto-detect language"
-msgstr "Automatycznie wykrywaj język"
+msgstr "Automatyczne wykrywanie języka"
 
-#: include/admin-settings.php:109
+#: include/admin-settings.php:105
 msgid "Current language first"
-msgstr "Aktualny język jako pierwszy"
+msgstr "Bieżący język jako pierwszy"
 
-#: include/admin-settings.php:154
+#: include/admin-settings.php:113
+msgid "Ajax Post Admin Interface"
+msgstr "Włącz Ajax w intefejsie"
+
+#: include/admin-settings.php:121
+msgid "Translate Meta"
+msgstr "Tłumacz niestandardowe pola (metabox)"
+
+#: include/admin-settings.php:129
+msgid "Version"
+msgstr "Wersja"
+
+#: include/admin-settings.php:178
 #, php-format
 msgid "You can set taxonomy translations in %s permalink section"
-msgstr "Możesz ustawić tłumaczenia taxonomii w  %s ustawieniach bezpośrednich odnośników."
+msgstr ""
+"Możesz ustawić tłumaczenia linków taksonomii w %s ustawieniach bezpośrednich "
+"odnośników."
 
-#: include/admin-settings.php:185
+#: include/admin-settings.php:212
 #, php-format
 msgid "You can set post-type translations in %s permalink section"
-msgstr "Możesz ustawić tłumaczenia typów postów w %s ustawieniach bezpośrednich odnośników."
+msgstr ""
+"Możesz ustawić tłumaczenia linków do rodzajów postów w %s ustawieniach "
+"bezpośrednich odnośników."
 
-#: include/admin-settings.php:209
+#: include/admin-settings.php:240
 msgid ""
 "This is the langage that will be used if a translation is missing for a post."
 msgstr ""
-"To jest język używany w przypadku gdy nie zostanie znalezione odpowienie tłumaczenie dla postu."
+"Domyślny język kiedy tłumaczenie w żądanym języku nie zostanie znalezione."
 
-#: include/admin-settings.php:236
+#: include/admin-settings.php:274
 msgid ""
 "This is the langage visitors will see when language is not specified in url."
 msgstr ""
-"To jest język który zostanie użyty gdy język wprowadzony w url nie zostanie znaleziony."
+"Domyślny język strony. Używany w przypadku gdy żaden język nie zostanie "
+"zdefiniowany lub zdefiniowany język nie istnieje."
 
-#: include/admin-settings.php:251
+#: include/admin-settings.php:291
 msgid "Show language slug for main language in site url"
-msgstr "Pokaż slug dla głownego języka w adresie strony."
+msgstr "Pokazuj sług języka dla głównego języka w adresie URL strony."
 
-#: include/admin-settings.php:266
+#: include/admin-settings.php:305
 msgid "Display current language in content and title fields when editing post."
-msgstr "Wyświetlaj obecny jezyk w polach z treścią oraz tytułem podczas edycji posta."
+msgstr ""
+"Pokazuj aktualny język w polach treści oraz tytułu podczas edycji posta."
 
-#: include/admin-settings.php:280
+#: include/admin-settings.php:319
 msgid "Auto-detect language when language is not specified in url."
-msgstr "Automatycznie wykryj język gdy nie zostanie określony w adresie url."
+msgstr ""
+"Automatyczne wykryj język kiedy nie zostanie zdefiniowany w adresie URL."
 
-#: include/admin-settings.php:295
+#: include/admin-settings.php:333
 msgid "Set the current language to be the first in the language selectors."
-msgstr "Oznacz obecny język do wyświetlania jako pierwszy w menu do wyboru języka."
+msgstr "Ustaw bieżący język jako pierwszy w selektorze zmiany języka."
+
+#: include/admin-settings.php:347
+msgid "BETA FEATURE. This is not fully functional yet."
+msgstr "WERSJA BETA. Ta opcja nie została jeszcze w pełni przetestowana."
+
+#: include/admin-settings.php:421
+msgid "Custom Fields metabox is not supported for handling translation."
+msgstr "Pola niestandardowe (metabox) nie są obsługiwane w tłumaczeniach."
 
 #: include/admin-terms.php:48
 msgid "Translations"
 msgstr "Tłumaczenia"
 
-#: include/admin-terms.php:71
+#: include/admin-terms.php:70
 #, php-format
 msgid "Term name. Default: %s"
-msgstr "Nazwa atrybutu. Domyślnie: %s"
+msgstr "Nazwa atrybutu. Domyślny: %s"
 
-#: include/admin-terms.php:75
+#: include/admin-terms.php:74
 #, php-format
 msgid "Term slug. Default: %s"
-msgstr "Slug atrybutu. Domyślnie: %s"
+msgstr "Slug atrybutu. Domyślny: %s"
 
-#: include/admin-terms.php:81
+#: include/admin-terms.php:78
 msgid "Term description."
-msgstr "Opis atrybutu"
+msgstr "Opis atrybutu."
 
-#: sublanguage.php:937 sublanguage.php:956
+#: sublanguage.php:1505 sublanguage.php:1522
 #, php-format
 msgid "Translations - %s"
 msgstr "Tłumaczenia - %s"
 
-#: sublanguage.php:1742
-msgid "Sublanguages"
-msgstr "Tłumaczenia"
+#: sublanguage.php:2725
+msgid "Language switch"
+msgstr "Zmień język"
 
-#: sublanguage.php:1743
-msgid "Language Switcher"
-msgstr "Menu wyboru języka"
+#: sublanguage.php:2763
+msgid "Title:"
+msgstr "Tytuł:"

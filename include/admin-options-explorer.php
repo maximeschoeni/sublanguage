@@ -41,8 +41,8 @@ class Sublanguage_options_explorer {
 		
 		add_submenu_page (
 			$sublanguage_admin->page_name,
-			'Translate Options',
-			'Translate Options',
+			__('Translate Options', 'sublanguage'), 
+			__('Translate Options', 'sublanguage'),
 			'manage_options',
 			$this->page_name,
 			array($this, 'print_page') 
@@ -225,9 +225,9 @@ class Sublanguage_options_explorer {
 	 */	
 	 public function admin_enqueue_scripts($hook) {
 		global $sublanguage_admin;
-		
-		if ($hook == 'sublanguage_page_' . $this->page_name) {
-						
+
+		if( strpos($hook, "_page_".$this->page_name) !== false ) {
+
 			wp_enqueue_style('sublanguage-options-style', plugin_dir_url( __FILE__ ) . 'js/options-style.css');
 			wp_enqueue_script('sublanguage-options', plugin_dir_url( __FILE__ ) . 'js/options.js', array('sublanguage-ajax'), false, true);
 			
