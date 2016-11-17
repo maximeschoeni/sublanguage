@@ -46,7 +46,7 @@ class Sublanguage_admin extends Sublanguage_main {
 		
 		if ($this->current_language) {
 			
-			load_plugin_textdomain('sublanguage', false, dirname(plugin_basename(__FILE__)).'/languages');
+			load_plugin_textdomain('sublanguage', false, dirname(dirname(plugin_basename(__FILE__))).'/languages');
 			
 			parent::load();
 			
