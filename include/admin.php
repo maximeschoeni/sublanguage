@@ -327,7 +327,7 @@ class Sublanguage_admin extends Sublanguage_main {
 					$this->sublanguage_data[$this->current_language->ID][$field] = $data[$field];
 					
 					// and restore original data
-					$data[$field] = $post->$field;
+					$data[$field] = wp_slash($post->$field);
 				}
 				
 			}
