@@ -334,6 +334,15 @@ class Sublanguage_admin extends Sublanguage_main {
 		
 		}
 		
+		/**
+		 * Filter post_data before it is saved
+		 * @param int $data. Data to be saved
+		 * @param array $sublanguage. Sublanguage instance.
+		 *
+		 * @from 1.5.4
+		 */
+		$data = apply_filters('sublanguage_insert_post_data', $data, $this);
+		
 		return $data;
 	
 	}
@@ -462,6 +471,7 @@ class Sublanguage_admin extends Sublanguage_main {
 	 * Filter for "add_{$meta_type}_metadata"
 	 *
 	 * @from 1.0
+	 * @from 1.5.4 return correct value
 	 */	
 	public function add_translated_postmeta($null, $object_id, $meta_key, $meta_value, $unique) {
 		
@@ -471,7 +481,7 @@ class Sublanguage_admin extends Sublanguage_main {
 
 		if ($this->get_language_by_type($post->post_type)) {
 	
-			return true; // -> exit
+			return false; // -> exit
 			
 		} else if (in_array($post->post_type, $this->get_post_types())) {
 			
@@ -483,17 +493,19 @@ class Sublanguage_admin extends Sublanguage_main {
 					
 					$translation = $this->get_post_translation($object_id, $this->current_language->ID);
 					
+					$return = false; // should be Meta ID
+					
 					if ($translation) {
 					
 						$this->disable_postmeta_filter = true;
 		
-						add_post_meta($translation->ID, $meta_key, $meta_value, $unique);
+						$return = add_post_meta($translation->ID, $meta_key, $meta_value, $unique);
 		
 						$this->disable_postmeta_filter = false;
 					
 					}
 
-					return true; // -> exit;
+					return $return; // -> exit;
 			
 				}
 				
@@ -510,6 +522,7 @@ class Sublanguage_admin extends Sublanguage_main {
 	 * Filter for "update_{$meta_type}_metadata"
 	 *
 	 * @from 1.0
+	 * @from 1.5.4 return correct value
 	 */	
 	public function update_translated_postmeta($null, $object_id, $meta_key, $meta_value, $prev_value) {
 
@@ -519,7 +532,7 @@ class Sublanguage_admin extends Sublanguage_main {
 
 		if ($this->get_language_by_type($post->post_type)) {
 	
-			return true; // -> exit
+			return false; // -> exit
 			
 		} else if (in_array($post->post_type, $this->get_post_types())) {
 			
@@ -531,17 +544,19 @@ class Sublanguage_admin extends Sublanguage_main {
 		
 					$translation = $this->get_post_translation($object_id, $this->current_language->ID);
 					
+					$return = false; // should be Meta ID
+					
 					if ($translation) {
 					
 						$this->disable_postmeta_filter = true;
 		
-						update_post_meta($translation->ID, $meta_key, $meta_value, $prev_value);
+						$return = update_post_meta($translation->ID, $meta_key, $meta_value, $prev_value);
 		
 						$this->disable_postmeta_filter = false;
 					
 					}
 		
-					return true; // -> exit;
+					return $return; // -> exit;
 			
 				}
 				
@@ -558,6 +573,7 @@ class Sublanguage_admin extends Sublanguage_main {
 	 * Filter for "delete_{$meta_type}_metadata"
 	 *
 	 * @from 1.0
+	 * @from 1.5.4 return correct value
 	 */	
 	public function delete_translated_meta_data($null, $object_id, $meta_key, $meta_value, $delete_all) {
 
@@ -569,7 +585,7 @@ class Sublanguage_admin extends Sublanguage_main {
 			
 			if ($this->get_language_by_type($post->post_type)) {
 	
-				return true; // -> exit
+				return false; // -> exit
 			
 			} else if (in_array($post->post_type, $this->get_post_types())) {
 			
@@ -580,14 +596,14 @@ class Sublanguage_admin extends Sublanguage_main {
 					if ($this->is_sub()) {
 		
 						$translation = $this->get_post_translation($object_id, $this->current_language->ID);
-		
+						
 						$this->disable_postmeta_filter = true;
 		
-						delete_metadata('post', $translation->ID, $meta_key, $meta_value, $delete_all);
+						$return = delete_metadata('post', $translation->ID, $meta_key, $meta_value, $delete_all);
 		
 						$this->disable_postmeta_filter = false;
 		
-						return true; // -> exit;
+						return $return; // -> exit;
 			
 					}
 				

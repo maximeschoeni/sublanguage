@@ -89,33 +89,38 @@ class Sublanguage_admin_attachment {
 	 * Filter for 'wp_insert_attachment_data'
 	 *
 	 * @from 1.4
+	 * @from 1.5.4 Only filter fields when doing AJAX, to support old media interface.
 	 */	
 	public function insert_attachment($data, $postarr) {
 		global $sublanguage_admin;
 		
-		$sublanguage_admin->fields = array();
+		if (defined('DOING_AJAX') && DOING_AJAX) {
 		
-		if (isset($_REQUEST['changes']['title'])) {
+			$sublanguage_admin->fields = array();
+		
+			if (isset($_REQUEST['changes']['title'])) {
 			
-			$sublanguage_admin->fields[] = 'post_title';
+				$sublanguage_admin->fields[] = 'post_title';
 			
-		}
+			}
 
-		if (isset($_REQUEST['changes']['name'])) {
+			if (isset($_REQUEST['changes']['name'])) {
 			
-			$sublanguage_admin->fields[] = 'post_name';
+				$sublanguage_admin->fields[] = 'post_name';
 			
-		}
+			}
 				
-		if (isset($_REQUEST['changes']['caption'])) {
+			if (isset($_REQUEST['changes']['caption'])) {
 			
-			$sublanguage_admin->fields[] = 'post_excerpt';
+				$sublanguage_admin->fields[] = 'post_excerpt';
 			
-		}
+			}
 		
-		if (isset($_REQUEST['changes']['description'])) {
+			if (isset($_REQUEST['changes']['description'])) {
 			
-			$sublanguage_admin->fields[] = 'post_content';
+				$sublanguage_admin->fields[] = 'post_content';
+			
+			}
 			
 		}
 		

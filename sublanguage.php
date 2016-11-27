@@ -4,7 +4,7 @@ Plugin Name: Sublanguage
 Plugin URI: http://sublanguageplugin.wordpress.com
 Description: Plugin for building a site with multiple languages
 Author: Maxime Schoeni
-Version: 1.5.3
+Version: 1.5.4
 Author URI: http://sublanguageplugin.wordpress.com
 Text Domain: sublanguage
 Domain Path: /languages
@@ -62,7 +62,7 @@ class Sublanguage_main {
 	 *
 	 * @var float
 	 */
-	var $version = '1.5.2';
+	var $version = '1.5.4';
 	
 	/** 
 	 * @from 1.0
@@ -1642,11 +1642,12 @@ class Sublanguage_main {
 	 *	Filter for 'the_content'
 	 *
 	 * @from 1.0
+	 * @from 1.5.4 Don't retranslate 'hard translated' posts
 	 */	
 	public function translate_post_content($content) {
 		global $post;
 		
-		if ($this->is_sub()) {
+		if ($this->is_sub() && empty($post->translated)) {
 			
 			return $this->translate_post_field($post->ID, $this->current_language->ID, 'post_content', $content);
 		
@@ -1660,11 +1661,12 @@ class Sublanguage_main {
 	 *	Filter for 'get_the_excerpt'
 	 *
 	 * @from 1.0
+	 * @from 1.5.4 Don't retranslate 'hard translated' posts
 	 */	
 	public function translate_post_excerpt($excerpt) {
 		global $post;
 		
-		if ($this->is_sub()) {
+		if ($this->is_sub() && empty($post->translated)) {
 			
 			return $this->translate_post_field($post->ID, $this->current_language->ID, 'post_excerpt', $excerpt);
 		
@@ -1678,10 +1680,11 @@ class Sublanguage_main {
 	 *	Filter for 'single_post_title'
 	 *
 	 * @from 1.0
+	 * @from 1.5.4 Don't retranslate 'hard translated' posts
 	 */
 	public function translate_single_post_title($title, $post) {
 		
-		if ($this->is_sub()) {
+		if ($this->is_sub() && empty($post->translated)) {
 			
 			return $this->translate_post_field($post->ID, $this->current_language->ID, 'post_title', $title);
 		
@@ -1830,6 +1833,7 @@ class Sublanguage_main {
 	 * Hook for 'the_post' (triggered on setup_postdata)
 	 *
 	 * @from 1.2
+	 * @from 1.5.4 add property 'translated' to translated posts
 	 */	
 	public function hard_translate_post($post) {
 		
@@ -1841,6 +1845,7 @@ class Sublanguage_main {
 				
 			}
 			
+			$post->translated = true;
 		}
 		
 		return $post;
@@ -2531,11 +2536,12 @@ class Sublanguage_main {
 	 *	Based on get_post_type_archive_link(), wp-includes/link-template.php, 1083
 	 *
 	 *  @from 1.0
+	 *	@from 1.5.4 allow translation for main language 
 	 */
 	function translate_post_type_archive_link($link, $post_type) {
 		global $wp_rewrite;
     	
-		if ($this->is_sub() && in_array($post_type, $this->get_post_types())) {
+		if (in_array($post_type, $this->get_post_types())) {
     
 			$translated_cpt = $this->translate_cpt($post_type, $this->current_language->ID, $post_type);
 			

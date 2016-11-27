@@ -2,8 +2,8 @@
 Contributors: maximeschoeni
 Tags: multilanguage, multilingual, language, translation
 Requires at least: 4.4
-Tested up to: 4.5
-Stable tag: 1.5.2
+Tested up to: 4.6
+Stable tag: 1.5.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -252,10 +252,22 @@ Use any language instead, then update, then edit language title, slug and locale
 
 == Changelog ==
 
+= 1.5.4 =
+
+- Change way of retrieving post_type for post archive link queries
+- Function 'translate_post_type_archive_link' now also translate the main language slug for post type archives
+- Put back soft translations for post_content, post_title and post_excerpt. Data are translated twice, but compatibility is improved.
+- "add_{$meta_type}_metadata" and "update_{$meta_type}_metadata" filters now return correct value
+- When preparing attachment data for saving, only filter fields when doing AJAX, in order to support old media interface.
+- add html classes to language switch items in the menu for styling
+- add filter 'sublanguage_insert_post_data' after parsing post data before updating post
+
 = 1.5.3 =
 
 - Removed translation filter on 'posts_clause' when posts were queried by name or postname. Issue with 'page_for_posts'.
 - Hard translate post_content, post_title, post_excerpt to resolve issue with "more" tag
+- Remove soft translations for post_content, post_title and post_excerpt
+- stripslashes options when translating
 
 = 1.5.2 =
 

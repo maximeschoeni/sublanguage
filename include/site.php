@@ -42,6 +42,9 @@ class Sublanguage_site extends Sublanguage_main {
 			
 			add_filter('the_posts', array($this, 'hard_translate_posts'), 20, 2);
 			
+			add_filter('the_content', array($this, 'translate_post_content'), 5);
+			add_filter('the_title', array($this, 'translate_post_title'), 10, 2);
+			add_filter('get_the_excerpt', array($this, 'translate_post_excerpt'), 9);
 			add_filter('single_post_title', array($this, 'translate_single_post_title'), 10, 2);
 			
 			add_filter('get_post_metadata', array($this, 'translate_meta_data'), 10, 4);
@@ -369,6 +372,8 @@ class Sublanguage_site extends Sublanguage_main {
 					$menu_item->title = apply_filters('sublanguage_language_name', $language->post_title, $language);
 					$menu_item->url = $this->get_translation_link($language);
 					$menu_item->classes[] = ($language->ID == $this->current_language->ID) ? 'active_language' : 'inactive_language';
+					$menu_item->classes[] = 'sublanguage';
+					$menu_item->classes[] = $this->current_language->post_name;
 					
 					$this->menu_language_index++;
 			
@@ -1268,6 +1273,7 @@ class Sublanguage_site extends Sublanguage_main {
 	 * Get language link
 	 *
 	 * @from 1.2
+	 * @from 1.5.3 Change way of retrieving post_type for post archive link queries
 	 */
 	public function get_translation_link($language) {
 		global $wp_query, $wp_rewrite;
@@ -1292,7 +1298,7 @@ class Sublanguage_site extends Sublanguage_main {
 			
 		} else if (is_post_type_archive()) {
 			
-			$link = get_post_type_archive_link($query_object->name);
+			$link = get_post_type_archive_link(get_post_type());
 			
 		} else if (is_singular() || $wp_query->is_posts_page) {
 					
@@ -1487,6 +1493,7 @@ class Sublanguage_site extends Sublanguage_main {
 	/**
 	 * translate options
 	 *
+	 * @from 1.5.3 add striplashes
 	 * @from 1.5
 	 */	
 	private function translate_option(&$option, $translation ) {
@@ -1505,7 +1512,7 @@ class Sublanguage_site extends Sublanguage_main {
 			
 		} else {
 			
-			$option = $translation;
+			$option = stripslashes($translation);
 			
 		}
 		
@@ -1547,6 +1554,7 @@ class Sublanguage_site extends Sublanguage_main {
 	 * Hook for 'the_post' (triggered on setup_postdata)
 	 *
 	 * @from 1.5.3
+	 * @from 1.5.4 add property 'translated' to translated posts
 	 */	
 	public function hard_translate_post($post) {
 		
@@ -1562,6 +1570,7 @@ class Sublanguage_site extends Sublanguage_main {
 				
 			}
 			
+			$post->translated = true;
 		}
 		
 		return $post;
