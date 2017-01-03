@@ -698,7 +698,7 @@ class Sublanguage_site extends Sublanguage_main {
 				$custom_type_slug = $this->get_post_type_slug($custom_type);
 				$cpt_translation = $this->translate_cpt($custom_type, $this->current_language->ID, $custom_type_slug);
 				
-				if ($this->is_sub() && ($cpt_translation !== $custom_type_slug)) { // -> there is a custom cpt translation for this
+				if ($cpt_translation !== $custom_type_slug) { // -> there is a custom cpt translation for this
 					
 					$this->canonical = false;
 				
