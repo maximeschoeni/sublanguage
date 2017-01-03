@@ -2346,31 +2346,35 @@ class Sublanguage_main {
 			
 				// translate post type
 				
-				$translated_cpt = $this->translate_cpt($post->post_type, $this->current_language->ID, $this->get_post_type_slug($post->post_type));
-			
+				$post_type_slug = $this->get_post_type_slug($post->post_type);
+				$translated_cpt = $this->translate_cpt($post->post_type, $this->current_language->ID, $post_type_slug);
+				
 				// translate post name
+				if ($this->is_sub() || $translated_cpt !== $post_type_slug) {
 				
-				$translated_slug = $this->translate_post_field($post->ID, $this->current_language->ID, 'post_name', $post->post_name);
+					$translated_slug = $this->translate_post_field($post->ID, $this->current_language->ID, 'post_name', $post->post_name);
 				
-				$post_type_obj = get_post_type_object($post->post_type);
+					$post_type_obj = get_post_type_object($post->post_type);
 			
-				if ($post_type_obj->hierarchical) {
+					if ($post_type_obj->hierarchical) {
 							
-					while ($post->post_parent != 0) {
+						while ($post->post_parent != 0) {
 				
-						$post = get_post($post->post_parent);
+							$post = get_post($post->post_parent);
 						
-						$parent_slug = $this->translate_post_field($post->ID, $this->current_language->ID, 'post_name', $post->post_name);
+							$parent_slug = $this->translate_post_field($post->ID, $this->current_language->ID, 'post_name', $post->post_name);
 						
-						$translated_slug = $parent_slug.'/'.$translated_slug;
+							$translated_slug = $parent_slug.'/'.$translated_slug;
 				
+						}
+			
 					}
 			
+					$post_link = $translated_cpt . '/' . user_trailingslashit($translated_slug);
+			
+					$link = home_url($post_link);
+					
 				}
-			
-				$post_link = $translated_cpt . '/' . user_trailingslashit($translated_slug);
-			
-				$link = home_url($post_link);
 			
 			}
 			
