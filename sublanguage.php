@@ -2338,7 +2338,7 @@ class Sublanguage_main {
 	 */
 	public function translate_custom_post_link($link, $post_id, $sample = false) {
 		
-		if (!$sample && $this->is_sub()) {
+		if (!$sample) {
 			
 			$post = get_post($post_id);
 			
