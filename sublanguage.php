@@ -831,6 +831,23 @@ class Sublanguage_main {
 	}
 	
 	/**
+	 * Get original (not translated) post type slug
+	 *
+	 * @from 1.5.5
+	 *
+	 * @param string $post_type. Post type name
+	 * @return string
+	 */
+	public function get_post_type_slug($post_type) {
+
+		$post_type_data = get_post_type_object( $post_type );
+
+		$post_type_slug = $post_type_data->rewrite['slug'];
+
+		return $post_type_slug;
+	}
+
+	/**
 	 * get original custom post type
 	 *
 	 * @from 1.1
@@ -2329,7 +2346,7 @@ class Sublanguage_main {
 			
 				// translate post type
 				
-				$translated_cpt = $this->translate_cpt($post->post_type, $this->current_language->ID, $post->post_type);
+				$translated_cpt = $this->translate_cpt($post->post_type, $this->current_language->ID, $this->get_post_type_slug($post->post_type));
 			
 				// translate post name
 				
@@ -2543,7 +2560,7 @@ class Sublanguage_main {
     	
 		if (in_array($post_type, $this->get_post_types())) {
     
-			$translated_cpt = $this->translate_cpt($post_type, $this->current_language->ID, $post_type);
+			$translated_cpt = $this->translate_cpt($post_type, $this->current_language->ID, $this->get_post_type_slug($post_type));
 			
 			$post_type_obj = get_post_type_object($post_type);
 		
