@@ -677,13 +677,16 @@ class Sublanguage_site extends Sublanguage_main {
 			
 			if (in_array($custom_type, $this->get_post_types())) {
 				
-				if (isset($query_vars[$custom_type])) { // -> single cpt (not an archive)
+				$post_type_data = get_post_type_object( $custom_type );
+				$custom_type_qv = $post_type_data->query_var;
+			
+				if (isset($query_vars[$custom_type_qv])) { // -> single cpt (not an archive)
 					
-					$post = $this->query_post($query_vars[$custom_type], array($custom_type));
+					$post = $this->query_post($query_vars[$custom_type_qv], array($custom_type));
 			
 					if ($post) {
 
-						$query_vars[$custom_type] = $post->post_name;
+						$query_vars[$custom_type_qv] = $post->post_name;
 						$query_vars['name'] = $post->post_name; 
 						
 						$this->enqueue_post_id($post->ID);
@@ -692,8 +695,10 @@ class Sublanguage_site extends Sublanguage_main {
 					
 				} 
 				
-				if ($this->is_sub()
-					&& $this->get_cpt_translation($custom_type, $this->current_language->ID)) { // -> there is a custom cpt translation for this
+				$custom_type_slug = $this->get_post_type_slug($custom_type);
+				$cpt_translation = $this->translate_cpt($custom_type, $this->current_language->ID, $custom_type_slug);
+				
+				if ($this->is_sub() && ($cpt_translation !== $custom_type_slug)) { // -> there is a custom cpt translation for this
 					
 					$this->canonical = false;
 				
@@ -1395,8 +1400,7 @@ class Sublanguage_site extends Sublanguage_main {
 		return false;
 		
 	}
-
-
+	
 	/**
 	 * Override get_language to select only published language
 	 *
