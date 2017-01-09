@@ -125,6 +125,14 @@ class Sublanguage_settings {
 		);
 		
 		add_settings_field(	
+			'sublanguage-query-var', 
+			__('Query var name', 'sublanguage'), 
+			array($this, 'field_language_query_var'), 
+			$sublanguage_admin->page_name, 
+			'section-settings'
+		);
+
+		add_settings_field(	
 			'sublanguage-version', 
 			__('Version', 'sublanguage'), 
 			array($this, 'field_version'), 
@@ -336,6 +344,20 @@ class Sublanguage_settings {
 	}
 	
 	/**
+	 *	@from 1.5.5
+	 */
+	function field_language_query_var($args) {
+		global $sublanguage_admin;
+       
+		echo sprintf('<input type="text" name="%s" value="%s"/><br/><label>%s</label>',
+			$sublanguage_admin->option_name.'[language_query_var]',
+			$sublanguage_admin->get_option('language_query_var', 'language'),
+			__('Set the URL parameter that allows language switching.', 'sublanguage')
+		);
+		
+	}
+	
+	/**
 	 *	@from 1.5
 	 */
 	function field_ajax_post_admin($args) {
@@ -453,6 +475,7 @@ class Sublanguage_settings {
 		$output['current_first'] = (isset($input['current_first']) && $input['current_first']);
 		$output['version'] = isset($input['version']) ? esc_attr($input['version']) : '-';
 		$output['ajax_post_admin'] = isset($input['ajax_post_admin']) && $input['ajax_post_admin'] ? 1 : 0;
+		$output['language_query_var'] = !empty($input['language_query_var']) ? esc_attr($input['language_query_var']) : '';
 		
     	return $output;
 	}
