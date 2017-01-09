@@ -32,7 +32,9 @@ class Sublanguage_admin extends Sublanguage_main {
 	 * @from 1.0
 	 */
 	public function __construct() {
-	
+
+		$this->language_query_var = $this->get_option('language_query_var', $this->language_query_var);
+
 		add_action( 'plugins_loaded', array($this, 'load'));
 		
 	}
