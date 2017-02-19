@@ -252,6 +252,12 @@ Use any language instead, then update, then edit language title, slug and locale
 
 == Changelog ==
 
+= 2.0 =
+
+- The core of Sublanguage have been rewriten to improve general performance and compatibility.
+- Store posts and terms translations in postmeta/termmeta instead of child posts/terms
+- User interface restructuration
+
 = 1.5.4 =
 
 - Change way of retrieving post_type for post archive link queries

@@ -17,9 +17,10 @@
 						var $handle = $("<span></span>").addClass("handle");
 						var $label = $("<label></label>").text(key);
 						var $input = $("<input/>").attr("type", "text").addClass("regular-text").attr("readonly", true).val(val);
-						var $link = $("<a></a>").attr("href", "#").append($handle).append($label).append($input);
+						// var $link = $("<a></a>").attr("href", "#").append($handle).append($label).append($input);
 						//var $li = $("<li></li>").append($handle).append($label).append($input);
-						var $li = $("<li></li>").append($link);
+						//var $li = $("<li></li>").append($link);
+						var $li = $("<li></li>").append($handle).append($label).append($input);
 						$li.on("explorer:open", function(e) {
 							explorer.open($li, nodePath, key, child);
 							return false;
@@ -46,8 +47,10 @@
 				url: url,
 				data: {action: action},
 				success: function(data) {
-					$ul.on("click", "a", function() {
-						$(this).parent().trigger("explorer:open");
+					$ul.on("click", ".handle, label", function() {
+						$li = $(this).closest("li");
+						//console.log($(this).parent());
+						$li.trigger("explorer:open");
 						return false;
 					});
 					$ul.children("li").each(function() {
@@ -96,14 +99,32 @@
 					var val = explorer.getTranslation(nodePath);
 					var $handle = $("<span></span>").addClass("handle");
 					var $label = $("<label></label>").attr("for", id).text(language.name);
-					var $input = $("<input/>").attr("type", "text").addClass("regular-text").attr("name", nodeName).attr("placeholder", placeholder).attr("id", id).on("blur", function(){
-						var newValue = $(this).val();
+					var $input = $("<input/>").attr("type", "text").addClass("regular-text").attr("name", nodeName).attr("placeholder", placeholder).attr("id", id);
+// 					.on("blur", function(){
+// 						var newValue = $(this).val();
+// 						if (val != newValue) {
+// 							explorer.send(this);
+// 							val = newValue;
+// 						}
+// 					});
+					var $saveBtn = $("<button></button>").html("Save").addClass("button button-small").attr("disabled", true).on("click", function(){
+						var newValue = $input.val();
 						if (val != newValue) {
-							explorer.send(this);
+							explorer.send($input[0]);
 							val = newValue;
+							$saveBtn.attr("disabled", true);
 						}
 					});
-					var $li = $("<li></li>").append($handle).append($label).append($input);
+					$input.on("change keydown paste input", function(e) {
+						var newValue = $input.val();
+						if (val != newValue) {
+							$saveBtn.attr("disabled", false);
+						} else {
+							$saveBtn.attr("disabled", true);
+						}
+					});
+					
+					var $li = $("<li></li>").append($handle).append($label).append($input).append($saveBtn);
 					if (val) $input.val(val);
 					$(".handle, label", $li).on("click", function() {
 						$(this).siblings("input").focus();

@@ -96,6 +96,7 @@
 									text: "Save",
 									maxWidth: 100,
 									onClick: function(){
+										
 										var container = this.parent();
 										var lng = container.name();
 										var fields = container.toJSON(); //exportFields(container);
@@ -117,6 +118,7 @@
 											}]
 										};
 										$.post(ajaxurl, data, function(response) {
+											console.log(response);
 											$btn.stopLoadAnim();
 											btn.disabled(false);
 											for (i in response) {
