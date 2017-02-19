@@ -5,11 +5,8 @@ Sublanguage is a [multi-language plugin for Wordpress](https://wordpress.org/plu
 
 ## Features overview
 
-- allow translation of `title`, `content`, `excerpt`, `permalink` and `meta fields` for `posts`, `page` and `custom post types`
-- allow translation of `title`, `caption`, `alt field` and `description` for `medias`
-- allow translation of `name`, `slug` and `description` for `categories`, `tags` and `custom taxonomies`
-- allow translation of `post type archive slug` and `taxonomies slugs`
-- allow translation of localized texts and login screens
+- allow translation of posts (pages, attachments and custom posts), terms, localized texts and login screens
+- suppport post meta and term meta translations
 - use URL rewrite
 - support quick edit
 - support multisite
