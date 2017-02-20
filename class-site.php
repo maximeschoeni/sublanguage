@@ -370,8 +370,8 @@ class Sublanguage_site extends Sublanguage_current {
 			
 			foreach ($sorted_menu_items as $menu_item) {
 				
-				if (!get_post_meta($menu_item->ID, 'sublanguage_hide', true)) {
-					
+				if ($this->is_sub() && !get_post_meta($menu_item->ID, $this->get_prefix().'sublanguage_hide', true) || $this->is_main() && !get_post_meta($menu_item->ID, 'sublanguage_hide', true)) {
+				
 					$filtered_items[] = $menu_item;
 				
 				}

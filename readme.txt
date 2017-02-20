@@ -2,7 +2,7 @@
 Contributors: maximeschoeni
 Tags: multilanguage, multilingual, language, translation
 Requires at least: 4.4
-Tested up to: 4.6
+Tested up to: 4.7
 Stable tag: 1.5.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -11,6 +11,18 @@ Sublanguage is a lightweight multilanguage plugin for wordpress.
 
 == Description ==
 
+= Features =
+
+- translation of posts (pages, attachments and custom posts), terms, options, localized texts and login screens
+- translation of post meta and term meta
+- translatability: define which content is translatable or not
+- inheritance: untranslated or untranslatable contents inherit original values
+- URL rewrite: translate posts and terms permalinks and sub-pages path
+- quick edit: tinyEditor button and quick edit interface
+- support multisite
+- support ajax
+- extendable
+
 = Philosophy =
 
 Sublanguage is more a toolkit than a ready-made solution for building a multi-language website. It focuses on customizing public interface for visitors, and adapting user experience for editors. It is design to bring multilingual functionalities and let room for personalization. While UI configuration is quite minimal, multiple hooks and filters are available to fit every needs. 
@@ -18,22 +30,6 @@ Sublanguage is more a toolkit than a ready-made solution for building a multi-la
 Sublanguage is based on the concept of inheritance. Translations are custom-post-types parented to original posts, pages or custom-posts. Each translations have 4 relevant fields: `post_title`, `post_content`, `post_name` and `post_excerpt`. If one field is empty, or if translation is missing, original language field content is inherited. The intention is to completely avoid duplicated or even synchronized content.
 
 To comply with SEO standards, Sublanguage uses rewrite URL to structures language content into subdirectories. Moreover, URL permalink are fully translatable, not only post slugs but also terms, taxonomies and post-type archives slugs.
-
-= Features =
-
-- can translate `title`, `content`, `excerpt`, `permalink` and `meta fields` for `posts`, `page` and `custom post types`
-- can translate `title`, `caption`, `alt field` and `description` for `medias`
-- can translate `name`, `slug` and `description` for `categories`, `tags` and `custom taxonomies`
-- can translate `post type archive slug` and `taxonomies slugs`
-- can translate nav menus items
-- can translate options
-- can translate localized texts and login screens
-- fields inherit original language by default
-- use URL rewrite
-- support quick edit
-- support multisite
-- support ajax
-- extendable
 
 = Documentation =
 

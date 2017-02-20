@@ -19,7 +19,13 @@
 								<li><input type="checkbox" id="<?php echo $this->option_name.'-cpt-'.$post_type->name; ?>" name="post_type[]" value="<?php echo $post_type->name; ?>" <?php if ($this->is_post_type_translatable($post_type->name)) echo 'checked'; ?>/>
 									<label for="<?php echo $this->option_name.'-cpt-'.$post_type->name; ?>"><?php echo (isset($post_type->labels->name) ? $post_type->labels->name : $post_type->name); ?></label>
 									<?php if ($this->is_post_type_translatable($post_type->name)) { ?>
-										<a href="<?php echo admin_url('edit.php?').($post_type->name === 'post' ? '' : 'post_type='.$post_type->name.'&') . 'page=' . $post_type->name . '_language_option'; ?>">Options</a>
+										|
+										<?php if ($post_type->name === 'nav_menu_item' || in_array($post_type->name, $this->extra_post_types)) { ?>
+											<a href="<?php echo admin_url('edit.php?') . 'post_type=' . $post_type->name; ?>"><?php echo __('Edit translations', 'sublanguage'); ?></a> |
+											<a href="<?php echo admin_url('tool.php?') . 'page=' . $post_type->name . '_language_option'; ?>"><?php echo __('Options', 'sublanguage'); ?></a>
+										<?php } else { ?>
+											<a href="<?php echo admin_url('edit.php?').($post_type->name === 'post' ? '' : 'post_type='.$post_type->name.'&') . 'page=' . $post_type->name . '_language_option'; ?>"><?php echo __('Options', 'sublanguage'); ?></a>
+										<?php } ?>
 									<?php } ?>
 								</li>
 							<?php } ?>
@@ -42,6 +48,7 @@
 									<input type="checkbox" name="taxonomy[]" value="<?php echo $taxonomy->name; ?>" id="<?php echo $this->option_name.'-taxi-'.$taxonomy->name; ?>" <?php if ($this->is_taxonomy_translatable($taxonomy->name)) echo 'checked'; ?>/>
 									<label for="<?php echo $this->option_name.'-taxi-'.$taxonomy->name; ?>"><?php echo (isset($taxonomy->labels->name) ? $taxonomy->labels->name : $taxonomy->name); ?></label>
 									<?php if ($this->is_taxonomy_translatable($taxonomy->name)) { ?>
+										|
 										<a href="<?php echo admin_url('options-general.php?page=' . $taxonomy->name . '_language_option&taxonomy='.$taxonomy->name); ?>">Options</a>
 									<?php } ?>
 								</li>
@@ -49,6 +56,10 @@
 						</ul>
 					<?php } ?>
 				</td>
+			</tr>
+			<tr>
+				<th><?php echo __('Translate Options', 'sublanguage'); ?></th>
+				<td><a href="<?php echo admin_url('tools.php?page=translate_options');  ?>"><?php echo __('Edit translations', 'sublanguage'); ?></a></td>
 			</tr>
 			<tr>
 				<th><?php echo __('Original language', 'sublanguage'); ?></th>
@@ -114,7 +125,7 @@
 				</td>
 			</tr>
 			<tr>
-				<th><?php echo __('Current language first', 'sublanguage'); ?></th>
+				<th><?php echo __('Version', 'sublanguage'); ?></th>
 				<td>
 					<p><?php echo $this->get_option('version'); ?></p>
 				</td>

@@ -5,10 +5,12 @@ Sublanguage is a [multi-language plugin for Wordpress](https://wordpress.org/plu
 
 ## Features overview
 
-- allow translation of posts (pages, attachments and custom posts), terms, localized texts and login screens
-- suppport post meta and term meta translations
-- use URL rewrite
-- support quick edit
+- translation of posts (pages, attachments and custom posts), terms, options, localized texts and login screens
+- translation of post meta and term meta
+- translatability: define which content is translatable or not
+- inheritance: untranslated or untranslatable contents inherit original values
+- URL rewrite: translate posts and terms permalinks and child page path
+- quick edit: tinyEditor button for quick edit interface
 - support multisite
 - support ajax
 - extendable

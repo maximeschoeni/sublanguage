@@ -6,7 +6,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	/**
 	 * @var array
 	 */
-	var $extra_post_types;
+	var $extra_post_types = array();
 	
 	/**
 	 * @var array
@@ -84,6 +84,9 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 		// Flush rewrite rules if needed
 		add_action('wp_loaded', array($this, 'flush_rewrite_rules'), 12);
 		
+		// set nav menu item translation defaults
+  	add_filter('sublanguage_post_type_default', array($this, 'nav_menu_item_post_type_default'));
+  
 	}
 	
 	/**
@@ -120,15 +123,52 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 		foreach ($post_types as $post_type) {
 			
 			if ($this->is_post_type_translatable($post_type)) {
-			
-				add_submenu_page (
-					$post_type === 'post' ? 'edit.php' : 'edit.php?post_type=' . $post_type,
-					'Post Language Options',
-					'Language Options',
-					'manage_options',
-					$post_type . '_language_option',
-					array($this, 'print_post_language_option_page') 
-				);
+				
+				if (in_array($post_type, $this->extra_post_types)) { // -> extra (without default interface) custom posts
+					
+					add_submenu_page (
+						'tools.php',
+						$post_type . ' Post Language Options',
+						'Language Options',
+						'manage_options',
+						$post_type . '_language_option',
+						array($this, 'print_extra_post_language_option_page') 
+					);
+					
+				} else if ($post_type === 'nav_menu_item') {
+					
+					add_submenu_page ( // -> nav menu items
+						'tools.php',
+						'Nav Menu Items Language Options',
+						'Nav Menu Items Language Options',
+						'manage_options',
+						$post_type . '_language_option',
+						array($this, 'print_extra_post_language_option_page') 
+					);
+					
+				} else if ($post_type === 'post') { // -> posts
+				
+					add_submenu_page (
+						'edit.php',
+						'Post Language Options',
+						'Language Options',
+						'manage_options',
+						$post_type . '_language_option',
+						array($this, 'print_post_language_option_page') 
+					);
+				
+				} else { // -> public custom posts
+				
+					add_submenu_page (
+						'edit.php?post_type=' . $post_type,
+						'Post Language Options',
+						'Language Options',
+						'manage_options',
+						$post_type . '_language_option',
+						array($this, 'print_post_language_option_page') 
+					);
+					
+				}
 				
 			}
 		
@@ -201,7 +241,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	 * 
 	 * @callback for add_submenu_page()
 	 *
-	 * @from 1.5
+	 * @from 2.0
 	 */
 	public function print_post_language_option_page() {
 		
@@ -220,9 +260,32 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	}
 	
 	/**
-	 * Print post-type option page
+	 * Print extra post-type option page
 	 * 
-	 * @from 1.5
+	 * @callback for add_submenu_page()
+	 *
+	 * @from 2.0
+	 */
+	public function print_extra_post_language_option_page() {
+		
+		$page = esc_attr($_GET['page']);
+		$post_type = substr($page, 0, strrpos($page, '_language_option'));
+		$post_type_obj = get_post_type_object($post_type);
+		$meta_keys = $this->query_post_type_metakeys($post_type);
+		$registered_meta_keys = get_registered_meta_keys( 'posts' );
+		
+		if ($this->is_post_type_translatable($post_type)) {
+			
+			include 'include/settings-post-option-page.php';
+		
+		}
+		
+	}
+	
+	/**
+	 * Print attachment option page
+	 * 
+	 * @from 2.0
 	 */
 	public function print_attachment_language_option_page() {
 		
@@ -279,17 +342,21 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 				if ($this->is_post_type_translatable($post_type)) {
 				
 					// permalinks
-					$translations = $this->get_option('translations', array());
-					$cpt = isset($_POST['cpt']) ? array_map('esc_attr', $_POST['cpt']) : array();
+					if (isset($_POST['cpt'])) {
 					
-					if ($translations['cpt'][$post_type] !== $cpt) {
-						$translations['cpt'][$post_type] = $cpt;
-						$this->update_option('translations', $translations);
-						$this->update_option('need_flush', 1);
+						$translations = $this->get_option('translations', array());
+						$cpt = isset($_POST['cpt']) ? array_map('esc_attr', $_POST['cpt']) : array();
+					
+						if ($translations['cpt'][$post_type] !== $cpt) {
+							$translations['cpt'][$post_type] = $cpt;
+							$this->update_option('translations', $translations);
+							$this->update_option('need_flush', 1);
+						}
+					
 					}
 					
 					$post_types_options = $this->get_post_type_options();
-				
+					
 					// fields
 					$fields = isset($_POST['fields']) ? array_map('esc_attr', $_POST['fields']) : array();
 					$post_types_options[$post_type]['fields'] = $fields;
@@ -316,19 +383,23 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 				if ($this->is_taxonomy_translatable($taxonomy)) {
 				
 					// permalinks
-					$translations = $this->get_option('translations', array());
-					$tax =  isset($_POST['tax']) ? array_map('esc_attr', $_POST['tax']) : array();
+					if (isset($_POST['tax'])) {
 					
-					if ($translations['taxonomy'][$taxonomy] !== $tax) {
-						$translations['taxonomy'][$taxonomy] = $tax;
+						$translations = $this->get_option('translations', array());
+						$tax =  isset($_POST['tax']) ? array_map('esc_attr', $_POST['tax']) : array();
+					
+						if ($translations['taxonomy'][$taxonomy] !== $tax) {
+							$translations['taxonomy'][$taxonomy] = $tax;
+							$this->update_option('translations', $translations);
+							$this->update_option('need_flush', 1);
+						}
+					
 						$this->update_option('translations', $translations);
-						$this->update_option('need_flush', 1);
+				
 					}
 					
-					$this->update_option('translations', $translations);
-				
 					$taxonomies_options = $this->get_taxonomies_options();
-			
+						
 					// fields
 					$fields = isset($_POST['fields']) ? array_map('esc_attr', $_POST['fields']) : array();
 					$taxonomies_options[$taxonomy]['fields'] = $fields;
@@ -800,7 +871,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 						
 					}
 					
-					flush_rewrite_rules();
+					$this->update_option('need_flush', 1);
 					
 				}
 				
@@ -1244,6 +1315,18 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 		
 		include 'include/nav-menu-language-metabox.php';
 		
+  }
+  
+  /**
+	 * @filter 'sublanguage_post_type_default'
+	 * @from 2.0
+	 */
+	public function nav_menu_item_post_type_default($post_type_options) {
+		
+		$post_type_options['nav_menu_item']['meta_keys'] = array('sublanguage_hide', '_menu_item_url');
+		
+		return $post_type_options;
+		
   }	
   
 	/**
@@ -1264,8 +1347,8 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 				
 				register_post_type($cpt->name, array(
 					'labels'             => array(
-						'name'               => sprintf(__('Translate %s', 'sublanguage'), isset($cpt->labels->name) ? $cpt->labels->name : $cpt->name),
-						'singular_name'      => sprintf(__('Translate %s', 'sublanguage'), isset($cpt->labels->singular_name) ? $cpt->labels->singular_name : $cpt->name),
+						'name'               => isset($cpt->labels->name) ? $cpt->labels->name : $cpt->name,
+						'singular_name'      => isset($cpt->labels->singular_name) ? $cpt->labels->singular_name : $cpt->name
 					),
 					'show_ui'            => true,
 					'menu_position'			 => 50,
@@ -1281,23 +1364,24 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 					add_filter('the_title', array($this, 'translate_nav_menu_item_title'), 10, 2);
 					add_filter('enter_title_here', array($this, 'nav_menu_item_title_placeholder'), 11, 2);
 					
+					add_action('admin_init', array($this, 'register_nav_menu_item_metabox'));
+					
 				} else {
-					
-					if (empty($this->extra_post_types)) {
-					
-						$this->extra_post_types = array();
-					
-					}
 					
 					$this->extra_post_types[] = $cpt->name;
 					
 				}
 				
-				add_action('admin_init', array($this, 'register_extra_post_metabox'));
 				add_action('save_post_' . $cpt->name, array($this, 'save_extra_custom_post'), 10, 2);
 				
 			}
 		
+		}
+		
+		if ($this->extra_post_types) {
+		
+			add_action('admin_init', array($this, 'register_extra_post_metabox'));
+			
 		}
 		
 	}
@@ -1318,7 +1402,16 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 			'normal'
 		);
 		
-		// Register metabox specifically for Nav Menu Items
+	}
+	
+	/**
+	 * Register metabox specifically for Nav Menu Items
+	 *
+	 * @hook 'admin_init'
+	 * @from 2.0
+	 */
+	public function register_nav_menu_item_metabox() {
+	
 		add_meta_box(
 			'sublanguage-cpt-translation',
 			__('Parameters', 'sublanguage'),
@@ -1326,6 +1419,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 			'nav_menu_item',
 			'normal'
 		);
+	
 	}
 	
 	/**
