@@ -88,6 +88,77 @@ class Sublanguage_ajax extends Sublanguage_admin {
 		
 	}
 	
+	/**
+	 * Save Post from Ajax (for editor button)
+	 *
+	 * @hook 'wp_ajax_sublanguage_save_translation'
+	 *
+	 * @from 1.3
+	 */
+	public function ajax_save_translation() {
+		
+		if (isset($_POST['id'], $_POST['translations'])) {
+		
+			$post_id = intval($_POST['id']);
+			$post = get_post($post_id);
+			$response = array();
+			$translations = $_POST['translations'];
+			
+			if ($post && current_user_can('edit_posts', $post_id)) {
+			
+				foreach ($translations as $translation) {
+			
+					$language = $this->get_language_by($translation['lng'], 'post_name');
+				
+					$postdata = array(
+						'post_content' => $translation['fields']['content'],
+						'post_title' => $translation['fields']['title'],
+						'post_name' => sanitize_title($translation['fields']['slug'])
+					);
+			
+					if (isset($translation['fields']['excerpt'])) {
+				
+						$postdata['post_excerpt'] = $translation['fields']['excerpt'];
+			
+					}
+				
+					if ($this->is_sub($language)) {
+				
+						$this->update_post_translation($post_id, $postdata, $language);
+					
+					} else {
+						
+						$this->set_language($language);
+						
+						$postdata['ID'] = $post_id;
+						
+						wp_update_post($postdata);
+						
+						$this->restore_language();
+						
+					}
+				
+					if (!$translation['fields']['slug']) {
+						$response[] = array(
+							'lng' => $language->post_name,
+							'slug' => $this->translate_post_field($post, 'post_name', $language)
+						);
+					} else if ($postdata['post_name'] != $translation['fields']['slug']) {
+						$response[] = array(
+							'lng' => $language->post_name,
+							'slug' => $postdata['post_name']
+						);
+					}
+					
+				}
+				
+			}
+			
+			exit;
+		
+		}
+		
+	}
 	
 	
 }

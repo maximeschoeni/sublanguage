@@ -52,15 +52,14 @@ class Sublanguage_current extends Sublanguage_core {
 	 */
 	public function load() {
 		
- 		add_filter('request', array($this, 'translate_search_request'));
- 		add_filter('parse_query', array($this, 'verify_posts_ordering'));
+ 		add_filter('parse_query', array($this, 'parse_query'));
 		add_filter('get_object_terms', array($this, 'filter_get_object_terms'), 10, 4);
 		add_filter('get_term', array($this, 'translate_get_term'), 10, 2); // hard translate term
 		add_filter('get_terms', array($this, 'translate_get_terms'), 10, 3); // hard translate terms
 		add_filter('get_the_terms', array($this, 'translate_post_terms'), 10, 3);
 		add_filter('list_cats', array($this, 'translate_term_name'), 10, 2);
 		add_filter('the_posts', array($this, 'translate_the_posts'), 10, 2);
-		add_filter('get_pages', array($this, 'translate_the_posts'), 10, 2);
+		add_filter('get_pages', array($this, 'translate_the_pages'), 10, 2);
 		add_filter('sublanguage_translate_post_field', array($this, 'translate_post_field_custom'), 10, 5);
 		add_filter('sublanguage_translate_term_field', array($this, 'translate_term_field_custom'), 10, 6);
 		add_filter('sublanguage_query_add_language', array($this, 'query_add_language'));
@@ -69,77 +68,80 @@ class Sublanguage_current extends Sublanguage_core {
 	}
 	
 	/**
-	 * Add translations query vars for name, pagename or s
+	 * Helper for parse_query(). Check if query is to be translated
 	 *
-	 * filter for 'request'
+	 * @param array $query_vars.
 	 *
 	 * @from 2.0
 	 */
-	public function translate_search_request($query_vars) {
-		global $wpdb;
+	public function is_query_translatable($query_vars) {
 		
-		if (!empty($query_vars['s'])) {
+		$post_type = isset($query_vars['post_type']) ? $query_vars['post_type'] : 'post';
+		
+		if ($post_type === 'any') {
 			
-			$post_types = isset($query_vars['post_type']) ? $query_vars['post_type'] : array('post', 'page');
+			return true; // lets pretend it is...
+		
+		} else if (is_string($post_type)) {
 			
-			$is_translatable = (!$post_types && $this->is_post_type_translatable('post')) || (is_string($post_types) && ($post_types === 'any' || $this->is_post_type_translatable($post_types))) || (is_array($post_types) && array_filter($post_types, array($this, 'is_post_type_translatable')));
+			return $this->is_post_type_translatable($post_type);
+		
+		} else if (is_array($post_type)) {
 			
-			if ($this->is_sub() && $is_translatable) {
-				
-				if (isset($query_vars['s'])) {
-					
-					$query_vars['meta_query']['relation'] = 'OR';
-					
-					$query_vars['meta_query'][] = array(
-						'key'     => $this->get_prefix() . 'post_title',
-						'value'   => $query_vars['s'],
-						'compare' => 'LIKE',
-					);
-					$query_vars['meta_query'][] = array(
-						'key'     => $this->get_prefix() . 'post_content',
-						'value'   => $query_vars['s'],
-						'compare' => 'LIKE',
-					);
-					$query_vars['meta_query'][] = array(
-						'key'     => $this->get_prefix() . 'post_excerpt',
-						'value'   => $query_vars['s'],
-						'compare' => 'LIKE',
-					);
-					
-					add_filter('posts_search', array($this, 'catch_search'), 10, 2);
-					
-				}
-				
-			}
-			
+			return array_filter($post_type, array($this, 'is_post_type_translatable'));
+		
 		}
 		
-		return $query_vars;
 	}
 	
 	/**
-	 * When posts are sorted by name for sub-languages, use cached title meta key instead
+	 * Remove suppress filters and handle search query
 	 *
 	 * @hook for 'parse_query'
 	 *
 	 * @from 2.0
 	 */
-	public function verify_posts_ordering($wp_query) {
+	public function parse_query($wp_query) {
 		
-		$query_vars = &$wp_query->query_vars;
+		$language = isset($wp_query->query_vars['sublanguage']) ? $this->find_language($wp_query->query_vars['sublanguage']) : null;
 		
-		if (isset($query_vars['orderby']) && $query_vars['orderby'] === 'title' && $this->is_sub()) {
+		if ($this->is_sub($language) && $this->is_query_translatable($wp_query->query_vars)) {
 			
-			$post_type = isset($query_vars['post_type']) ? $query_vars['post_type'] : 'post';
+			$wp_query->query_vars['suppress_filters'] = false;
 			
-			if ((is_string($post_type) && $this->is_post_type_title_cached($post_type)) || (is_array($post_type) && array_filter($post_type, array($this, 'is_post_type_title_cached')))) {
-			
-				$order = isset($query_vars['order']) ? $query_vars['order'] : 'ASC';
+			if (isset($wp_query->query_vars['s']) && $wp_query->query_vars['s']) { // query_vars['s'] is empty string by default 
 				
-				$query_vars['orderby'] = array( 'meta_value' => $order, 'title' => $order);
-				$query_vars['meta_key'] = $this->get_prefix() . 'order_title';
-				 
+				$wp_query->query_vars['meta_query']['relation'] = 'OR';
+				
+				$wp_query->query_vars['meta_query'][] = array(
+					'key'     => $this->get_prefix($language) . 'post_title',
+					'value'   => $wp_query->query_vars['s'],
+					'compare' => 'LIKE',
+				);
+				$wp_query->query_vars['meta_query'][] = array(
+					'key'     => $this->get_prefix($language) . 'post_content',
+					'value'   => $wp_query->query_vars['s'],
+					'compare' => 'LIKE',
+				);
+				$wp_query->query_vars['meta_query'][] = array(
+					'key'     => $this->get_prefix($language) . 'post_excerpt',
+					'value'   => $wp_query->query_vars['s'],
+					'compare' => 'LIKE',
+				);
+				
+				add_filter('posts_search', array($this, 'catch_search'), 10, 2);
+				
 			}
+			
+			/**
+			 * Hook called on parsing a query that needs translation 
+			 *
+			 * @from 2.0
+			 *
+			 * @param WP_Query object $query
+			 * @param Sublanguage_current object $this
+			 */	
+			do_action('sublanguage_parse_query', $wp_query, $language, $this);
 			
 		}
 		
@@ -154,9 +156,13 @@ class Sublanguage_current extends Sublanguage_core {
 	 */
 	public function catch_search($search, $wp_query) {
 		
-		$this->search_sql = $search;
+		if (!empty($wp_query->query_vars['sublanguage_search_deep'])) { // -> will search in original language as well... quite hacky!
 		
-		add_filter('get_meta_sql', array($this, 'append_search_meta'));
+			$this->search_sql = $search;
+		
+			add_filter('get_meta_sql', array($this, 'append_search_meta'));
+		
+		}
 		
 		return '';
 		
@@ -182,25 +188,138 @@ class Sublanguage_current extends Sublanguage_core {
 		return $sql;
 	}
 	
+	/**
+	 * translate posts
+	 *
+	 * @filter 'the_posts'
+	 *
+	 * @from 1.1
+	 */
+	public function translate_the_posts($posts, $wp_query) {
+		
+		if (isset($wp_query->query_vars['sublanguage'])) {
+			
+			if (!$wp_query->query_vars['sublanguage']) { // false -> do not translate
+				
+				// Documented below
+				return apply_filters('sublanguage_translate_the_posts', $posts, $posts, null, $wp_query, $this);
+				
+			} else { // language slug or ID -> find language
+				
+				$language = $this->find_language($wp_query->query_vars['sublanguage']);
+			
+			}
+			
+		} else { // not set -> use current
+			
+			$language = null;
+		
+		}
+		
+		if ($this->is_sub($language)) {
+			
+			/**
+			 * Filter the posts after translation
+			 *
+			 * @from 2.0
+			 *
+			 * @param array of object WP_Post $translated posts.
+			 * @param array of object WP_Post $original posts.
+			 * @param object WP_Post $language.
+			 * @param object WP_Query $wp_query.
+			 * @param object Sublanguage_core $this.
+			 */
+			$posts = apply_filters('sublanguage_translate_the_posts', $this->translate_posts($posts, $language), $posts, $language, $wp_query, $this);
+			
+		}
+		
+		return $posts;
+	}
 	
 	/**
-	 * Translate post
+	 * translate posts
 	 *
-	 * @from 2.0 Changed parameters
-	 * @from 1.1
+	 * @filter 'get_pages'
+	 *
+	 * @from 2.0
+	 */
+	public function translate_the_pages($posts, $r) {
+		
+		if ($this->is_sub()) {
+		
+			$posts = $this->translate_posts($posts);
+			
+		}
+		
+		return $posts;
+	}
+	
+	
+	/** 
+	 * Translate posts
+	 *
+	 * @from 2.0
 	 *
 	 * @param object WP_post $post
-	 * @param int|string|object language. Optionnal
-	 * @return object WP_post
-	 */	
-	public function translate_post($post) {
+	 * @param object language
+	 */
+	public function translate_posts($posts, $language = null) {
 		
-		$translation = $post;
+		$new_posts = array();
 		
-		$this->hard_translate_post($translation);
+		foreach ($posts as $post) {
+			
+			/**
+			 * Filter the post after translation
+			 *
+			 * @from 2.0
+			 *
+			 * @param object WP_Post $translated post.
+			 * @param object WP_Post $original post.
+			 * @param object WP_Post $language.
+			 * @param object Sublanguage_core $this.
+			 */
+			$new_posts[] = apply_filters('sublanguage_translate_the_post', $this->translate_post($post, $language), $post, $language, $this);
+			
+		}
 		
-		return $translation;
+		return $new_posts;
 	}
+	
+	/**
+	 * Translate post. This function is overrided on front-end !
+	 *
+	 * @from 2.0
+	 *
+	 * @param object WP_post $post
+	 * @param object language
+	 */	
+	public function translate_post($post, $language = null) {
+		
+		if (empty($language)) {
+			
+			$language = $this->get_language();
+		
+		}
+		
+		if ($this->is_sub($language) && $this->is_post_type_translatable($post->post_type) && empty($post->sublanguage)) {
+			
+			foreach ($this->fields as $field) {
+			
+				$post->$field = $this->translate_post_field($post, $field, $language);
+			
+			}
+				
+			$post->sublanguage = true;
+			
+		}
+		
+		return $post;
+		
+	}
+	
+	
+	
 	
 	/**
 	 * Translate post meta. Public API
@@ -226,26 +345,6 @@ class Sublanguage_current extends Sublanguage_core {
 	}
 	
 	
-	
-	// IS THIS NEEDED ?
-	
-	/**
-	 * Allow filters on menu get_posts
-	 *
-	 * @filter for 'parse_query'
-	 *
-	 * @from 1.2
-	 */
-// 	public function allow_filters(&$query) {
-// 		
-// 		if (isset($query->query_vars['post_type']) && in_array($query->query_vars['post_type'], $this->get_post_types())) {
-// 		//if (isset($query->query_vars['post_type']) && is_string($query->query_vars['post_type']) && $this->is_post_type_translatable($query->query_vars['post_type'])) {
-// 		
-// 			$query->query_vars['suppress_filters'] = false;
-// 		
-// 		}
-// 		
-// 	}
 
 	/**
 	 *	Append language slug to home url 
@@ -411,27 +510,6 @@ class Sublanguage_current extends Sublanguage_core {
 	}
 	
 	
-	
-	
-	/**
-	 * translate posts
-	 *
-	 * @filter 'the_posts', 'get_pages'
-	 *
-	 * @from 1.1
-	 * @from 2.0 also used for 'get_pages' 
-	 */
-	public function translate_the_posts($posts, $wp_query = null) { // -> $wp_query parameter is unreliable!
-		
-		if ($this->is_sub()) {
-		
-			$this->hard_translate_posts($posts);
-			
-		}
-		
-		return $posts;
-	}
-
 	/**
 	 *	Translate term name
 	 *	Filter for 'list_cats'

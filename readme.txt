@@ -250,7 +250,7 @@ Use any language instead, then update, then edit language title, slug and locale
 
 = 2.0 =
 
-- The core of Sublanguage have been rewriten to improve general performance and compatibility.
+- The core of Sublanguage have been rewriten in order to improve general performances and compatibility
 - Store posts and terms translations in postmeta/termmeta instead of child posts/terms
 - User interface restructuration
 

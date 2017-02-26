@@ -385,46 +385,6 @@ class Sublanguage_core {
 	}
 	
 	/**
-	 * Get translatable taxonomies 
-	 *
-	 * @deprecated from 2.0. Use get_taxonomy_option() instead.
-	 * @from 1.4.7
-	 *
-	 * @return WP_Post object
-	 */
-	public function get_taxonomies() {
-		
-		if (!isset($this->taxonomies)) {
-			
-			/**
-			 * Register an array of default translatable taxonomy
-			 *
-			 * @from 1.5
-			 *
-			 * @param array of strings. Array containing the taxonomy names.
-			 */
-			$this->taxonomies = $this->get_option('taxonomy', apply_filters('sublanguage_register_taxonomy', array()));
-			
-		}
-		
-		return $this->taxonomies;
-	}
-	
-	/**
-	 * Get translatable post_types. To be replaced by get_post_type_options()
-	 *
-	 * @deprecated from 2.0. Use get_post_type_option() instead.
-	 * @from 1.4.7
-	 *
-	 * @return WP_Post object
-	 */
-	public function get_post_types() {
-		
-		trigger_error('dont use get_post_types() function anymore!');
-		
-	}
-	
-	/**
 	 * Get post_type options for translation.
 	 *
 	 * @from 2.0
@@ -1064,9 +1024,9 @@ class Sublanguage_core {
 		$translations = $this->get_option('translations', array());
 		
 		if (isset($translations['option'][$language_id][$option_name]) && $translations['option'][$language_id][$option_name]) {
-
+			
 			return $translations['option'][$language_id][$option_name];
-
+			
 		}
 		
 		return false;
@@ -1097,7 +1057,7 @@ class Sublanguage_core {
 	/**
 	 * get post field translation if it exists
 	 *
-	 * @from 2.0 
+	 * @from 2.0 Changed parameters
 	 * @from 1.1
 	 *
 	 * @param object WP_Post $post Post to translate field.
@@ -1110,7 +1070,7 @@ class Sublanguage_core {
 		if ($this->is_sub($language) && $this->is_post_type_translatable($post->post_type) && in_array($field, $this->get_post_type_fields($post->post_type))) {
 			
 			return get_post_meta($post->ID, $this->get_prefix($language) . $field, true);
-		
+			
 		} else {
 			
 			return $post->$field;
@@ -1148,59 +1108,6 @@ class Sublanguage_core {
 		return $post->$field;
 		
 	}
-	
-	/** 
-	 * hard translate posts for quick edit
-	 *
-	 * Hook for 'the_posts'
-	 *
-	 * @from 1.2
-	 *
-	 * @param object WP_post $post
-	 * @param int|string|object language
-	 */
-	public function hard_translate_posts($posts, $language = null) {
-		
-		foreach ($posts as &$post) {
-			
-			$this->hard_translate_post($post, $language);
-	
-		}
-		
-	}
-	
-	/**
-	 * hard translate post for quick edit
-	 *
-	 * Hook for 'the_post' (triggered on setup_postdata)
-	 *
-	 * @from 1.2
-	 * @from 2.0 add property 'sublanguage' to translated posts
-	 *
-	 * @param object WP_post $post
-	 * @param int|string|object language
-	 */	
-	public function hard_translate_post(&$post, $language = null) {
-		
-		if (empty($language)) {
-			
-			$language = $this->get_language();
-		
-		}
-		
-		if ($this->is_sub($language) && $this->is_post_type_translatable($post->post_type) && empty($post->sublanguage)) {
-			
-			foreach ($this->fields as $field) {
-				
-				$post->$field = $this->translate_post_field($post, $field, $language);
-				
-			}
-			
-			$post->sublanguage = true;
-			
-		}
-		
-	}
   
 	/**
 	 * get term field translation if it exists
@@ -1224,7 +1131,7 @@ class Sublanguage_core {
 		if ($this->is_sub($language) && $this->is_taxonomy_translatable($term->taxonomy)) {
 			
 			return get_term_meta($term->term_id, $this->get_prefix($language) . $field, true);
-		
+			
 		} else {
 			
 			return $term->$field;
@@ -1307,9 +1214,9 @@ class Sublanguage_core {
 		}
 		
 		if ($this->is_sub($language) && in_array($meta_key, $this->get_post_type_metakeys($post->post_type))) {
-		
+			
 			return get_post_meta($post->ID, $this->create_prefix($language->post_name) . $meta_key, $single);
-		
+			
 		} else {
 			
 			return false;
@@ -1368,9 +1275,9 @@ class Sublanguage_core {
 		}
 		
 		if ($this->is_sub($language) && in_array($meta_key, $this->get_taxonomy_metakeys($term->taxonomy))) {
-		
+			
 			return get_term_meta($term->term_id, $this->create_prefix($language->post_name) . $meta_key, $single);
-		
+			
 		} else {
 			
 			return false;
@@ -1408,7 +1315,4 @@ class Sublanguage_core {
 		return get_term_meta($term->term_id, $meta_key, $single);
 	}
 	
-	
-	
-  
 }

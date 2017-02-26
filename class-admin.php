@@ -88,9 +88,6 @@ class Sublanguage_admin extends Sublanguage_current {
 			// update db on slug change (must also be fired on upgrade)
 			add_action('post_updated', array($this, 'update_language_slug'), 9, 3);
 			
-			// prevent replacing language slug by one already existing
-			add_filter('wp_insert_post_empty_content', array($this, 'filter_duplicate_language_slug'), 10, 2);
-			
 			// Rewrite rules
 			add_action('generate_rewrite_rules', array($this, 'generate_rewrite_rules'));
 			
@@ -293,23 +290,6 @@ class Sublanguage_admin extends Sublanguage_current {
 	
 	}
 	
-	/**
-	 * Prevent replacing language slug by one already existing
-	 *
-	 * @hook 'wp_insert_post_empty_content'
-	 *
-	 * @from 2.0
-	 */
-	public function filter_duplicate_language_slug($maybe_empty, $postarr) {
-		
-// 		if ($postarr['post_type'] === $this->language_post_type && isset($postarr['post_name']) && $this->get_language_by($postarr['post_name'], 'post_name')) {
-// 				
-// 				return true;
-// 				
-// 		}
-		
-		return $maybe_empty;
-	}
 	
 	/**
 	 * Update db on slug change
@@ -440,81 +420,7 @@ class Sublanguage_admin extends Sublanguage_current {
 		}
 		
 	}
-	
-	/**
-	 * Save Post from Ajax (for editor button)
-	 *
-	 * @hook 'wp_ajax_sublanguage_save_translation'
-	 *
-	 * @from 1.3
-	 */
-	public function ajax_save_translation() {
 		
-		if (isset($_POST['id'], $_POST['translations'])) {
-		
-			$post_id = intval($_POST['id']);
-			$post = get_post($post_id);
-			$response = array();
-			$translations = $_POST['translations'];
-			
-			if ($post && current_user_can('edit_posts', $post_id)) {
-			
-				foreach ($translations as $translation) {
-			
-					$language = $this->get_language_by($translation['lng'], 'post_name');
-				
-					$postdata = array(
-						'post_content' => $translation['fields']['content'],
-						'post_title' => $translation['fields']['title'],
-						'post_name' => sanitize_title($translation['fields']['slug'])
-					);
-			
-					if (isset($translation['fields']['excerpt'])) {
-				
-						$postdata['post_excerpt'] = $translation['fields']['excerpt'];
-			
-					}
-				
-					if ($this->is_sub($language)) {
-				
-						$this->update_post_translation($post_id, $postdata, $language);
-					
-					} else {
-						
-						$this->set_language($language);
-						
-						$postdata['ID'] = $post_id;
-						
-						wp_update_post($postdata);
-						
-						$this->restore_language();
-						
-					}
-				
-					if (!$translation['fields']['slug']) {
-						$response[] = array(
-							'lng' => $language->post_name,
-							'slug' => $this->translate_post_field($post, 'post_name', $language)
-						);
-					} else if ($postdata['post_name'] != $translation['fields']['slug']) {
-						$response[] = array(
-							'lng' => $language->post_name,
-							'slug' => $postdata['post_name']
-						);
-					}
-					
-				}
-				
-			}
-		
-			//echo json_encode($response);
-		
-			exit;
-		
-		}
-		
-	}
-	
 	/**
 	 * Update post translation
 	 *
@@ -553,7 +459,7 @@ class Sublanguage_admin extends Sublanguage_current {
 					 *
 					 * @from 2.0
 					 */
-					update_post_meta($post_id, $this->get_prefix($language).$field, apply_filters('sublanguage_admin_update_post', $value, $post_id, $field));
+					update_post_meta($post_id, $this->get_prefix($language).$field, apply_filters('sublanguage_admin_update_post', $value, $post_id, $field, $language, $this));
 					
 				}
 		

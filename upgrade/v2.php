@@ -56,6 +56,7 @@ class Sublanguage_V2 {
 		$new_options['main'] = isset($old_options['main']) ? intval($old_options['main']) : 0;
 		$new_options['default'] = isset($old_options['default']) ? intval($old_options['default']) : 0;
     $new_options['version'] = $sublanguage_admin->version;
+    $new_options['need_flush'] = 1;
     
 		// custom post types
 		if (isset($old_options['cpt'])) {
@@ -442,135 +443,6 @@ class Sublanguage_V2 {
 	}
 
 
-	
-	
-// 	public function __construct($sublanguage) {
-// 		global $sublanguage_admin;
-// 		
-// 		// if current version < 1.4.3
-// // 		if ($this->complete && version_compare($sublanguage_admin->get_option('version', '0'), "1.4.3") < 0) {
-// // 			
-// // 			$this->clean_orphan_terms();
-// // 		
-// // 		}
-// 		
-// 		// if current version < 1.5.1
-// 		if ($this->complete && version_compare($sublanguage_admin->get_option('version', '0'), "1.5.1") < 0) {
-// 			
-// 			$this->set_language_excerpts();
-// 		
-// 		}
-// 			
-// 	}
-// 	
-// 	/**	 
-// 	 * Clean orphan terms
-// 	 *
-// 	 * @from 1.5.1 moved in Sublanguage_Upgrade
-// 	 * @from 1.4.4
-// 	 */
-// // 	public function clean_orphan_terms() {
-// // 		global $wpdb, $sublanguage_admin;
-// // 		
-// // 		$languages = $sublanguage_admin->get_languages();
-// // 		$translation_post_types = array();
-// // 	
-// // 		foreach ($languages as $lng) {
-// // 		
-// // 			if ($sublanguage_admin->is_sub($lng->ID)) {
-// // 		
-// // 				$translation_post_types[] = esc_sql($sublanguage_admin->post_translation_prefix.$lng->ID);
-// // 			
-// // 			}
-// // 			
-// // 		}
-// // 				
-// // 		$translation_terms = array();
-// // 		
-// // 		if ($translation_post_types) {
-// // 				
-// // 			$translation_terms = get_terms($translation_post_types, array(
-// // 				'hide_empty' => false,
-// // 				'fields' => 'id=>parent'
-// // 			));
-// // 		
-// // 		}
-// // 		
-// // 		if ($translation_terms) {
-// // 		
-// // 			$original_terms = get_terms($sublanguage_admin->get_taxonomies(), array(
-// // 				'hide_empty' => false,
-// // 				'include' => array_values($translation_terms),
-// // 				'fields' => 'ids'
-// // 			));
-// // 			
-// // 			$orphans = array_diff($translation_terms, $original_terms);
-// // 			
-// // 			if ($orphans) {
-// // 				
-// // 				// but now we need the taxonomy to delete them...
-// // 				$orphan_terms = get_terms($translation_post_types, array(
-// // 					'hide_empty' => false,
-// // 					'include' => array_keys($orphans)
-// // 				));
-// // 				
-// // 				foreach ($orphan_terms as $orphan_term) {
-// // 					
-// // 					wp_delete_term($orphan_term->term_id, $orphan_term->taxonomy);
-// // 				
-// // 				}
-// // 				
-// // 			}
-// // 			
-// // 			
-// // 		}
-// // 		
-// // 	}
-// 	
-// 	/**	 
-// 	 * Verfiy excerpt exists for all languages
-// 	 *
-// 	 * @from 1.5.1
-// 	 */
-// 	public function set_language_excerpts() {
-// 		global $wpdb, $sublanguage_admin;
-// 		
-// 		$languages = $sublanguage_admin->get_languages();
-// 		
-// 		foreach ($languages as $language) {
-// 			
-// 			$language->post_excerpt = $sublanguage_admin->post_translation_prefix . $language->ID;
-// 			
-// 			$wpdb->update( 
-// 				$wpdb->posts, 
-// 				array(
-// 					'post_excerpt' => $language->post_excerpt
-// 				), 
-// 				array(
-// 					'ID' => $language->ID,
-// 					'post_type' => $sublanguage_admin->language_post_type
-// 				),
-// 				array(
-// 					'%s'
-// 				), 
-// 				array(
-// 					'%d',
-// 					'%s'
-// 				)
-// 			);
-// 			
-// 		}
-// 		
-// 		foreach ($languages as $language) {
-// 		
-// 			wp_update_post(array(
-// 				'ID' => $language->ID,
-// 				'post_excerpt' => $sublanguage_admin->translation_prefix . $language->post_name
-// 			));		
-// 		
-// 		}
-// 		
-// 	}
 	
 	
 	

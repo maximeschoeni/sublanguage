@@ -1512,7 +1512,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 		
 		$post = get_post($post_id);
 		
-		if ($post->post_type === 'nav_menu_item') {
+		if (isset($post->post_type) && $post->post_type === 'nav_menu_item') {
 			
 			$title = apply_filters( 'sublanguage_translate_post_field', $post->post_title, $post, 'post_title');
 

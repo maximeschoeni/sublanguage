@@ -1376,14 +1376,16 @@ class Sublanguage_site extends Sublanguage_current {
 	}
 
 	/**
-	 * don't hard translate post_name on front-end
+	 * Translate post. This function is overrided on front-end.
 	 *
-	 * @override Sublanguage_Core::hard_translate_post()
+	 * @override Sublanguage_Core::translate_post()
 	 *
-	 * @from 1.5.3
-	 * @from 2.0 add property 'sublanguage' to translated posts
+	 * @from 2.0
+	 *
+	 * @param object WP_post $post
+	 * @param object language
 	 */	
-	public function hard_translate_post(&$post, $language = null) {
+	public function translate_post($post, $language = null) {
 		
 		if (empty($language)) {
 			
@@ -1396,17 +1398,19 @@ class Sublanguage_site extends Sublanguage_current {
 			foreach ($this->fields as $field) {
 				
 				if ($field !== 'post_name') {
-					
+				
 					$post->$field = $this->translate_post_field($post, $field, $language);
-					
+				
 				}
 				
 			}
-			
+				
 			$post->sublanguage = true;
+			
 		}
 		
-	}	
-	
+		return $post;
+		
+	}
 	
 }
