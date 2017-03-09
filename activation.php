@@ -46,8 +46,14 @@ class Sublanguage_Activation {
 				'show_slug' => false,
 				'autodetect' => false,
 				'current_first' => false,
-				'taxonomy' => array('category'),
-				'cpt' => array('post', 'page'),
+				'taxonomy' => array(
+					'category' => array('translatable' => true)
+				),
+				'cpt' => array(
+					'post' => array('translatable' => true), 
+					'page' => array('translatable' => true)
+				),
+				'need_flush' => 1,
 				'version' => $sublanguage_admin->version
 			);
 			

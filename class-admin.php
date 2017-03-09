@@ -91,18 +91,6 @@ class Sublanguage_admin extends Sublanguage_current {
 			// Rewrite rules
 			add_action('generate_rewrite_rules', array($this, 'generate_rewrite_rules'));
 			
-			// flush rule when updating page
-			add_action('post_updated', array($this, 'rebuild_subpage_permalink'), 10, 3);
-		
-			// flush rule when deleting page
-			add_action('before_delete_post', array($this, 'rebuild_permalink_before_delete_post'));
-			
-			// flush permalink when editing term
-			add_action('edit_term', array($this, 'update_term_permalinks'), 10, 3);
-		
-			// flush permalink when deleting term
-			add_action('delete_term', array($this, 'update_term_permalinks'), 10, 3);
-		
 			// add rewrite tags 
 			add_action('admin_init', array($this, 'register_subpage_rewrite_tags'));
 			
@@ -216,15 +204,26 @@ class Sublanguage_admin extends Sublanguage_current {
 			require( plugin_dir_path( __FILE__ ) . 'upgrade/v2.php');
 			
 			$v2 = new Sublanguage_V2();
-			
+			$v2->notice();
 			$v2->upgrade_options();
 			
 		} else if (version_compare($this->get_option('db_version', '0'), '2.0') < 0) {
 			
 			require( plugin_dir_path( __FILE__ ) . 'upgrade/v2.php');
 			
-			new Sublanguage_V2();
+			$v2 = new Sublanguage_V2();
 			
+			$v2->notice();
+			
+		} else {
+			
+			// run 2.0 upgrade only in settings + ajax
+			require( plugin_dir_path( __FILE__ ) . 'upgrade/v2.php');
+			
+			$v2 = new Sublanguage_V2();
+			
+			add_action('load-settings_page_sublanguage-settings', array($v2, 'notice'));
+	
 		}
 	
 	}
@@ -258,13 +257,13 @@ class Sublanguage_admin extends Sublanguage_current {
 				
 			}
 			
-			if (isset($translations['cpt'])) {
+			if (isset($translations['post_type'])) {
 				
-				foreach ($translations['cpt'] as $cpt => $translation) {
+				foreach ($translations['post_type'] as $cpt => $translation) {
 					
-					if (isset($translations['cpt'][$cpt][$language_id])) {
+					if (isset($translations['post_type'][$cpt][$language_id])) {
 						
-						unset($translations['cpt'][$cpt][$language_id]);
+						unset($translations['post_type'][$cpt][$language_id]);
 						
 					}
 					
@@ -276,20 +275,37 @@ class Sublanguage_admin extends Sublanguage_current {
 			
 			$prefix = $this->get_prefix($language);
 			
-			$wpdb->query($wpdb->prepare( 
-				"DELETE FROM $wpdb->postmeta WHERE meta_key LIKE (%s)",
-				$prefix . '%'
-			));
+			// DELETE ALL POST TRANSLATIONS !
+			$post_meta_keys = array_merge($this->fields, $this->get_all_translatable_post_meta_keys());
 			
-			$wpdb->query($wpdb->prepare( 
-				"DELETE FROM $wpdb->termmeta WHERE meta_key LIKE (%s)",
-				$prefix . '%'
-			));
+			if ($post_meta_keys) {
+					
+				$post_meta_keys = esc_sql($this->prefix_array($post_meta_keys, $prefix));
+					
+				$wpdb->query($wpdb->prepare( 
+					"DELETE FROM $wpdb->postmeta WHERE meta_key IN ('".implode("','", $post_meta_keys)."')",
+					$prefix . '%'
+				));
+				
+			}
+			
+			// DELETE ALL TERM TRANSLATIONS !
+			$term_meta_keys = array_merge($this->taxonomy_fields, $this->get_all_translatable_term_meta_keys());
+				
+			if ($term_meta_keys) {
+				
+				$term_meta_keys = esc_sql($this->prefix_array($term_meta_keys, $prefix));
+				
+				$wpdb->query($wpdb->prepare( 
+					"DELETE FROM $wpdb->termmeta WHERE meta_key IN ('".implode("','", $term_meta_keys)."')",
+					$prefix . '%'
+				));
+				
+			}
 			
 		}
 	
 	}
-	
 	
 	/**
 	 * Update db on slug change
@@ -307,25 +323,101 @@ class Sublanguage_admin extends Sublanguage_current {
 			
 				$prefix_before = $this->create_prefix($post_before->post_name);
 				$prefix_after = $this->create_prefix($post_after->post_name);
-			
-				$wpdb->query($wpdb->prepare( 
-					"UPDATE $wpdb->postmeta SET meta_key = REPLACE(meta_key, %s, %s) WHERE meta_key LIKE (%s)",
-					$prefix_before, 
-					$prefix_after,
-					$prefix_before . '%'
-				));
 				
-				$wpdb->query($wpdb->prepare( 
-					"UPDATE $wpdb->termmeta SET meta_key = REPLACE(meta_key, %s, %s) WHERE meta_key LIKE (%s)",
-					$prefix_before, 
-					$prefix_after,
-					$prefix_before . '%'
-				));
+				// Change all post meta keys prefixes
+				$post_meta_keys = array_merge($this->fields, $this->get_all_translatable_post_meta_keys());
+						
+				if ($post_meta_keys) {
+					
+					$post_meta_keys = esc_sql($this->prefix_array($post_meta_keys, $prefix_before));
+					
+					$wpdb->query($wpdb->prepare( 
+						"UPDATE $wpdb->postmeta SET meta_key = REPLACE(meta_key, %s, %s) WHERE meta_key IN ('".implode("','", $post_meta_keys)."')",
+						$prefix_before, 
+						$prefix_after
+					));
+					
+				}
+				
+				// Change all term meta keys prefixes
+				$term_meta_keys = array_merge($this->taxonomy_fields, $this->get_all_translatable_term_meta_keys());
+				
+				if ($term_meta_keys) {
+					
+					$term_meta_keys = esc_sql($this->prefix_array($term_meta_keys, $prefix_before));
+					
+					$wpdb->query($wpdb->prepare( 
+						"UPDATE $wpdb->termmeta SET meta_key = REPLACE(meta_key, %s, %s) WHERE meta_key IN ('".implode("','", $term_meta_keys)."')",
+						$prefix_before, 
+						$prefix_after
+					));
+					
+				}
 			
 			}
 			
 		}
 		
+	}
+	
+	/**
+	 * Helper. Get translatable meta keys from all post types
+	 *
+	 * @from 2.0
+	 */	
+	public function get_all_translatable_post_meta_keys() {
+		
+		$post_types_options = $this->get_option('post_type', array());
+		
+		$meta_keys = array();
+		
+		foreach ($post_types_options as $post_type => $post_types_option) {
+			
+			$meta_keys = array_merge($meta_keys, $this->get_post_type_metakeys($post_type));
+			
+		}
+				
+		return array_unique($meta_keys);
+		
+	}
+	
+	/**
+	 * Helper. Get translatable meta keys from all taxonomies
+	 *
+	 * @from 2.0
+	 */	
+	public function get_all_translatable_term_meta_keys() {
+		
+		$tax_options = $this->get_option('taxonomy', array());
+		
+		$meta_keys = array();
+		
+		foreach ($tax_options as $taxonomy => $tax_option) {
+			
+			$meta_keys = array_merge($meta_keys, $this->get_taxonomy_metakeys($taxonomy));
+			
+		}
+				
+		return array_unique($meta_keys);
+		
+	}
+	
+	/**
+	 * Helper. Prefix all strings in an array
+	 *
+	 * @from 2.0
+	 */	
+	public function prefix_array($array, $prefix) {
+		
+		$output = array();
+		
+		foreach ($array as $string) {
+					
+			$output[] = $prefix . $string;
+			
+		}
+		
+		return $output;
 	}
 	
 	/**
@@ -909,420 +1001,114 @@ class Sublanguage_admin extends Sublanguage_current {
 	 */
 	public function register_subpage_rewrite_tags() {
 		
-		add_rewrite_tag('%sublanguage_cpt%', '([^&]+)');
-		add_rewrite_tag('%sublanguage_nodepost%', '([^&]+)');
-		add_rewrite_tag('%sublanguage_post%', '([^&]+)');
 		add_rewrite_tag('%sublanguage_slug%', '([^&]+)');
-		add_rewrite_tag('%sublanguage_tax%', '([^&]+)');
-		add_rewrite_tag('%sublanguage_term%', '([^&]+)');
-		add_rewrite_tag('%sublanguage_nodeterm%', '([^&]+)');
-		add_rewrite_tag('%sublanguage_parent%', '([^&]+)');
-		add_rewrite_tag('%sublanguage_path%', '([^&]+)');
+		add_rewrite_tag('%sublanguage_page%', '([^&]+)');
 			
 	}
 	
 	/**
-	 * Rebuild permalink when saving post if parent/name has changed
+	 * Update rules
 	 *
-	 * @hook 'post_updated'
+	 * original rule: 'color-slug/([^/]+)/?$' => 'index.php?co_qv=$matches[1]'
+	 * modified rule: '(color|couleur)/([^/]+)/?$' => 'index.php?sublanguage_slug=$matches[1]&co_qv=$matches[2]'
 	 *
-	 * @from 1.0
-	 */
-	public function rebuild_subpage_permalink($post_ID, $post_after, $post_before) {
-		
-		// only if post is hierarchical and translatable
-		if ($this->is_post_type_translatable($post_after->post_type) && is_post_type_hierarchical($post_after->post_type) !== false) {
-			
-			// only if parent, status or name have changed
-			if ($post_after->post_parent !== $post_before->post_parent 
-				|| $post_after->post_name !== $post_before->post_name
-				|| $post_after->post_status !== $post_before->post_status) {
-				
-				$this->update_option('need_flush', 1);
-				
-			}
-			
-		}
-		
-	}
-	
-	/**
-	 * rebuild permalink when saving post if parent/name has changed
+	 * original rule: '(.?.+?)(?:/([0-9]+))?/?$' => 'index.php?pagename=$matches[1]&page=$matches[2]'
+   * modified rule: '(.?.+?)(?:/([0-9]+))?/?$' => 'index.php?sublanguage_page=$matches[1]&page=$matches[2]'
 	 *
-	 * @hook 'before_delete_post'
-	 *
-	 * @from 1.0
-	 */
-	public function rebuild_permalink_before_delete_post($post_id) {
-		
-		$post = get_post($post_id);
-		
-		if ($this->is_post_type_translatable($post->post_type)) {
-		
-			add_action('after_delete_post', array($this, 'rebuild_permalink_after_delete_post'));
-		
-		}
-		
-	}
-	
-	/**
-	 * rebuild permalink after post was deleted
-	 *
-	 * Hook for 'after_delete_post'
-	 *
-	 * @from 1.0
-	 */
-	public function rebuild_permalink_after_delete_post($post_id) {
-		
-		$this->update_option('need_flush', 1);
-		
-	}
-	
-	/**
-	 * rebuild permalink when saving term
-	 *
-	 * @hook 'edit_term', 'delete_term'
-	 */
-	public function update_term_permalinks($term_id, $tt_id, $taxonomy) {
-				
-		$taxonomy_obj = get_taxonomy($taxonomy);
-		
-		if ($this->is_taxonomy_translatable($taxonomy) && $taxonomy_obj->hierarchical) {
-			
-			$this->update_option('need_flush', 1);
-		
-				
-		}
-		
-	}
-	
-	/**
-	 * @hook 'generate_rewrite_rules'
+	 * @hook for 'generate_rewrite_rules'
 	 * @from 2.0
 	 */
-	public function generate_rewrite_rules($rewrite) {
+	public function generate_rewrite_rules($wp_rewrite) {
 		
-		$this->cpt_rewrite_rules($rewrite);
-		$this->taxonomy_rewrite_rules($rewrite);
-		$this->subpage_rewrite_rules($rewrite);
-		$this->subterm_rewrite_rules($rewrite);
-		
-		$this->update_option('need_flush', 0);
-	
-	}
-
-	/**
-	 * Add rewrite rules for custom post types
-	 *
-	 * @hook 'generate_rewrite_rules'
-	 * @from 1.0
-	 */
-	public function cpt_rewrite_rules($rewrite) {
-		
-		$post_types = get_post_types(array(), 'names');
-		
-		$post_types = array_filter($post_types, array($this, 'is_post_type_translatable'));
-		
-		if (count($post_types)) {
-			
-			$languages = $this->get_languages();
-			
-			foreach ($post_types as $post_type) {
-				
-				$post_type_obj = get_post_type_object($post_type);
-				$post_type_slug = $post_type_obj->rewrite['slug'];
-				$translated_slugs = array();
-				
-				foreach ($languages as $language) {
-					
-					$translated_slug = $this->translate_cpt($post_type, $language, $post_type_slug);
-					
-					if ($translated_slug !== $post_type_slug) {
-						
-						// -> custom post type singulars
-						
-						$rewrite->add_rewrite_tag(
-							'%'.$translated_slug.'%', 
-							$translated_slug.'/([^/]+)', 
-							'sublanguage_cpt='.$post_type.'&sublanguage_slug='.$translated_slug.'&sublanguage_post='
-						);
-						
-						$rules = $rewrite->generate_rewrite_rules(
-							'%'.$translated_slug.'%', 
-							$post_type_obj->rewrite['ep_mask'], // ep_mask
-							$post_type_obj->rewrite['pages'], // paged
-							false, // feed
-							true, // forcomments
-							false, // walk_dirs
-							true // endpoints
-						);
-					
-						$rewrite->rules = array_merge($rules, $rewrite->rules);
-						
-						$translated_slugs[] = $translated_slug;
-						
-					}
-					
-				}
-				
-				// -> custom post type archive
-				
-				if ($translated_slugs) {
-					
-					$translated_slugs[] = $post_type_slug;
-					$slug = implode('|', $translated_slugs);
-					
-					$rewrite->add_rewrite_tag(
-						'%'.$slug.'%', 
-						'('.$slug.')', 
-						'sublanguage_cpt='.$post_type.'&sublanguage_slug='
-					);
-	
-					$rules = $rewrite->generate_rewrite_rules(
-						'%'.$slug.'%', 
-						$post_type_obj->rewrite['ep_mask'], // ep_mask
-						$post_type_obj->rewrite['pages'], // paged
-						$post_type_obj->rewrite['feeds'], // feed
-						false, // forcomments
-						false, // walk_dirs
-						true // endpoints
-					);
-				
-					$rewrite->rules = array_merge($rules, $rewrite->rules);
-				
-				
-				}
-				
-				
-			}
-		
-		}
-		
-	}
-	
-	/**
-	 * Add rewrite rules to handle hierarchical posts translations
-	 *
-	 * @hook 'generate_rewrite_rules'
-	 * @from 1.0
-	 */
-	public function subpage_rewrite_rules($rewrite) {
-		global $wpdb;
-		
-		$post_types = get_post_types(array(
-			'hierarchical' => true
-		), 'names');
-		
-		$post_types = array_filter($post_types, array($this, 'is_post_type_translatable'));
-		
-		$pages = $wpdb->get_results(
-			"SELECT $wpdb->posts.* FROM $wpdb->posts
-			WHERE $wpdb->posts.post_type IN ('".implode("','", esc_sql($post_types))."') AND $wpdb->posts.post_status = 'publish'"
+		$translations = array_merge(
+			$this->get_cpt_rewrite_rules_translations(),
+			$this->get_taxonomy_rewrite_rules_translations()
 		);
 		
-		if (count($pages)) {
+		$paterns = array_keys($translations);
+		$replaces = array_values($translations);
 		
-			foreach ($pages as $page) {
+		$new_rules = array();
 		
-				if ($this->get_page_children($page->ID, $pages)) {
-				
-					$post_type = $page->post_type;
-					$post_type_obj = get_post_type_object($post_type);
-					$post_type_rewrite = $post_type_obj->rewrite;
-				
-					if ($post_type == 'page') {
+		foreach ($wp_rewrite->rules as $struct => $rule) {
+			
+			foreach ($translations as $patern => $replace) {
+			
+				if (preg_match($patern, $struct)) {
 					
-						$path = '';
-					
-						if (!$post_type_rewrite) {
-					
-							$post_type_rewrite = array(
-								'with_front' => true,
-								'feeds' => false,
-								'pages' => true,
-								'ep_mask' => EP_PAGES
-							);
-					
-						}
-					
-					} else {
-						
-						$post_type_slug = $this->get_cpt_translation($post_type, $this->get_main_language());
-					
-						$path = $post_type_slug.'/';
-
-					}
-					
-					$path .= $this->get_page_path($page, $pages);
-					
-					foreach ($this->get_languages() as $language) {
-				
-						if ($post_type == 'page') {
-					
-							$translated_path = '';
-						
-						} else {
-						
-							$translated_path = $this->get_cpt_translation($post_type, $language).'/';
-					
-						}
-						
-						$translated_path .= $this->get_page_path($page, $pages, $language);
-						
-						if ($translated_path != $path) {
-							
-							$rewrite->add_rewrite_tag( 
-								'%'.$translated_path.'%', 
-								$translated_path.'/([^/]+)', 
-								'sublanguage_cpt='.$post_type.'&sublanguage_parent='.$page->ID.'&sublanguage_path='.$path.'&sublanguage_nodepost='
-							);
-						
-							$rules = $rewrite->generate_rewrite_rules(
-								'%'.$translated_path.'%', 
-								$post_type_rewrite['ep_mask'],  // ep_mask
-								$post_type_rewrite['pages'], 		// paged 
-								$post_type_rewrite['feeds'], 		// feed 
-								false, 													// forcomments 
-								false,													// walk_dirs
-								true														// endpoints
-							);
-						
-							$rewrite->rules = array_merge($rules, $rewrite->rules);
-
-						}
-										
-					}
+					$struct = preg_replace($patern, $replace, $struct);
+					$rule = $this->append_rule_match_capture($rule, 'sublanguage_slug');
+					break;
 				
 				}
-		
-			}
-			
-		}
-
-	}
-	
-	/**
-	 * Get page children from a page collection
-	 *
-	 * @from 2.0
-	 *
-	 * @param int $page_id
-	 * @param array of WP_Post objects $pages
-	 * @return array of WP_Post objects
-	 */
-	public function get_page_children($page_id, $pages) {
-		
-		$children = array();
-
-		foreach ($pages as $page) {
-		
-			if ($page->post_parent == $page_id) {
-			
-				$children[] = $page;
 				
 			}
 			
-		}
+			$new_rules[$struct] = $rule;
 
-    return $children;
-	}
-	
-	/**
-	 * Find page from a page collection
-	 *
-	 * @from 2.0
-	 *
-	 * @param int $page_id
-	 * @param array of WP_Post objects $pages
-	 * @return WP_Post object or null
-	 */
-	public function get_page($page_id, $pages) {
+		}		
 		
-		foreach ($pages as $page) {
+		if ($wp_rewrite->use_verbose_page_rules) {
 		
-			if ($page->ID === $page_id) {
-			
-				return $page;
+			foreach ($new_rules as $struct => $rule) {
 				
+				// if is_post_type_translatable...
+				
+				if (preg_match('/pagename=\$matches\[([0-9]+)\]/', $rule)) {
+				
+					$new_rules[$struct] = preg_replace('/pagename(=\$matches\[[0-9]+\])/', 'sublanguage_page$1', $rule);
+				
+				}
+			
 			}
 			
 		}
-
+		
+		$wp_rewrite->rules = $new_rules;
+		
+		$this->update_option('need_flush', 0);
+		
 	}
-	
+
+
 	/**
-	 * Get subpage path from a page collection
+	 * Get translations for custom post type rewrite rules
 	 *
 	 * @from 2.0
-	 *
-	 * @param WP_Post object $page
-	 * @param array of WP_Post objects $pages
-	 * @param WP_Post object $language. Optional
-	 * @return string
 	 */
-	public function get_page_path($page, $pages, $language = null) {
+	public function get_cpt_rewrite_rules_translations() {
 		
-		$path = $this->translate_post_field($page, 'post_name', $language);
+		$translations = array();
+		$post_type_objs = get_post_types(array(
+			'rewrite' => true
+		), 'objects');
 		
-		while ($page->post_parent) {
+		foreach ($post_type_objs as $post_type_obj) {
 			
-			$page = $this->get_page($page->post_parent, $pages);
-			$page_name = $this->translate_post_field($page, 'post_name', $language);
-			$path = $page_name . '/' . $path;
+			$post_type = $post_type_obj->name;
 			
-		}
-		
-    return $path;
-	}
-
-	/**
-	 * Generate rewrite rules for taxonomies
-	 *
-	 * @from 1.0
-	 *
-	 * @hook 'generate_rewrite_rules'
-	 */
-	public function taxonomy_rewrite_rules($rewrite) {
-		global $wpdb;
-		
-		$taxonomies = get_taxonomies(array(
-			'public'   => true
-		), 'names');
-		
-		$taxonomies = array_filter($taxonomies, array($this, 'is_taxonomy_translatable'));
-		
-		if (count($taxonomies)) {
-			
-			foreach ($taxonomies as $taxonomy) {
+			if ($this->is_post_type_translatable($post_type) && $post_type !== 'post' && $post_type !== 'page') {
 				
-				$taxonomy_obj = get_taxonomy($taxonomy);
-				$taxonomy_slug = $taxonomy_obj->rewrite['slug'];
+				$slug = $post_type_obj->rewrite['slug'];
+				$translation_slugs = array();
 				
 				foreach ($this->get_languages() as $language) {
 					
-					$translated_slug = $this->translate_taxonomy($taxonomy, $language, $taxonomy_slug);
-				
-					if ($translated_slug !== $taxonomy_slug) {
-						
-						$rewrite->add_rewrite_tag(
-							'%'.$translated_slug.'%', 
-							$translated_slug.'/([^/]+)', 
-							'sublanguage_tax='.$taxonomy.'&sublanguage_slug='.$translated_slug.'&sublanguage_term='
-						);
-						
-						$rules = $rewrite->generate_rewrite_rules(
-							'%'.$translated_slug.'%', 
-							$taxonomy_obj->rewrite['ep_mask'], // ep_mask 
-							true, // paged  
-							true, // feed  
-							false, // forcomments  
-							false, // walk_dirs
-							true // endpoints
-						);
+					$translation_slug = $this->translate_cpt($post_type, $language, $post_type);
 					
-						$rewrite->rules = array_merge($rules, $rewrite->rules);
+					if (!in_array($translation_slug, $translation_slugs)) {
 						
+						$translation_slugs[] = $translation_slug;
+					
 					}
+					
+				}
+				
+				$translated_slug = implode('|', $translation_slugs);
+				
+				if ($translation_slugs && $translated_slug !== $slug) {
+					
+					$translations["/^$slug(\/.*)$/"] = "($translated_slug)$1";
 					
 				}
 				
@@ -1330,169 +1116,133 @@ class Sublanguage_admin extends Sublanguage_current {
 			
 		}
 		
+		return $translations;
+		
 	}
 	
+	
 	/**
-	 * Generate rewrite rules for taxonomies "node" terms
+	 * Get translations for taxonomy rewrite rules
 	 *
-	 * @from 1.0
+	 * original rule: [color-slug/([^/]+)/?$] => index.php?co_qv=$matches[1]
+	 * modified rule: [(color|couleur)/([^/]+)/?$] => index.php?sublanguage_slug=$matches[1]&co_qv=$matches[2]
 	 *
-	 * @hook 'generate_rewrite_rules'
+	 * @from 2.0
 	 */
-	public function subterm_rewrite_rules($rewrite) {
-		global $wpdb;
+	public function get_taxonomy_rewrite_rules_translations() {
 		
-		$taxonomies = get_taxonomies(array(
-			'public'   => true,
-			'hierarchical' => true
-		), 'names');
+		$translations = array();
 		
-		$taxonomies = array_filter($taxonomies, array($this, 'is_taxonomy_translatable'));
+		$taxonomy_objs = get_taxonomies(array(
+			'public'   => true
+		), 'objects');
 		
-		if (count($taxonomies)) {
+		foreach ($taxonomy_objs as $taxonomy_obj) {
+		
+			$taxonomy = $taxonomy_obj->name;
 			
-			$taxonomies = array_map('esc_sql', $taxonomies);
-			
-			$terms = $wpdb->get_results(
-				"SELECT t.slug, tt.taxonomy, t.term_id, tt.parent FROM $wpdb->terms AS t 
-				INNER JOIN $wpdb->term_taxonomy AS tt ON t.term_id = tt.term_id
-				WHERE tt.taxonomy IN ('".implode("','", $taxonomies)."')"
-			);
-			
-			if ($terms) {
+			if ($this->is_taxonomy_translatable($taxonomy)) {
 				
-				foreach ($terms as $term) {
-		
-					if ($this->get_term_children($term->term_id, $terms)) {
+				$slug = $taxonomy_obj->rewrite['slug'];
+				$translation_slugs = array();
 				
-						$taxonomy = $term->taxonomy;
-						$taxonomy_obj = get_taxonomy( $taxonomy );
-				
-						if (isset($taxonomy_obj->query_var) && $taxonomy_obj->rewrite) {
-						
-							$taxonomy_name = $this->translate_taxonomy($taxonomy, $this->get_main_language(), $taxonomy_obj->rewrite['slug']);
-							$path = $this->get_term_path($term, $terms);
-							$full_path = $taxonomy_name.'/'.$path;
-												
-							foreach ($this->get_languages() as $language) {
-						
-								$taxonomy_name = $this->translate_taxonomy($taxonomy, $language, $taxonomy_obj->rewrite['slug']);
-								$translated_path = $this->get_term_path($term, $terms, $language);
-								$translated_full_path = $taxonomy_name.'/'.$translated_path;
+				foreach ($this->get_languages() as $language) {
 					
-								if ($translated_full_path != $full_path) {
-							
-									$rewrite->add_rewrite_tag( 
-										'%'.$translated_full_path.'%', 
-										$translated_full_path.'/([^/]+)', 
-										'sublanguage_tax='.$taxonomy.'&sublanguage_slug='.$taxonomy_name.'&sublanguage_parent='.$term->term_id.'&sublanguage_path='.$path.'&sublanguage_nodeterm='
-									);
-								
-									$rules = $rewrite->generate_rewrite_rules(
-										'%'.$translated_full_path.'%', 
-										$taxonomy_obj->rewrite['ep_mask'], // ep_mask
-										true, // paged 
-										true, // feed 
-										false, // forcomments 
-										false, // walk_dirs
-										true // endpoints
-									);
-							
-									$rewrite->rules = array_merge($rules, $rewrite->rules);
-							
-								}
+					$translation_slug = $this->translate_taxonomy($taxonomy, $language, $taxonomy);
+					
+					if (!in_array($translation_slug, $translation_slugs)) {
 						
-							}
-				
-						}
-				
+						$translation_slugs[] = $translation_slug;
+					
 					}
-		
+					
 				}
-		
-			}
-			
-		}
-		
-	}
-	
-	/**
-	 * Get term children from terms collection
-	 *
-	 * @from 2.0
-	 *
-	 * @param int $term_id
-	 * @param array of WP_Term objects $terms
-	 * @return array of WP_Term objects
-	 */
-	public function get_term_children($term_id, $terms) {
-		
-		$children = array();
-
-		foreach ($terms as $term) {
-		
-			if ($term->parent === $term_id) {
-			
-				$children[] = $term;
+				
+				$translated_slug = implode('|', $translation_slugs);
+				
+				if ($translation_slugs && $translated_slug !== $slug) {
+					
+					$translations["/^$slug(\/.*)$/"] = "($translated_slug)$1";
+					
+				}
 				
 			}
 			
 		}
-
-    return $children;
+		
+		return $translations;
+		
 	}
 	
 	/**
-	 * Find term from collection
+	 * Insert a capture matche in a rule and offset all other matches 
 	 *
 	 * @from 2.0
-	 *
-	 * @param int $term_id
-	 * @param array of WP_Term objects $terms
-	 * @return WP_Term object or null
 	 */
-	public function get_term($term_id, $terms) {
+	public function append_rule_match_capture($rule, $qv) {
 		
-		foreach ($terms as $term) {
+		$rule_parts = explode('?', $rule);
+		$rule_queries = explode('&', $rule_parts[1]);
+		$new_rule_queries = array();
+		$new_rule_queries[] = $qv . '=$matches[1]';
+		$index = 1;
 		
-			if ($term_id === $term->term_id) {
+		//offset all matches
+		foreach ($rule_queries as $rule_query) {
 			
-				return $term;
+			$pairs = explode('=', $rule_query);
+			
+			if (!empty($pairs[1]) && preg_match('/\$matches\[\d+\]/', $pairs[1])) {
 				
+				$index++;
+				
+				$new_rule_queries[] = $pairs[0] . '=$matches['.$index.']';
+			
+			} else {
+				
+				$new_rule_queries[] = $rule_query;
+			
 			}
 			
 		}
-
+		
+		return $rule_parts[0] . '?' . implode('&', $new_rule_queries);
+		
 	}
 	
 	/**
-	 * Get sub-term path from terms collection
+	 * Append language slug to all rules. Not used!
 	 *
+	 * @filter 'rewrite_rules_array'
 	 * @from 2.0
-	 *
-	 * @param WP_Term object $term
-	 * @param array of WP_Term objects $terms
-	 * @param WP_Post object $language. Optional
-	 * @return string
 	 */
-	public function get_term_path($term, $terms, $language = null) {
+	public function append_language_slugs_rewrite_rules($rules) {
 		
-		$path = $language ? $this->translate_term_field($term, $term->taxonomy, 'slug', $language) : $term->slug;
+		$new_rules = array();
+		$language_slugs = array();
 		
-		while ($term->parent) {
+		foreach ($this->get_languages() as $language) {
 			
-			$term = $this->get_term($term->parent, $terms);
-			$slug = $language ? $this->translate_term_field($term, $term->taxonomy, 'slug', $language) : $term->slug;
-			$path = $slug . '/' . $path;
-			
+			$language_slugs[] = $language->post_name;
+		
 		}
+		
+		$slug = implode('/|', $language_slugs);
+		
+		
+		foreach ($rules as $struct => $rule) {
 			
-    return $path;
+			if (substr($struct, 0, 1) !== '^') {
+			
+				$new_rules['(?:'.$slug.'/)?' . $struct] = $rule;
+				
+			}
+			
+		}		
+		
+		return $new_rules;
+		
 	}
-	
-	
-	
-	
 	
 	
 	/* Options

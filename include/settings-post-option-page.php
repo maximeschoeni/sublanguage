@@ -19,8 +19,7 @@
 									$this->set_language($language);
 									$link = get_post_type_archive_link($post_type);
 									$cpt_translation = $this->get_cpt_translation($post_type, $language);
-									$slug = $post_type_obj->rewrite['slug'];
-									$translated_slug = $cpt_translation ? $cpt_translation : $slug;
+									$translated_slug = $cpt_translation ? $cpt_translation : $post_type;
 								?>
 								<li>
 									<code><?php echo $language->post_name; ?></code>
@@ -29,7 +28,7 @@
 										<button class="button button-small edit-btn" style="vertical-align: bottom;"><?php echo __('edit', 'sublanguage'); ?></button>
 									</span>
 									<span class="edit-mode hidden"><?php echo home_url('/'); ?>
-										<input type="text" class="text-input" name="cpt[<?php echo $language->ID; ?>]" value="<?php echo $cpt_translation; ?>" data-def="<?php echo $slug; ?>" placeholder="<?php echo $slug; ?>" autocomplete="off" style="padding: 0 3px;">
+										<input type="text" class="text-input" name="cpt[<?php echo $language->ID; ?>]" value="<?php echo $cpt_translation; ?>" data-def="<?php echo $post_type; ?>" placeholder="<?php echo $post_type; ?>" autocomplete="off" style="padding: 0 3px;">
 										<button class="button button-small ok-btn" style="vertical-align: bottom;">ok</button>
 									</span>
 								</li>
@@ -54,7 +53,7 @@
 					<td>
 						<ul>
 							<?php foreach ($meta_keys as $key => $values) { ?>
-								<li><label><input type="checkbox" name="meta_keys[]" value="<?php echo $key; ?>" <?php if (in_array($key, $this->get_post_type_metakeys($post_type))) echo 'checked'; ?>/><?php echo isset($registered_meta_keys[$key]['description']) && $registered_meta_keys[$key]['description'] ? $registered_meta_keys[$key]['description'] : $key; ?></label></li>
+								<li><label title="value sample: '<?php echo isset($values[0]) ? $values[0] : ''; ?>'"><input type="checkbox" name="meta_keys[]" value="<?php echo $key; ?>" <?php if (in_array($key, $this->get_post_type_metakeys($post_type))) echo 'checked'; ?>/><?php echo isset($registered_meta_keys[$key]['description']) && $registered_meta_keys[$key]['description'] ? $registered_meta_keys[$key]['description'] : $key; ?></label></li>
 							<?php } ?>
 						</ul>
 					</td>

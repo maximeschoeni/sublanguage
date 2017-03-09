@@ -197,20 +197,20 @@ class Sublanguage_current extends Sublanguage_core {
 	 */
 	public function translate_the_posts($posts, $wp_query) {
 		
-		if (isset($wp_query->query_vars['sublanguage'])) {
+		if (isset($wp_query->query_vars[$this->language_query_var])) {
 			
-			if (!$wp_query->query_vars['sublanguage']) { // false -> do not translate
+			if (!$wp_query->query_vars[$this->language_query_var]) { // false -> do not translate
 				
 				// Documented below
 				return apply_filters('sublanguage_translate_the_posts', $posts, $posts, null, $wp_query, $this);
 				
 			} else { // language slug or ID -> find language
 				
-				$language = $this->find_language($wp_query->query_vars['sublanguage']);
+				$language = $this->find_language($wp_query->query_vars[$this->language_query_var]);
 			
 			}
 			
-		} else { // not set -> use current
+		} else { // language not set -> use current
 			
 			$language = null;
 		
@@ -592,10 +592,29 @@ class Sublanguage_current extends Sublanguage_core {
 	 */		
 	public function translate_get_terms($terms, $taxonomies, $args) {
 		
-		if ($this->is_sub() && (is_array($taxonomies) && array_filter($taxonomies, array($this, 'is_taxonomy_translatable')) || is_string($taxonomies) && $this->is_taxonomy_translatable($taxonomies))) {
+		if (isset($args[$this->language_query_var])) {
+			
+			if (!$args[$this->language_query_var]) { // false -> do not translate
+				
+				// Documented below
+				return apply_filters('sublanguage_translate_the_terms', $terms, $terms, null, $args, $this);
+				
+			} else { // language slug or ID -> find language
+				
+				$language = $this->find_language($args[$this->language_query_var]);
+			
+			}
+			
+		} else { // language not set -> use current
+			
+			$language = null;
 		
+		}
+		
+		if ($this->is_sub($language)) {
+			
 			if (isset($args['fields']) && $args['fields'] == 'names') { // -> Added in 1.4.4
-		
+				
 				$terms = array(); // -> restart query
 		
 				unset($args['fields']);
@@ -610,14 +629,21 @@ class Sublanguage_current extends Sublanguage_core {
 		
 				return $terms;
 			}
-	
-			if (empty($args['fields']) || $args['fields'] == 'all' || $args['fields'] == 'all_with_object_id') { // -> $terms may be an array of ids !
-		
-				foreach ($terms as $term) {
-		
-					$this->translate_term($term);
-				
-				}
+			
+			if (empty($args['fields']) || $args['fields'] == 'all' || $args['fields'] == 'all_with_object_id') {
+			
+				/**
+				 * Filter the terms after translation
+				 *
+				 * @from 2.0
+				 *
+				 * @param array of object WP_Term $translated terms.
+				 * @param array of object WP_Term $original terms.
+				 * @param object WP_Post $language.
+				 * @param object $args.
+				 * @param object Sublanguage_core $this.
+				 */
+				$terms = apply_filters('sublanguage_translate_the_terms', $this->translate_terms($terms, $language), $terms, $language, $args, $this);
 			
 			}
 			
@@ -626,6 +652,62 @@ class Sublanguage_current extends Sublanguage_core {
 		return $terms;
 	}
 	
+	/** 
+	 * Translate terms
+	 *
+	 * @from 2.0
+	 *
+	 * @param array of object WP_Terms $terms
+	 * @param object language
+	 */
+	public function translate_terms($terms, $language = null) {
+		
+		$new_terms = array();
+		
+		foreach ($terms as $term) {
+			
+			/**
+			 * Filter the term after translation
+			 *
+			 * @from 2.0
+			 *
+			 * @param object WP_Term $translated post.
+			 * @param object WP_Term $original post.
+			 * @param object WP_Term $language.
+			 * @param object Sublanguage_core $this.
+			 */
+			$new_terms[] = apply_filters('sublanguage_translate_the_term', $this->translate_term($term, $language), $term, $language, $this);
+			
+		}
+		
+		return $new_terms;
+	}	
+	
+	
+	/**
+	 * Translate term
+	 *  
+	 * @from 1.2
+	 */
+	public function translate_term($term, $language = null) {
+		
+		if (empty($language)) {
+			
+			$language = $this->get_language();
+		
+		}
+		
+		if ($this->is_taxonomy_translatable($term->taxonomy) && $this->is_sub($language)) {
+		
+			$term->name = $this->translate_term_field($term, $term->taxonomy, 'name', $language);
+			$term->slug = $this->translate_term_field($term, $term->taxonomy, 'slug', $language);
+			$term->description = $this->translate_term_field($term, $term->taxonomy, 'description', $language);
+			
+		}
+		
+		return $term;
+				
+	}
 
 	/**
 	 *	Translate tag cloud
@@ -765,11 +847,11 @@ class Sublanguage_current extends Sublanguage_core {
 				
 				$post_type_obj = get_post_type_object($post->post_type);
 				
-				$translated_cpt = $this->translate_cpt($post->post_type, null, $post_type_obj->rewrite['slug']);
+				$translated_cpt = $this->translate_cpt($post->post_type, null, $post->post_type);
 				
 				// translate post name
 				
-				if ($this->is_sub() || $translated_cpt !== $post_type_obj->rewrite['slug']) {
+// 				if ($this->is_sub() || $translated_cpt !== $post_type_obj->rewrite['slug']) {
 				
 					$translated_slug = $this->translate_post_field($post, 'post_name');
 				
@@ -785,7 +867,7 @@ class Sublanguage_current extends Sublanguage_core {
 				
 						}
 			
-					}
+// 					}
 			
 					$post_link = $translated_cpt . '/' . user_trailingslashit($translated_slug);
 			
@@ -893,7 +975,7 @@ class Sublanguage_current extends Sublanguage_core {
     	
 			$post_type_obj = get_post_type_object($post_type);
 			
-			$translated_cpt = $this->translate_cpt($post_type, null, $post_type_obj->rewrite['slug']);
+			$translated_cpt = $this->translate_cpt($post_type, null, $post_type);
 			
 			if ($post_type_obj && get_option( 'permalink_structure' ) ) {
 				if ( $post_type_obj->rewrite['with_front'] )
@@ -983,6 +1065,26 @@ class Sublanguage_current extends Sublanguage_core {
 		
 		return $null;
 	}
+
+	/**
+	 * Translate term link
+	 *
+	 * @filter 'term_link'
+	 *
+	 * @from 2.0
+	 */
+	public function translate_term_link($termlink, $term, $taxonomy) {
+		
+		if (get_option('permalink_structure')) {
+		
+			$tax_slug = $this->translate_taxonomy($taxonomy, null, $taxonomy);
+			$slug = $this->translate_term_field($term, $taxonomy, 'slug');
+			$termlink = home_url(user_trailingslashit($tax_slug . '/' . $slug, 'category'));
+				
+		}
+   
+		return $termlink;
+	}
 	
 	/** 
 	 *	Translate page name in walker when printing pages dropdown. Filter for 'list_pages'.
@@ -1034,6 +1136,9 @@ class Sublanguage_current extends Sublanguage_core {
 	}
 	
 	
+	
+	
+	
 	/**
 	 * Hard Translate taxonomy permastruct
 	 *
@@ -1044,86 +1149,92 @@ class Sublanguage_current extends Sublanguage_core {
 	 *
 	 * @from 1.5
 	 */
-	public function translate_taxonomy_permastruct($taxonomy, $language = null) {
-		global $wp_rewrite;
-		
-		if ($this->is_taxonomy_translatable($taxonomy)) {
-			
-			if (empty($this->original_permastructs)) {
-				
-				$this->original_permastructs = $wp_rewrite->extra_permastructs;
-			
-			}
-			
-			$t = get_taxonomy($taxonomy);
-			
-			$tax_slug = isset($t->rewrite['slug']) ? $t->rewrite['slug'] : $taxonomy;
-			
-			$translated_taxonomy = $this->translate_taxonomy($taxonomy, $language, $tax_slug);
-			
-			if ($translated_taxonomy !== $tax_slug) {
-				
-				$wp_rewrite->extra_permastructs[$taxonomy]["struct"] = preg_replace("#(/|^)($tax_slug)(/|$)#", "$1$translated_taxonomy$3", $this->original_permastructs[$taxonomy]["struct"]);
-			
-			}
-			
-		}
-		
-	}
-	
-	/**
-	 * Hard Translate all taxonomy permastructs
-	 *
-	 * Must be called before getting a term link but after all taxonomies are registered
-	 *
-	 * @param object WP_Post $language Language. Optional
-	 *
-	 * @from 1.5
-	 */
-	public function translate_taxonomies_permastructs($language = null) {
-		global $wp_rewrite;
-		
-		foreach ($wp_rewrite->extra_permastructs as $taxonomy => $permaschtroumpf) {
-			
-			$this->translate_taxonomy_permastruct($taxonomy, $language);
-		
-		}
-		
-	}
-
-	/**
-	 * Restore original permastruct
-	 *
-	 * @param string $taxonomy Taxonomy name
-	 *
-	 * @from 1.5
-	 */
-	public function restore_permastruct($taxonomy) {
-		global $wp_rewrite;
-		
-		if (isset($this->original_permastructs[$taxonomy])) {
-		
-			$wp_rewrite->extra_permastructs[$taxonomy] = $this->original_permastructs[$taxonomy];
-			
-		}
-	
-	}
-	
-	/**
-	 * Restore original permastructs
-	 *
-	 * @from 1.5
-	 */
-	public function restore_permastructs() {
-		global $wp_rewrite;
-		
-		if (isset($this->original_permastructs)) {
-		
-			$wp_rewrite->extra_permastructs = $this->original_permastructs;
-			
-		}
-	
-	}
+// 	public function translate_taxonomy_permastruct($taxonomy, $language = null) {
+// 		global $wp_rewrite;
+// 		
+// 		if ($this->is_taxonomy_translatable($taxonomy)) {
+// 			
+// 			if (empty($this->original_permastructs)) {
+// 				
+// 				$this->original_permastructs = $wp_rewrite->extra_permastructs;
+// 			
+// 			}
+// 			
+// // 			$t = get_taxonomy($taxonomy);
+// 			
+// // 			$tax_slug = isset($t->rewrite['slug']) ? $t->rewrite['slug'] : $taxonomy;
+// 			
+// 			$translated_taxonomy = $this->translate_taxonomy($taxonomy, $language, $taxonomy);
+// 			
+// 			$wp_rewrite->extra_permastructs[$taxonomy]["struct"] = "/$translated_taxonomy/%$taxonomy%";
+// 			
+// // 			if ($taxonomy === 'color') {var_dump($wp_rewrite->extra_permastructs[$taxonomy]); die();}
+// 			
+// 			
+// 			
+// // 			if ($translated_taxonomy !== $tax_slug) {
+// // 				
+// // 				//$wp_rewrite->extra_permastructs[$taxonomy]["struct"] = preg_replace("#(/|^)($tax_slug)(/|$)#", "$1$translated_taxonomy$3", $this->original_permastructs[$taxonomy]["struct"]);
+// // 			
+// // 			}
+// 			
+// 		}
+// 		
+// 	}
+// 	
+// 	/**
+// 	 * Hard Translate all taxonomy permastructs
+// 	 *
+// 	 * Must be called before getting a term link but after all taxonomies are registered
+// 	 *
+// 	 * @param object WP_Post $language Language. Optional
+// 	 *
+// 	 * @from 1.5
+// 	 */
+// 	public function translate_taxonomies_permastructs($language = null) {
+// 		global $wp_rewrite;
+// 		
+// 		foreach ($wp_rewrite->extra_permastructs as $taxonomy => $permaschtroumpf) {
+// 			
+// 			$this->translate_taxonomy_permastruct($taxonomy, $language);
+// 		
+// 		}
+// 		
+// 	}
+// 
+// 	/**
+// 	 * Restore original permastruct
+// 	 *
+// 	 * @param string $taxonomy Taxonomy name
+// 	 *
+// 	 * @from 1.5
+// 	 */
+// 	public function restore_permastruct($taxonomy) {
+// 		global $wp_rewrite;
+// 		
+// 		if (isset($this->original_permastructs[$taxonomy])) {
+// 		
+// 			$wp_rewrite->extra_permastructs[$taxonomy] = $this->original_permastructs[$taxonomy];
+// 			
+// 		}
+// 	
+// 	}
+// 	
+// 	/**
+// 	 * Restore original permastructs
+// 	 *
+// 	 * @from 1.5
+// 	 */
+// 	public function restore_permastructs() {
+// 		global $wp_rewrite;
+// 		
+// 		if (isset($this->original_permastructs)) {
+// 		
+// 			$wp_rewrite->extra_permastructs = $this->original_permastructs;
+// 			
+// 		}
+// 	
+// 	}
 	
 	/**
 	 * Add language query args to url (Public API)

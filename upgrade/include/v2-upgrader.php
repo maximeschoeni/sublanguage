@@ -1,6 +1,6 @@
 <div class="notice notice-info">
-	<p><?php echo __( 'Sublanguage is upgrading database', 'sublanguage' ); ?></p>
-	<pre id="sublanguage-upgrade-log">Updating Posts...</pre>
+	<p><?php echo __( 'Sublanguage 2.0 needs to upgrade database.', 'sublanguage' ); ?></p>
+	<pre id="sublanguage-upgrade-log">Verifying database...</pre>
 </div>
 <script>
 	jQuery(function() {

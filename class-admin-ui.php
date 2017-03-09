@@ -86,7 +86,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 		
 		// set nav menu item translation defaults
   	add_filter('sublanguage_post_type_default', array($this, 'nav_menu_item_post_type_default'));
-  
+  	
 	}
 	
 	/**
@@ -98,6 +98,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	public function admin_init() {
 		
 	}
+	
 	
 	/**
 	 * Add sublanguage subpage for options translation
@@ -224,7 +225,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 
 	/* Settings
 	----------------------------------------------- */
-
+	
 	/**
 	 * Print general setting page
 	 * 
@@ -232,7 +233,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	 */
 	public function print_setting_page() {
 		
-		include 'include/settings-page.php';
+		include plugin_dir_path( __FILE__ ) . 'include/settings-page.php';
 		
 	}
 	
@@ -253,7 +254,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 		
 		if ($this->is_post_type_translatable($post_type)) {
 			
-			include 'include/settings-post-option-page.php';
+			include plugin_dir_path( __FILE__ ) . 'include/settings-post-option-page.php';
 		
 		}
 		
@@ -276,7 +277,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 		
 		if ($this->is_post_type_translatable($post_type)) {
 			
-			include 'include/settings-post-option-page.php';
+			include plugin_dir_path( __FILE__ ) . 'include/settings-post-option-page.php';
 		
 		}
 		
@@ -296,7 +297,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 		
 		if ($this->is_post_type_translatable($post_type)) {
 			
-			include 'include/settings-attachment-option-page.php';
+			include plugin_dir_path( __FILE__ ) . 'include/settings-attachment-option-page.php';
 		
 		}
 		
@@ -318,7 +319,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 			
 			if ($this->is_taxonomy_translatable($taxonomy)) {
 			
-				include 'include/settings-taxonomy-option-page.php';
+				include plugin_dir_path( __FILE__ ) . 'include/settings-taxonomy-option-page.php';
 		
 			}
 			
@@ -335,7 +336,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 		
 		if (current_user_can('manage_options')) {
 		
-			if (isset($_POST['sublanguage_post_option']) && wp_verify_nonce($_POST['sublanguage_post_option'], 'sublanguage_action')) {
+			if (isset($_POST['sublanguage_post_option'], $_POST['post_type']) && wp_verify_nonce($_POST['sublanguage_post_option'], 'sublanguage_action')) {
 			
 				$post_type = esc_attr($_POST['post_type']);
 			
@@ -347,8 +348,8 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 						$translations = $this->get_option('translations', array());
 						$cpt = isset($_POST['cpt']) ? array_map('esc_attr', $_POST['cpt']) : array();
 					
-						if ($translations['cpt'][$post_type] !== $cpt) {
-							$translations['cpt'][$post_type] = $cpt;
+						if (!isset($translations['post_type'][$post_type]) || $translations['post_type'][$post_type] !== $cpt) {
+							$translations['post_type'][$post_type] = $cpt;
 							$this->update_option('translations', $translations);
 							$this->update_option('need_flush', 1);
 						}
@@ -376,7 +377,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 				wp_redirect($_POST['_wp_http_referer']);
 				exit;
 			
-			} else if (isset($_POST['sublanguage_taxonomy_option']) && wp_verify_nonce($_POST['sublanguage_taxonomy_option'], 'sublanguage_action')) {
+			} else if (isset($_POST['sublanguage_taxonomy_option'], $_POST['taxonomy']) && wp_verify_nonce($_POST['sublanguage_taxonomy_option'], 'sublanguage_action')) {
 			
 				$taxonomy = esc_attr($_POST['taxonomy']);
 			
@@ -388,7 +389,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 						$translations = $this->get_option('translations', array());
 						$tax =  isset($_POST['tax']) ? array_map('esc_attr', $_POST['tax']) : array();
 					
-						if ($translations['taxonomy'][$taxonomy] !== $tax) {
+						if (!isset($translations['taxonomy'][$taxonomy]) || $translations['taxonomy'][$taxonomy] !== $tax) {
 							$translations['taxonomy'][$taxonomy] = $tax;
 							$this->update_option('translations', $translations);
 							$this->update_option('need_flush', 1);
@@ -482,7 +483,8 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 			SELECT meta.meta_key, meta.meta_value
 			FROM $wpdb->postmeta AS meta
 			LEFT JOIN $wpdb->posts AS post ON (post.ID = meta.post_id)
-			WHERE post.post_type = '$sql_post_type' AND meta.meta_key NOT LIKE '$sql_prefixes%' AND meta.meta_key NOT IN ('$sql_blacklist')"
+			WHERE post.post_type = '$sql_post_type' AND meta.meta_key NOT LIKE '$sql_prefixes%' AND meta.meta_key NOT IN ('$sql_blacklist')
+			GROUP BY meta.meta_key"
 		);
 			
 		// empty array of meta data sorted by meta keys
@@ -552,7 +554,8 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 			SELECT meta.meta_key, meta.meta_value
 			FROM $wpdb->termmeta AS meta
 			LEFT JOIN $wpdb->term_taxonomy AS tt ON (tt.term_id = meta.term_id)
-			WHERE tt.taxonomy = '$sql_taxonomy' AND meta.meta_key NOT LIKE '$sql_prefixes%' AND meta.meta_key NOT IN ('$sql_blacklist')"
+			WHERE tt.taxonomy = '$sql_taxonomy' AND meta.meta_key NOT LIKE '$sql_prefixes%' AND meta.meta_key NOT IN ('$sql_blacklist')
+			GROUP BY meta.meta_key"
 		);
 			
 		// empty array of meta data sorted by meta keys
@@ -757,7 +760,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	 */
 	public function locale_meta_box_callback( $post ) {
 		
-		include('include/language-locale-metabox.php');
+		include plugin_dir_path( __FILE__ ) . 'include/language-locale-metabox.php';
 		
 	}
 	
@@ -768,7 +771,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	 */
 	public function locale_dropdown_meta_box_callback( $post ) {
 		
-		include('include/language-dropdown-metabox.php');
+		include plugin_dir_path( __FILE__ ) . 'include/language-dropdown-metabox.php';
 				
 	}
 	
@@ -779,7 +782,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	 */
 	public function settings_meta_box_callback( $post ) {
 		
-		include('include/language-settings-metabox.php');
+		include plugin_dir_path( __FILE__ ) . 'include/language-settings-metabox.php';
 				
 	}
 	
@@ -1086,8 +1089,8 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	 * @from 1.5
 	 */
 	public function print_post_language_tabs($post) {
-		
-		include 'include/posts-form-language-tabs.php';
+				
+		include plugin_dir_path( __FILE__ ) . 'include/posts-form-language-tabs.php';
 		
 	}
 	
@@ -1159,7 +1162,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 		
 		ob_start();
 		
-		include 'include/posts-table-language-switch.php';
+		include plugin_dir_path( __FILE__ ) . 'include/posts-table-language-switch.php';
 		
 		$new_views[] = ob_get_contents();
 		ob_end_clean();
@@ -1242,7 +1245,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	 */
 	public function add_term_edit_form($tag, $taxonomy) {
 		
-		include 'include/terms-edit-form.php';
+		include plugin_dir_path( __FILE__ ) . 'include/terms-edit-form.php';
 		
 	}
 	
@@ -1252,7 +1255,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	 */		
 	public function add_terms_language_switch($taxonomy) {
 		
-		include 'include/terms-table-language-switch.php';
+		include plugin_dir_path( __FILE__ ) . 'include/terms-table-language-switch.php';
 		
 	}
 	
@@ -1313,7 +1316,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	 */
 	public function render_menu_language_metabox() {
 		
-		include 'include/nav-menu-language-metabox.php';
+		include plugin_dir_path( __FILE__ ) . 'include/nav-menu-language-metabox.php';
 		
   }
   
@@ -1430,7 +1433,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	 */
 	public function print_extra_post_metabox($post) {
 		
-		include 'include/extra-post-metabox.php';
+		include plugin_dir_path( __FILE__ ) . 'include/extra-post-metabox.php';
 		
 	}
 	
@@ -1442,7 +1445,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	 */
 	public function print_nav_menu_items_metabox($post) {
 		
-		include 'include/nav-menu-item-metabox.php';
+		include plugin_dir_path( __FILE__ ) . 'include/nav-menu-item-metabox.php';
 		
 	}
 	
@@ -1652,7 +1655,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 			ORDER BY option_name" 
 		);
 		
-		include('include/option-page.php');
+		include plugin_dir_path( __FILE__ ) . 'include/option-page.php';
 		
 	}
 	
@@ -1887,7 +1890,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 			
 				}
 		
-				include('include/editor-button-script.php');
+				include plugin_dir_path( __FILE__ ) . 'include/editor-button-script.php';
 		
 			}
 		

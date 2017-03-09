@@ -140,7 +140,6 @@ class Sublanguage_site extends Sublanguage_main {
 		// API
 		add_action('sublanguage_print_language_switch', array($this, 'print_language_switch'));
 		add_filter('sublanguage_custom_translate', array($this, 'custom_translate'), 10, 3);
-		add_action('sublanguage_load_admin', array($this, 'load_admin')); // -> DEPRECATED
 		
 		/**
 		 * Hook called after initializing most hooks and filters
@@ -151,31 +150,6 @@ class Sublanguage_site extends Sublanguage_main {
 		 */	
 		do_action('sublanguage_init', $this);
 		
-		
-	}
-	
-	
-	/**
-	 * DEPRECATED
-	 *
-	 * Start admin session (if admin functions needed on frontend). Sublanguage API
-	 *
-	 * Hook for 'sublanguage_load_admin'
-	 *
-	 * @from 1.0
-	 */	
-	public function load_admin() {
-		global $sublanguage_admin;
-		
-		if (empty($sublanguage_admin)) {
-		
-			include( plugin_dir_path( __FILE__ ) . 'admin.php');
-	
-			$sublanguage_admin = new Sublanguage_admin();
-			$sublanguage_admin->current_language = $this->current_language;
-		
-		}
-	
 	}
 		
 	/**

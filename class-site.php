@@ -55,22 +55,15 @@ class Sublanguage_site extends Sublanguage_current {
 		
 		if (get_option('permalink_structure')) {
 			
-			add_rewrite_tag('%sublanguage_cpt%', '([^&]+)');
-			add_rewrite_tag('%sublanguage_nodepost%', '([^&]+)');
-			add_rewrite_tag('%sublanguage_post%', '([^&]+)');
 			add_rewrite_tag('%sublanguage_slug%', '([^&]+)');
-			add_rewrite_tag('%sublanguage_tax%', '([^&]+)');
-			add_rewrite_tag('%sublanguage_term%', '([^&]+)');
-			add_rewrite_tag('%sublanguage_nodeterm%', '([^&]+)');
-			add_rewrite_tag('%sublanguage_parent%', '([^&]+)');
-			add_rewrite_tag('%sublanguage_path%', '([^&]+)');
+			add_rewrite_tag('%sublanguage_page%', '([^&]+)');
 			
 			add_rewrite_tag('%preview_language%', '([^&]+)');
 		
 			add_filter('request', array($this, 'catch_translation')); // detect query type and language out of query vars
 			
 			// added in 1.5
-			add_action('wp', array($this, 'filter_permastructs'), 9);
+// 			add_action('wp', array($this, 'filter_permastructs'), 9);
 						
  			add_action('wp', array($this, 'redirect_uncanonical'), 11);
 			
@@ -95,6 +88,8 @@ class Sublanguage_site extends Sublanguage_current {
 		add_filter('year_link', array($this,'translate_month_link'));
 		add_filter('month_link', array($this,'translate_month_link'));
 		add_filter('day_link', array($this,'translate_month_link'));
+		add_filter('term_link', array($this, 'translate_term_link'), 10, 3);
+
 		
 		// login	
 		add_filter('login_url', array($this, 'translate_login_url'));
@@ -451,68 +446,113 @@ class Sublanguage_site extends Sublanguage_current {
 	 * @from 1.0
 	 */
 	public function catch_translation($query_vars) {
-// var_dump($query_vars); die();
-		if (isset($query_vars['sublanguage_nodepost'])) { // -> node page
+// 		var_dump($query_vars); die();
+		
+		if (isset($query_vars['sublanguage_page']) || isset($query_vars['pagename']) || isset($query_vars['name'])) { // -> page, post or custom post type 
 			
-			$post_type = $query_vars['sublanguage_cpt'];
-			$post_type_qv = $post_type === 'page' ? 'pagename' : 'name';
-			$post_name = $query_vars['sublanguage_nodepost'];
-			$path = $query_vars['sublanguage_path'];
-			$parent = intval($query_vars['sublanguage_parent']);
-			$post_types = array($post_type);
+			$post_types = isset($query_vars['post_type']) ? array($query_vars['post_type']) : array('page', 'post');
 			
-			if ($this->is_post_type_translatable('attachment')) {
-				
-				array_push($post_types, 'attachment');
-				
-			}
+			$post_types = array_filter($post_types, array($this, 'is_post_type_translatable'));
 			
-			$post = $this->query_post($post_name, $post_types);
-			
-			if ($post) {
+			if ($post_types) {
 				
-				if ($post->post_type !== 'attachment' && $post->post_parent != $parent) { // -> path does not match
-					
-					$this->canonical = false;
-					
-				} 
+				$path = '';
 				
-				if ($post->post_type == 'attachment') {
+				if (isset($query_vars['sublanguage_page'])) {
 					
-					$query_vars['attachment'] = $post->post_name;
-					$query_vars['post_type'] = $post->post_type;
-					$query_vars['name'] = $post->post_name; // ?
+					$path = $query_vars['sublanguage_page'];
+				
+				} else if (isset($query_vars['pagename'])) {
 					
-				} else if ($post->post_type == 'page') {
+					$path = $query_vars['pagename'];
+				
+				} else if (isset($query_vars['name'])) {
 					
-					if ($this->canonical) {
-						
-						$query_vars[$post_type_qv] = $path.'/'.$post->post_name;
-						
-					} else {
-						
-						$query_vars[$post_type_qv] = get_page_uri($post->ID);
-					
-					}
-					
-				} else {
-					
-					$query_vars[$post_type_qv] = $post->post_name;
-					$query_vars['post_type'] = $post->post_type;
-					$query_vars['name'] = $post->post_name; // ?
-					
+					$path = $query_vars['name'];
+				
 				}
 				
-			} else { // -> post not found
+				$ancestors = explode('/', $path);
 				
-				$query_vars[$post_type_qv] = $post_name;
+// 				if ($language = $this->get_language_by($ancestors[0])) {
+// 				  // -> this is a wrong language
+// 				}
+				
+				$post_name = array_pop($ancestors);
+				
+				$post = $this->query_post($post_name, $post_types, $ancestors);
+				
+				if ($post) {
+					
+					$post_type_obj = get_post_type_object($post->post_type);
+					
+					if (isset($query_vars['sublanguage_slug']) && $query_vars['sublanguage_slug'] !== $this->translate_cpt($post->post_type, null, $post->post_type)) {
+						
+						// wrong slug
+						$this->canonical = false;
+						
+					}
+					
+					if ($post_type_obj->hierarchical) {
+						
+						$path = '';
+						$parent_id = $post->post_parent;
+						
+						while ($parent_id) {
+							
+							$parent = get_post($parent_id);
+							$path = $parent->post_name . '/' . $path;
+							$parent_id = $parent->post_parent;
+							
+						}
+						
+						if (isset($query_vars[$post->post_type])) {
+							
+							$query_vars[$post->post_type] = $path . $post->post_name;
+							
+						}
+						
+						if (isset($query_vars['name'])) {
+							
+							$query_vars['name'] = $path . $post->post_name;
+							
+						} else {
+							
+							$query_vars['pagename'] = $path . $post->post_name;
+						
+						}
+						
+					} else {
+					
+						if (isset($query_vars['pagename'])) {
+							
+							$query_vars['pagename'] = $post->post_name;
+							
+						} else {
+							
+							$query_vars['name'] =  $post->post_name;
+						
+						}
+						
+					}
+				
+				} else if (isset($query_vars['sublanguage_page'])) { // -> nothing found. Let's pretend we did not see
+				
+					$query_vars['pagename'] = $query_vars['sublanguage_page'];
+				
+				}
+				
+			} else if (isset($query_vars['sublanguage_page'])) { // -> whoops! This one shouldn't be translated
+				
+				$query_vars['pagename'] = $query_vars['sublanguage_page'];
 			
 			}
+			
+			if (isset($query_vars['sublanguage_page'])) { // -> nothing found. Let's pretend we did not see
 				
-			unset($query_vars['sublanguage_nodepost']);
-			unset($query_vars['sublanguage_path']);
-			unset($query_vars['sublanguage_parent']);
-			unset($query_vars['sublanguage_cpt']);
+				unset($query_vars['sublanguage_page']);
+			
+			}
 			
 		} else if (isset($query_vars['attachment']) && $this->is_post_type_translatable('attachment')) { // -> attachment (this is a child of a "post" post-type)
 			
@@ -524,212 +564,53 @@ class Sublanguage_site extends Sublanguage_current {
 				
 			}
 
-		} else if (isset($query_vars['sublanguage_cpt'])) { // -> translated custom-post-type
-			
-			$post_type = $query_vars['sublanguage_cpt'];
-			$slug = $query_vars['sublanguage_slug'];
-			$post_type_data = get_post_type_object($post_type);
-			$post_type_qv = $post_type_data->query_var;
-			
-			if (isset($query_vars['sublanguage_post'])) { // -> single cpt (not an archive)
-				
-				$post_name = $query_vars['sublanguage_post'];
-						
-				$post = $this->query_post($post_name, array($post_type));
-			
-				if ($post) {
-					
-					$query_vars[$post_type_qv] = $post->post_name; // restore classical custom post query vars
-					$query_vars['post_type'] = $post_type;
-					$query_vars['name'] = $post->post_name; 
-										
-				} else {
-					
-					$query_vars[$post_type_qv] = $post_name;
-					$query_vars['post_type'] = $post_type;
-					$query_vars['name'] = $post_name;
-				
-				}
-				
-				unset($query_vars['sublanguage_post']);
-				
-			} else { // -> archive cpt
-			
-				$query_vars['post_type'] = $post_type;
-				
-			}
-			
-			$slug_translation = $this->translate_cpt($post_type, null, $slug);
-			
-			
-			if ($slug_translation !== $slug) { // -> wrong language
-				
-				$this->canonical = false;
-				
-			}
-			
-			unset($query_vars['sublanguage_cpt']);
-			unset($query_vars['sublanguage_slug']);
-			
-		} else if (isset($query_vars['post_type'])) { // -> untranslated custom-post-type
+		} else if (isset($query_vars['post_type'])) { // -> custom-post-type archive
 		
-			$custom_type = $query_vars['post_type'];
+			$post_type = $query_vars['post_type'];
 			
-			if ($this->is_post_type_translatable($custom_type)) {
+			if ($this->is_post_type_translatable($post_type)) {
 				
-				$post_type_data = get_post_type_object( $custom_type );
-				$custom_type_qv = $post_type_data->query_var;
-				
-				if (isset($query_vars[$custom_type_qv])) { // -> single cpt (not an archive)
-					
-					$post = $this->query_post($query_vars[$custom_type_qv], array($custom_type));
-			
-					if ($post) {
+				if (isset($query_vars['sublanguage_slug']) && $query_vars['sublanguage_slug'] !== $this->translate_cpt($post_type, null, $post_type)) {
+	
+					// wrong slug
+					$this->canonical = false;
 
-						$query_vars[$custom_type_qv] = $post->post_name;
-						$query_vars['name'] = $post->post_name; 
-							
-					} 
-					
-				}
-				
-				$custom_type_slug = $post_type_data->rewrite['slug'];
-				
-				$cpt_translation = $this->translate_cpt($custom_type, null, $custom_type_slug);
-				
-				if ($cpt_translation !== $custom_type_slug) { // -> there is a custom cpt translation for this
-					
-					$this->canonical = false;
-				
 				}
 				
 			}
 			
-		} else if (isset($query_vars['pagename']) || isset($query_vars['name'])) { // -> untranslated page or post
-			
-			$post_name = isset($query_vars['pagename']) ? $query_vars['pagename'] : $query_vars['name'];
-			
-			$post = $this->query_post($post_name, array('post', 'page'));
-		
-			if ($post) {
-		
-				if ($post->post_type == 'page') {
-				
-					$query_vars['pagename'] = $post->post_name;
-					unset($query_vars['name']);
-				
-				} else {
-			
-					$query_vars['name'] = $post->post_name;
-				
-				}
-						
-			}
-			
-		} else if (isset($query_vars['sublanguage_nodeterm'])) { // -> node taxonomy
-
- 			$taxonomy = $query_vars['sublanguage_tax'];
- 			$term_name = $query_vars['sublanguage_term'];
-			$tax_slug = $query_vars['sublanguage_slug'];
-			$term_parent = $query_vars['sublanguage_parent'];
-			$term_path = $query_vars['sublanguage_path'];
-			$tax_obj = get_taxonomy($taxonomy);
-			$tax_qv = $tax_obj->query_var;
-			
-			$term = $this->query_taxonomy($term_name, $taxonomy);
-			
-			if ($term) {
-			
-				$query_vars[$tax_qv] = $term_path.'/'.$term->slug;
-				
-				if ($term->parent != $term_parent) { // -> wrong path
-				
-					$this->canonical = false;
-				
-				}
-				
-				$tax_translation = $this->translate_taxonomy($taxonomy, null, $tax_slug);
-				
-				if ($tax_translation !== $tax_slug) {
-				
-					$this->canonical = false;
-					
-				}
-								
-			} else {
-				
-				$query_vars[$tax_qv] = $term_path.'/'.$term_name;
-			
-			}
-			
-			unset($query_vars['sublanguage_nodeterm']);
-			unset($query_vars['sublanguage_tax']);
-			unset($query_vars['sublanguage_term']);
-			unset($query_vars['sublanguage_slug']);
-			unset($query_vars['sublanguage_parent']);
-			unset($query_vars['sublanguage_path']);
-
-		} else if (isset($query_vars['sublanguage_term'])) { // -> translated taxonomy
-			
- 			$taxonomy = $query_vars['sublanguage_tax'];
- 			$term_name = $query_vars['sublanguage_term'];
-			$tax_slug = $query_vars['sublanguage_slug'];
-			$tax_obj = get_taxonomy($taxonomy);
-			$tax_qv = $tax_obj->query_var;
-			
-			$term = $this->query_taxonomy($term_name, $taxonomy);
-			
-			if ($term) {
-			
-				$query_vars[$tax_qv] = $term->slug;
-				
-				$tax_translation = $this->translate_taxonomy($taxonomy, null, $tax_slug);
-				
-				if ($tax_translation !== $tax_slug) { // -> wrong taxonomy translation
-						
-					$this->canonical = false;
-			
-				}
-								
-			} else {
-				
-				$query_vars[$tax_qv] = $term_name;
-			
-			}
-			
-			unset($query_vars['sublanguage_tax']);
-			unset($query_vars['sublanguage_term']);
-			unset($query_vars['sublanguage_slug']);
-						
 		} else if ($results = array_filter(array_map(array($this, 'query_var_to_taxonomy'), array_keys($query_vars)), array($this, 'is_taxonomy_translatable'))) { // -> untranslated taxonomy
 			
-			$taxonomy = '';
+			if (isset($query_vars['sublanguage_slug'])) {
 			
-			foreach ($results as $r) {
+				$taxonomy = '';
+			
+				foreach ($results as $r) {
 				
-				$taxonomy = $r;
-				break;
+					$taxonomy = $r;
+					break;
 			
-			}
-			
-			if (!$taxonomy) throw new Exception('Taxonomy not found!');
-			
-			$tax_obj = get_taxonomy($taxonomy);
-			$tax_qv = $tax_obj->query_var;
-			$tax_slug = $tax_obj->rewrite['slug'];
-			$term_name = $query_vars[$tax_qv];
-			$term = $this->query_taxonomy($term_name, $taxonomy);
-			
-			if ($term) {
-			
-				$query_vars[$tax_qv] = $term->slug; // -> restore original language name in query_var
+				}
 				
-				$tax_translation = $this->translate_taxonomy($taxonomy, null, $tax_slug);
+				if (!$taxonomy) throw new Exception('Taxonomy not found!');
+			
+				$tax_obj = get_taxonomy($taxonomy);
+				$tax_qv = $tax_obj->query_var;
+				$term_name = $query_vars[$tax_qv];
+				$term = $this->query_taxonomy($term_name, $taxonomy);
+			
+				if ($term) {
+			
+					$query_vars[$tax_qv] = $term->slug; // -> restore original language name in query_var
 				
-				if ($tax_translation !== $tax_slug) { // taxonomy should be translated
+					$tax_translation = $this->translate_taxonomy($taxonomy, null, $taxonomy);
+				
+					if ($this->translate_taxonomy($taxonomy, null, $taxonomy) !== $query_vars['sublanguage_slug']) { // taxonomy should be translated
 						
-					$this->canonical = false;
+						$this->canonical = false;
 			
+					}
+				
 				}
 				
 			}
@@ -747,6 +628,9 @@ class Sublanguage_site extends Sublanguage_current {
 			
 		}
 		
+// 		var_dump($query_vars); die();
+		
+		
 		return $query_vars;
 		
 	}
@@ -759,11 +643,11 @@ class Sublanguage_site extends Sublanguage_current {
 	 *
 	 * @from 1.5
 	 */
-	public function filter_permastructs() {
-		
-		$this->translate_taxonomies_permastructs();
-		
-	}
+// 	public function filter_permastructs() {
+// 		
+// 		$this->translate_taxonomies_permastructs();
+// 		
+// 	}
 	
 	/**
 	 * Redirection when not canoncal url
@@ -813,16 +697,12 @@ class Sublanguage_site extends Sublanguage_current {
 	 * @param string $post_name
 	 * @param string|array $post_types
 	 */
-	public function query_post($post_name, $post_types) {
+	public function query_post($post_name, $post_types, $ancestors = array()) {
 		global $wpdb;
 		
 		$post_types = esc_sql($post_types);
 		
-		if (is_array($post_types)) {
-			
-			$post_types = implode("','", $post_types);
-		
-		}
+		$post_type_strings = is_array($post_types) ? "'".implode("','", $post_types)."'" : "'".$post_types."'";
 		
 		$translation_slug = $this->get_prefix().'post_name';
 		
@@ -835,48 +715,132 @@ class Sublanguage_site extends Sublanguage_current {
 		if ($post_ids) { 
 		
 			// Translations found but we're not sure about post_type
-			$post = $wpdb->get_row(
+			$posts = $wpdb->get_results(
 				"SELECT post.* FROM $wpdb->posts AS post
-					WHERE post.post_type IN ('$post_types')
+					WHERE post.post_type IN ($post_type_strings)
 						AND post.ID IN (".implode(",", array_map('intval', $post_ids)).")"
 			);
 			
-			if ($post) {
-				
-				// Translation found with correct post_type
-				return $post;
+			// Use WP_Query (for caching)
+// 			$posts_query = new WP_Query(array(
+// 				'post_type' => $post_types,
+// 				'post__in' => $post_ids,
+// 				'posts_per_page' => -1,
+// 				'ignore_sticky_posts' => true
+// 			));
+// 			$posts = $posts_query->posts;
 			
+			foreach ($posts as $post) {
+				
+				if ($ancestors) { // -> verify ancestors recursively
+					
+					$parent_name = array_pop($ancestors);
+					
+					$parent = $this->query_post($parent_name, $post_types, $ancestors);
+					
+					if ($parent && $post->post_parent == $parent->ID) {
+						
+						return $post;
+					
+					}
+				
+				} else {
+					
+					// This one will just do
+					return $post;
+				
+				}
+				
+			}
+			
+			foreach ($posts as $post) {
+			
+				// -> no ancestor matched
+				$this->canonical = false;
+			
+				// This one will do
+				return $post;
+				
 			}
 			
 		}
 		
-		$post = $wpdb->get_row( $wpdb->prepare(
+		$posts = $wpdb->get_results( $wpdb->prepare(
 			"SELECT post.* FROM $wpdb->posts AS post
-				WHERE post.post_name = %s AND post.post_type IN ('$post_types')",					
+				WHERE post.post_name = %s AND post.post_type IN ($post_type_strings)",
 			$post_name
 		));
-		
-		if ($post) { 
-		
-			// Post found
-			if (get_post_meta($post->ID, $this->get_prefix() . 'post_name', true)) {
+
+		// Use WP_Query
+// 		$posts_query = new WP_Query(array(
+// 			'post_type' => $post_types,
+// 			'name' => $post_name,
+// 			'posts_per_page' => -1,
+// 			'ignore_sticky_posts' => true
+// 		));
+// 		$posts = $posts_query->posts;
+					
+		if ($posts) { 
+			
+			foreach ($posts as $post) {
 				
-				// But there is a specific translation for this post
-				$this->canonical = false;
+				if ($ancestors) { // -> we need to verify ancestors recursively
+					
+					$parent_name = array_pop($ancestors);
+					
+					$parent = $this->query_post($parent_name, $post_types, $ancestors);
+					
+					// check if parent match and there is no specific translation...
+					if ($parent && $post->post_parent == $parent->ID) {
+						
+						// Post found
+						if (get_post_meta($post->ID, $this->get_prefix() . 'post_name', true)) {
+							
+							// But there is a specific translation for this post
+							$this->canonical = false;
+				
+						}
+						
+						return $post;
+					
+					}
+				
+				} else {
+					
+					// Post found
+					if (get_post_meta($post->ID, $this->get_prefix() . 'post_name', true)) {
+				
+						// But there is a specific translation for this post
+						$this->canonical = false;
+				
+					}
+					
+					return $post;
+				
+				}
 				
 			}
 			
-			return $post;
-		
+			foreach ($posts as $post) {
+			
+				$this->canonical = false;
+			
+				// no ancestor matched but lets return this one
+				return $post;
+				
+			}
+			
 		} else {
 			
 			// Nothing found. -> Search in other languages...
 			$post = $wpdb->get_row( $wpdb->prepare(
 				"SELECT post.* FROM $wpdb->posts AS post
 					INNER JOIN $wpdb->postmeta AS meta ON (post.ID = meta.post_id)
-					WHERE post.post_type IN ('$post_types') AND (meta_key IN ('".implode("post_name', '", esc_sql(array_map(array($this, 'create_prefix'), $this->get_language_column('post_name'))))."post_name') AND meta.meta_value = %s)",					
+					WHERE post.post_type IN ($post_type_strings) AND (meta_key IN ('".implode("post_name', '", esc_sql(array_map(array($this, 'create_prefix'), $this->get_language_column('post_name'))))."post_name') AND meta.meta_value = %s)",					
 				$post_name
 			));
+			
+			// teacher, do I need to check ancestors?
 			
 			if ($post) {
 			
@@ -901,16 +865,10 @@ class Sublanguage_site extends Sublanguage_current {
 	 * @param string $slug
 	 * @param string|array $taxonomy
 	 */
-	public function query_taxonomy($slug, $taxonomy) {
+	public function query_taxonomy($slug, $taxonomies) {
 		global $wpdb;
 		
-		$taxonomy = esc_sql($taxonomy);
-		
-		if (is_array($taxonomy)) {
-			
-			$taxonomy = implode("','", $taxonomy);
-		
-		}
+		$taxonomy_string = is_array($taxonomies) ? "'".implode("','", esc_sql($taxonomies))."'" : "'".esc_sql($taxonomies)."'";
 		
 		$translation_slug = $this->get_prefix() . 'slug';
 		
@@ -926,41 +884,48 @@ class Sublanguage_site extends Sublanguage_current {
 			$term = $wpdb->get_row(
 				"SELECT t.term_id, t.slug, tt.taxonomy, tt.parent FROM $wpdb->terms AS t 
 					INNER JOIN $wpdb->term_taxonomy AS tt ON t.term_id = tt.term_id
-					WHERE tt.taxonomy IN ('$taxonomy')
+					WHERE tt.taxonomy IN ($taxonomy_string)
 						AND t.term_id IN (".implode(",", array_map('intval', $term_ids)).")"
 			);
 			
-			if ($term) {
-				
-				// Translation found with correct taxonomy
-				return $term;
-			
-			}
-			
+			return $term;
+
+// 			$terms = get_terms(array(
+// 				'taxonomy' => $taxonomies,
+//     		'hide_empty' => false,
+//     		'include' => $term_ids,
+//     		'language' => false
+// 			));
+
 		}
 		
 		// -> no translated term for this slug
-		
 		$term = $wpdb->get_row( $wpdb->prepare(
 			"SELECT t.term_id, t.slug, tt.taxonomy, tt.parent FROM $wpdb->terms AS t 
 				INNER JOIN $wpdb->term_taxonomy AS tt ON t.term_id = tt.term_id
-				WHERE tt.taxonomy IN ('$taxonomy')
+				WHERE tt.taxonomy IN ($taxonomy_string)
 					AND t.slug = %s",
 			$slug
 		));
 		
-		if ($term) { // -> original term found
+// 		$terms = get_terms(array(
+// 			'taxonomy' => $taxonomies,
+// 			'hide_empty' => false,
+// 			'slug' => $slug,
+// 			'language' => false
+// 		));
+
+		if ($term) {
 		
 			if (get_term_meta($term->term_id, $this->get_prefix() . 'slug', true)) {
 				
 				// -> But there is a specific translation for this term
-				
 				$this->canonical = false;
-				
+			
 			}
 			
 			return $term;
-		
+							
 		} else {
 			
 			// Nothing found. -> Search in other languages...
@@ -977,7 +942,7 @@ class Sublanguage_site extends Sublanguage_current {
 				$term = $wpdb->get_row(
 					"SELECT t.term_id, t.slug, tt.taxonomy, tt.parent FROM $wpdb->terms AS t 
 						INNER JOIN $wpdb->term_taxonomy AS tt ON t.term_id = tt.term_id
-						WHERE tt.taxonomy IN ('$taxonomy')
+						WHERE tt.taxonomy IN ($taxonomy_string)
 							AND t.term_id IN (".implode(",", array_map('intval', $term_ids)).")"
 				);
 				
@@ -1143,11 +1108,11 @@ class Sublanguage_site extends Sublanguage_current {
 						
 			$original_term = get_term($query_object->term_id, $query_object->taxonomy);
 			
-			$this->translate_taxonomy_permastruct($query_object->taxonomy);
+// 			$this->translate_taxonomy_permastruct($query_object->taxonomy);
 			
 			$link = get_term_link($original_term, $original_term->taxonomy);
 			
-			$this->restore_permastruct($query_object->taxonomy);
+// 			$this->restore_permastruct($query_object->taxonomy);
 			
 		} else if (is_post_type_archive()) {
 			
@@ -1412,5 +1377,30 @@ class Sublanguage_site extends Sublanguage_current {
 		return $post;
 		
 	}
+	
+	/**
+	 * Translate term
+	 *  
+	 * @from 1.2
+	 */
+	public function translate_term($term, $language = null) {
+		
+		if (empty($language)) {
+			
+			$language = $this->get_language();
+		
+		}
+		
+		if ($this->is_taxonomy_translatable($term->taxonomy) && $this->is_sub($language)) {
+		
+			$term->name = $this->translate_term_field($term, $term->taxonomy, 'name', $language);
+			$term->description = $this->translate_term_field($term, $term->taxonomy, 'description', $language);
+			
+		}
+		
+		return $term;
+				
+	}
+
 	
 }

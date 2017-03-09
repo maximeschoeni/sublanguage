@@ -10,18 +10,22 @@ class Sublanguage_V2 {
 	 */
 	public function __construct() {
 		
-		add_action('admin_notices', array($this, 'sample_admin_notice__success'));
-		
 		add_action('wp_ajax_sublanguage_upgrade_get_posts', array($this, 'ajax_upgrade_get_posts') );
 		add_action('wp_ajax_sublanguage_upgrade_posts', array($this, 'ajax_upgrade_posts') );
-		
 		add_action('wp_ajax_sublanguage_upgrade_get_terms', array($this, 'ajax_upgrade_get_terms') );
 		add_action('wp_ajax_sublanguage_upgrade_terms', array($this, 'ajax_upgrade_terms') );
-		
 		add_action('wp_ajax_sublanguage_upgrade_done', array($this, 'ajax_upgrade_done') );
 		
 	}
-
+	
+	/**
+	 * Notice
+	 */
+	public function notice() {
+		
+		add_action('admin_notices', array($this, 'sample_admin_notice__success'));
+		
+	}
 	
 	/**
 	 * Notice about upgrade
@@ -30,12 +34,10 @@ class Sublanguage_V2 {
 	 */
 	public function sample_admin_notice__success() {
     global $sublanguage_admin;
-    
-    include('include/v2-upgrader.php');
+        
+    include plugin_dir_path( __FILE__ ) . 'include/v2-upgrader.php';
     
 	}
-	
-	
 	
 	/**	 
 	 * Upgrade options
@@ -162,10 +164,10 @@ class Sublanguage_V2 {
 				
 			}
 			
-			
 			$new_meta_keys[] = esc_attr($meta_key);
 		}
 		
+		return $new_meta_keys;
 	}
 	
 	/**	 

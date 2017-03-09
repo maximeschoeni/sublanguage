@@ -937,9 +937,9 @@ class Sublanguage_core {
 		
 		$translations = $this->get_option('translations', array());
 		
-		if ($language && isset($translations['cpt'][$original_cpt][$language->ID]) && $translations['cpt'][$original_cpt][$language->ID]) {
+		if ($language && isset($translations['post_type'][$original_cpt][$language->ID]) && $translations['post_type'][$original_cpt][$language->ID]) {
 			
-			return $translations['cpt'][$original_cpt][$language->ID];
+			return $translations['post_type'][$original_cpt][$language->ID];
 
 		}
 		return false;
@@ -993,9 +993,9 @@ class Sublanguage_core {
 		
 		$translations = $this->get_option('translations', array());
 		
-		if ($language && isset($translations['cpt'])) {
+		if ($language && isset($translations['post_type'])) {
 		
-			foreach ($translations['cpt'] as $original => $translation) {
+			foreach ($translations['post_type'] as $original => $translation) {
 
 				if (isset($translation[$language->ID]) && $translation[$language->ID] === $translated_cpt) {
 
@@ -1171,28 +1171,6 @@ class Sublanguage_core {
 
 	}
 	
-	/**
-	 * Hard translate term
-	 *  
-	 * @from 1.2
-	 */
-	public function translate_term($term, $language = null) {
-		
-		if (empty($language)) {
-			
-			$language = $this->get_language();
-		
-		}
-		
-		if ($this->is_taxonomy_translatable($term->taxonomy) && $this->is_sub($language)) {
-		
-			$term->name = $this->translate_term_field($term, $term->taxonomy, 'name', $language);
-			$term->slug = $this->translate_term_field($term, $term->taxonomy, 'slug', $language);
-			$term->description = $this->translate_term_field($term, $term->taxonomy, 'description', $language);
-			
-		}
-				
-	}
 	
 	/**
 	 * Get post meta translation if it exists
