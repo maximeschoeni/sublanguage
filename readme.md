@@ -197,7 +197,7 @@ This function use 6 parameters:
 
 - `'sublanguage_translate_term_field'`: filter name
 - `default`: value to use if translation does not exist
-- `term`: the Post object you want to translate the field of
+- `term`: the Term object you want to translate the field of
 - `field`: field name ('name', 'slug', or 'description')
 - `language`: Optional. Language slug, id, locale or object. By default, the current language will be used
 - `by`: Optional. Use 'ID' or 'post_content' only if language is set to id or locale.
