@@ -55,16 +55,8 @@ class Sublanguage_site extends Sublanguage_current {
 		
 		if (get_option('permalink_structure')) {
 			
-			add_rewrite_tag('%sublanguage_slug%', '([^&]+)');
-			add_rewrite_tag('%sublanguage_page%', '([^&]+)');
-			
-			add_rewrite_tag('%preview_language%', '([^&]+)');
-		
+			add_filter('query_vars', array($this, 'query_vars'));
 			add_filter('request', array($this, 'catch_translation')); // detect query type and language out of query vars
-			
-			// added in 1.5
-// 			add_action('wp', array($this, 'filter_permastructs'), 9);
-						
  			add_action('wp', array($this, 'redirect_uncanonical'), 11);
 			
 		}
@@ -378,8 +370,6 @@ class Sublanguage_site extends Sublanguage_current {
 		
 		return $sorted_menu_items;
 	}
-		
-	
 	
 	/**
 	 * Print language switch
@@ -437,8 +427,25 @@ class Sublanguage_site extends Sublanguage_current {
 	}
 	
 	/**
+	 * Register sublanguage specific query_vars
+	 *
+	 * @filter 'query_vars'
+	 *
+	 * @from 1.0
+	 */
+	public function query_vars($public_query_vars) {
+		
+		$public_query_vars[] = 'sublanguage_slug';
+		$public_query_vars[] = 'sublanguage_page';
+		$public_query_vars[] = 'preview_language';
+		
+		return $public_query_vars;
+	
+	}
+	
+	
+	/**
 	 * Intercept query_vars to find out type of query and get parent.
-	 * Must be fired before filters are set
 	 * Must return an array of query vars
 	 *
 	 * Hook for 'request'
@@ -446,7 +453,6 @@ class Sublanguage_site extends Sublanguage_current {
 	 * @from 1.0
 	 */
 	public function catch_translation($query_vars) {
-// 		var_dump($query_vars); die();
 		
 		if (isset($query_vars['sublanguage_page']) || isset($query_vars['pagename']) || isset($query_vars['name'])) { // -> page, post or custom post type 
 			
@@ -456,27 +462,23 @@ class Sublanguage_site extends Sublanguage_current {
 			
 			if ($post_types) {
 				
-				$path = '';
+				$name = '';
 				
 				if (isset($query_vars['sublanguage_page'])) {
 					
-					$path = $query_vars['sublanguage_page'];
+					$name = $query_vars['sublanguage_page'];
 				
 				} else if (isset($query_vars['pagename'])) {
 					
-					$path = $query_vars['pagename'];
+					$name = $query_vars['pagename'];
 				
 				} else if (isset($query_vars['name'])) {
 					
-					$path = $query_vars['name'];
+					$name = $query_vars['name'];
 				
 				}
 				
-				$ancestors = explode('/', $path);
-				
-// 				if ($language = $this->get_language_by($ancestors[0])) {
-// 				  // -> this is a wrong language
-// 				}
+				$ancestors = explode('/', $name);
 				
 				$post_name = array_pop($ancestors);
 				
@@ -509,7 +511,7 @@ class Sublanguage_site extends Sublanguage_current {
 						if (isset($query_vars[$post->post_type])) {
 							
 							$query_vars[$post->post_type] = $path . $post->post_name;
-							
+						
 						}
 						
 						if (isset($query_vars['name'])) {
@@ -534,8 +536,14 @@ class Sublanguage_site extends Sublanguage_current {
 						
 						}
 						
+						if (isset($query_vars[$post->post_type])) {
+							
+							$query_vars[$post->post_type] = $post->post_name;
+						
+						}
+						
 					}
-				
+					
 				} else if (isset($query_vars['sublanguage_page'])) { // -> nothing found. Let's pretend we did not see
 				
 					$query_vars['pagename'] = $query_vars['sublanguage_page'];
@@ -545,12 +553,6 @@ class Sublanguage_site extends Sublanguage_current {
 			} else if (isset($query_vars['sublanguage_page'])) { // -> whoops! This one shouldn't be translated
 				
 				$query_vars['pagename'] = $query_vars['sublanguage_page'];
-			
-			}
-			
-			if (isset($query_vars['sublanguage_page'])) { // -> nothing found. Let's pretend we did not see
-				
-				unset($query_vars['sublanguage_page']);
 			
 			}
 			
@@ -615,11 +617,6 @@ class Sublanguage_site extends Sublanguage_current {
 				
 			}
 			
-		} else if (isset($query_vars['error']) && $query_vars['error'] == '404' && $this->is_post_type_translatable('attachment')) { // -> maybe an attachment translation (if it is a child of a subpage)
-			
-			// ./wp-include/class-wp.php, line 213
-			// no attachment were found through get_page_by_path(), but there is no filter...
-			
 		}
 		
 		if (isset($query_vars['preview'])) {
@@ -628,26 +625,10 @@ class Sublanguage_site extends Sublanguage_current {
 			
 		}
 		
-// 		var_dump($query_vars); die();
-		
-		
 		return $query_vars;
 		
 	}
 	
-	/**
-	 * Redirection when not canoncal url
-	 * Must be called before getting term links but after all taxonomies are registered
-	 *
-	 * Hook for 'wp'
-	 *
-	 * @from 1.5
-	 */
-// 	public function filter_permastructs() {
-// 		
-// 		$this->translate_taxonomies_permastructs();
-// 		
-// 	}
 	
 	/**
 	 * Redirection when not canoncal url
@@ -1107,13 +1088,9 @@ class Sublanguage_site extends Sublanguage_current {
 		if (is_category() || is_tag() || is_tax()) {
 						
 			$original_term = get_term($query_object->term_id, $query_object->taxonomy);
-			
-// 			$this->translate_taxonomy_permastruct($query_object->taxonomy);
-			
+						
 			$link = get_term_link($original_term, $original_term->taxonomy);
-			
-// 			$this->restore_permastruct($query_object->taxonomy);
-			
+						
 		} else if (is_post_type_archive()) {
 			
 			$link = get_post_type_archive_link(get_post_type());
