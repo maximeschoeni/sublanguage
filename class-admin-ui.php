@@ -1043,27 +1043,33 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	 */	
 	public function translate_sample_permalink($permalink, $post_id, $title, $name, $post) {
 		
-		if ($this->is_sub()) {
+		if ($this->is_post_type_translatable($post->post_type)) {
 		
-			// translate ancestors slugs
-			$current = $post;
-			while ($current->post_parent) {
-				$current = get_post($current->post_parent);
-				$original_name = $current->post_name;
-				$translated_name = $this->translate_post_field($current, 'post_name');
-				if ($original_name !== $translated_name) {
-					$permalink[0] = str_replace("/$original_name/", "/$translated_name/", $permalink[0]);
+			$translation = $this->translate_cpt($post->post_type, null, $post->post_type);
+			$permalink[0] = str_replace("%{$post->post_type}-slug%", $translation, $permalink[0]);
+			
+			if ($this->is_sub()) {
+		
+				// translate ancestors slugs
+				$current = $post;
+				while ($current->post_parent) {
+					$current = get_post($current->post_parent);
+					$original_name = $current->post_name;
+					$translated_name = $this->translate_post_field($current, 'post_name');
+					if ($original_name !== $translated_name) {
+						$permalink[0] = str_replace("/$original_name/", "/$translated_name/", $permalink[0]);
+					}
 				}
+			
+				$permalink[1] = $this->translate_post_field($post, 'post_name');
+		
 			}
-		
-			$permalink[1] = $this->translate_post_field($post, 'post_name');
-		
+		 
 		}
 		
 		return $permalink;
 	}
 	
-
 	
 	/**
 	 * Customize title placeholder

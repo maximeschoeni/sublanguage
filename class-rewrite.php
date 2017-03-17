@@ -29,6 +29,9 @@ class Sublanguage_rewrite extends Sublanguage_current {
 		
 		add_filter('page_rewrite_rules', array($this, 'page_rewrite_rules'));
 		
+		// Append language slugs to every rules
+		add_filter('rewrite_rules_array', array($this, 'append_language_slugs'), 12);
+		
 	}
 	
 	/**
@@ -125,7 +128,7 @@ class Sublanguage_rewrite extends Sublanguage_current {
 			if ( $post_type_obj->has_archive ) {
 				$archive_slug = $translation_slug;
 				
-				if ( $post_type_obj->rewrite['with_front'] ) { // -> dunno what it is...
+				if ( $post_type_obj->rewrite['with_front'] ) {
 					$archive_slug = substr( $wp_rewrite->front, 1 ) . $archive_slug;
 				} else {
 					$archive_slug = $wp_rewrite->root . $archive_slug;
@@ -261,19 +264,67 @@ class Sublanguage_rewrite extends Sublanguage_current {
 	 */
 	public function page_rewrite_rules($rules) {
 		
-		$duplicate_rules = array();
+		if ($this->is_post_type_translatable('page')) {
 		
-		foreach ($rules as $key => $rule) {
+			$duplicate_rules = array();
+		
+			foreach ($rules as $key => $rule) {
 			
-			$key = str_replace('(.?.+?)', '(x|.?.+?)', $key);
-			$rule = str_replace('pagename=', 'sublanguage_page=', $rule);
+				$key = str_replace('(.?.+?)', '(x|.?.+?)', $key);
+				$rule = str_replace('pagename=', 'sublanguage_page=', $rule);
 			
-			$duplicate_rules[$key] = $rule;
+				$duplicate_rules[$key] = $rule;
+			
+			}
+		
+			$rules = array_merge($duplicate_rules, $rules);
 			
 		}
 		
-		return array_merge($duplicate_rules, $rules);
+		return $rules;
 	}
+	
+	
+	/**
+	 * Append language slugs to every rules
+	 *
+	 * @filter 'rewrite_rules_array'
+	 * @from 2.0
+	 */
+	public function append_language_slugs($rules) {
+		
+		$language_slugs = array();
+			
+		foreach ($this->get_languages() as $language) {
+		
+			$language_slugs[] = $language->post_name;
+		
+		}
+		
+		$new_rules = array();
+		
+		$new_rules['(?:' . implode('|', $language_slugs) . ')/?$'] = 'index.php'; // -> rule for home
+		
+		$languages_slug = '(?:' . implode('/|', $language_slugs) . '/)?';
+		
+		foreach ($rules as $key => $rule) {
+			
+			if (substr($key, 0, 1) !== '^') {
+			
+				$new_rules[$languages_slug . $key] = $rule;
+				
+			} else {
+				
+				$new_rules[$key] = $rule;
+				
+			}
+			
+		}
+		
+		return $new_rules;
+	}
+	
+
 	
 }
 

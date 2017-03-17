@@ -68,20 +68,8 @@ class Sublanguage_site extends Sublanguage_current {
 		
 		}
 		
-		// link filters
-		add_filter('home_url', array($this,'translate_home_url'), 10, 4);
-		add_filter('pre_post_link', array($this, 'pre_translate_permalink'), 10, 3);
-		add_filter('post_link', array($this, 'translate_permalink'), 10, 3);
-		add_filter('page_link', array($this, 'translate_page_link'), 10, 3);
-		add_filter('post_type_link', array($this, 'translate_custom_post_link'), 10, 3);
-		add_filter('attachment_link', array($this, 'translate_attachment_link'), 10, 2);
-		add_filter('post_link_category', array($this, 'translate_post_link_category'), 10, 3); // not implemented yet
-		add_filter('post_type_archive_link', array($this, 'translate_post_type_archive_link'), 10, 2);
-		add_filter('year_link', array($this,'translate_month_link'));
-		add_filter('month_link', array($this,'translate_month_link'));
-		add_filter('day_link', array($this,'translate_month_link'));
-		add_filter('term_link', array($this, 'translate_term_link'), 10, 3);
-
+		// link filters only after request have been parsed
+		add_action('parse_request', array($this, 'add_links_translation_filters'));
 		
 		// login	
 		add_filter('login_url', array($this, 'translate_login_url'));
@@ -161,7 +149,7 @@ class Sublanguage_site extends Sublanguage_current {
 	
 			$language = $this->get_language_by($_REQUEST[$this->language_query_var], 'post_name');
 	
-		} else if (get_option('permalink_structure')) {
+		} else if (isset($_SERVER['REQUEST_URI'])) {
 			
 			if (preg_match('/\/('.implode('|', $this->get_language_column('post_name')).')(\/|$|\?|#)/', $_SERVER['REQUEST_URI'], $matches)) { // -> language detected!
 	
@@ -284,11 +272,15 @@ class Sublanguage_site extends Sublanguage_current {
 			
 			if ($menu_item->title == 'language') {
 				
-				$languages = $this->get_languages();
+				static $language, $language_index;
 				
-				static $language_index = 0;
+				if (!isset($languages)) {
 				
-				if ($language_index >= count($languages)) {
+					$languages = $this->get_sorted_languages();
+				
+				}
+				
+				if (!isset($language_index) || $language_index >= count($languages)) {
 					
 					$language_index = 0;
 					
@@ -380,7 +372,7 @@ class Sublanguage_site extends Sublanguage_current {
 	 */
 	public function print_language_switch($context = null) {
 		
-		$languages = $this->get_languages();
+		$languages = $this->get_sorted_languages();
 		
 		if (has_action('sublanguage_custom_switch')) {
 		
@@ -453,6 +445,7 @@ class Sublanguage_site extends Sublanguage_current {
 	 * @from 1.0
 	 */
 	public function catch_translation($query_vars) {
+		global $wp_rewrite;
 		
 		if (isset($query_vars['sublanguage_page']) || isset($query_vars['pagename']) || isset($query_vars['name'])) { // -> page, post or custom post type 
 			
@@ -479,6 +472,13 @@ class Sublanguage_site extends Sublanguage_current {
 				}
 				
 				$ancestors = explode('/', $name);
+				
+				// -> remove the permalink structure prefix if there is one
+				if (isset($query_vars['sublanguage_page']) && !empty($wp_rewrite->front) && $wp_rewrite->front !== '/' && trim($wp_rewrite->front, '/') === $ancestors[0]) {
+					
+					array_shift($ancestors);
+				
+				}
 				
 				$post_name = array_pop($ancestors);
 				
@@ -626,6 +626,30 @@ class Sublanguage_site extends Sublanguage_current {
 		}
 		
 		return $query_vars;
+		
+	}
+	
+	/**
+	 * Add links translation filters after all query variables for the current request have been parsed.
+	 *
+	 * @hook 'parse_request'
+	 * @from 2.0
+	 */
+	public function add_links_translation_filters($wp = null) {
+	
+		add_filter('home_url', array($this,'translate_home_url'), 10, 4);
+		add_filter('pre_post_link', array($this, 'pre_translate_permalink'), 10, 3);
+		add_filter('post_link', array($this, 'translate_permalink'), 10, 3);
+		add_filter('page_link', array($this, 'translate_page_link'), 10, 3);
+		add_filter('post_type_link', array($this, 'translate_custom_post_link'), 10, 3);
+		add_filter('attachment_link', array($this, 'translate_attachment_link'), 10, 2);
+		add_filter('post_link_category', array($this, 'translate_post_link_category'), 10, 3); // not implemented yet
+		add_filter('post_type_archive_link', array($this, 'translate_post_type_archive_link'), 10, 2);
+		add_filter('year_link', array($this,'translate_month_link'));
+		add_filter('month_link', array($this,'translate_month_link'));
+		add_filter('day_link', array($this,'translate_month_link'));
+		add_filter('term_link', array($this, 'translate_term_link'), 10, 3);
+		add_filter('get_edit_post_link', array($this, 'translate_edit_post_link'), 10, 3);
 		
 	}
 	
@@ -1171,50 +1195,52 @@ class Sublanguage_site extends Sublanguage_current {
 	/**
 	 * Override get_language to select only published language
 	 *
-	 * @from 2.0 Handle current_first
 	 * @from 1.2.2
 	 *
 	 * @return array of WP_post objects
 	 */
 	public function get_languages() {
+		global $wpdb;
 		
 		static $languages;
 		
 		if (!isset($languages)) {
 			
-			$query = new WP_Query (array(
-				'post_type' => $this->language_post_type,
-				'post_status' => 'publish',
-				'orderby' => 'menu_order' ,
-				'order'   => 'ASC',
-				'nopaging' => true,
-				'update_post_term_cache' => false
+			$languages = $wpdb->get_results( $wpdb->prepare(
+				"SELECT post.ID, post.post_name, post.post_title, post.post_content, post.post_excerpt, post.menu_order FROM $wpdb->posts AS post
+					WHERE post.post_type = %s AND post_status = %s
+					ORDER BY post.menu_order ASC",					
+				$this->language_post_type,
+				'publish'
 			));
-			
-			$languages = $query->posts;
-			
-			if ($languages && $this->get_option('current_first')) {
-				
-				$current = $this->get_language();
-				
-				array_splice($languages, array_search(get_language_by($current, 'ID')), 1);
-				array_unshift($languages, $current);
-				
-				//php > 5.4
-				/*
-				usort($languages, function($lng1, $lng2) use($current) {
-					if ($lng1 === $current) return -1;
-					else if ($lng2 === $current) return 1;
-					return 0;
-				});
-				*/
-				
-			}
 			
 		}
     
 		return $languages;
 		
+	}
+	
+	/**
+	 * Get languages and sort by "current first"
+	 *
+	 * @from 2.0
+	 *
+	 * @return array of WP_post objects
+	 */
+	public function get_sorted_languages() {
+		
+		$languages = $this->get_languages();
+		
+		if ($languages && $this->get_option('current_first')) {
+		
+			$current = $this->get_language();
+			
+			array_splice($languages, array_search($current, $languages), 1);
+			array_unshift($languages, $current);		
+		
+		}
+		
+		return $languages;
 	}
 	
 	

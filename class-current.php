@@ -836,16 +836,19 @@ class Sublanguage_current extends Sublanguage_core {
 	 * @from 1.0
 	 */
 	public function translate_custom_post_link($link, $post_id, $sample = false) {
+		global $wp_rewrite;
 		
 		if (!$sample) {
-			
+	
 			$post = get_post($post_id);
 			
 			if ($post && $this->is_post_type_translatable($post->post_type) && get_option('permalink_structure')) {
 			
 				$post_type_obj = get_post_type_object($post->post_type);
 				
-				$translated_cpt = $this->translate_cpt($post->post_type, null, $post->post_type);
+				$translated_cpt = ($post_type_obj->rewrite['with_front']) ? $wp_rewrite->front : $wp_rewrite->root;
+				
+				$translated_cpt .= $this->translate_cpt($post->post_type, null, $post->post_type);
 				
 				$translated_slug = $this->translate_post_field($post, 'post_name');
 				
@@ -939,9 +942,11 @@ class Sublanguage_current extends Sublanguage_core {
 		
 		return $url;
 		
-	}	
+	}
+	
+	
 
-
+	
 	/**
 	 * Translate month link
 	 * Filter for 'month_link'
@@ -1067,15 +1072,18 @@ class Sublanguage_current extends Sublanguage_core {
 	 * @from 2.0
 	 */
 	public function translate_term_link($termlink, $term, $taxonomy) {
+		global $wp_rewrite;
 		
 		if (get_option('permalink_structure')) {
 			
-			$tax_slug = $this->translate_taxonomy($taxonomy, null, $taxonomy);
+			$taxonomy_obj = get_taxonomy($taxonomy);
+			$termlink = ($taxonomy_obj->rewrite['with_front']) ? $wp_rewrite->front : $wp_rewrite->root;
+			$termlink .= $this->translate_taxonomy($taxonomy, null, $taxonomy);
 			
-			// -> handle hierarchical taxonomy...
+			// -> todo: handle hierarchical taxonomy... 
 			
-			$slug = $this->translate_term_field($term, $taxonomy, 'slug');
-			$termlink = home_url(user_trailingslashit($tax_slug . '/' . $slug, 'category'));
+			$translated_slug = $this->translate_term_field($term, $taxonomy, 'slug');
+			$termlink = home_url(user_trailingslashit($termlink . '/' . $translated_slug, 'category'));
 				
 		}
    
@@ -1096,7 +1104,9 @@ class Sublanguage_current extends Sublanguage_core {
 		}
 		
 		return $title;
-	}	
+	}
+	
+	
 	
 	/**
 	 * Print javascript data for ajax

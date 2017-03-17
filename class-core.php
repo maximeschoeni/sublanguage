@@ -204,21 +204,18 @@ class Sublanguage_core {
 	 * @return array of WP_post objects
 	 */
 	public function get_languages() {
+		global $wpdb;
 		
 		static $languages;
 		
 		if (!isset($languages)) {
-			
-			$query = new WP_Query (array(
-				'post_type' => $this->language_post_type,
-				'post_status' => 'any',
-				'orderby' => 'menu_order' ,
-				'order'   => 'ASC',
-				'nopaging' => true,
-				'update_post_term_cache' => false
+
+			$languages = $wpdb->get_results( $wpdb->prepare(
+				"SELECT post.ID, post.post_name, post.post_title, post.post_content, post.menu_order, post.post_excerpt FROM $wpdb->posts AS post
+					WHERE post.post_type = %s
+					ORDER BY post.menu_order ASC",					
+				$this->language_post_type
 			));
-			
-			$languages = $query->posts;
 			
 		}
     
