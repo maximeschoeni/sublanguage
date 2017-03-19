@@ -27,8 +27,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-
-
 require( plugin_dir_path( __FILE__ ) . 'class-core.php');
 require( plugin_dir_path( __FILE__ ) . 'class-current.php');
 

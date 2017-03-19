@@ -4,51 +4,46 @@
 </div>
 <script>
 	jQuery(function() {
+		var all_post_ids = <?php echo json_encode($post_ids); ?>;
+		var all_term_ids = <?php echo json_encode($term_ids); ?>;
+		
     var upgradePosts = function(callback) {
-			jQuery.get(ajaxurl, {
-				action: "sublanguage_upgrade_get_posts"
-			}, function(results) {
-				var total = results.length;
-				var upgrade = function() {
-					if (results.length > 0) {
-						var post_ids = results.splice(0, 10);
-						jQuery.post(ajaxurl, {
-							action: "sublanguage_upgrade_posts",
-							post_ids: post_ids
-						}, function(r) {
-							var percent = Math.ceil(100*(total - results.length)/total);
-							document.getElementById("sublanguage-upgrade-log").innerHTML = "Updating Posts: " + percent + "%";
-							upgrade();
-						});
-					} else {
-						if (callback) callback();
-					}
+			var total = all_post_ids.length;
+			var upgrade = function() {
+				if (all_post_ids.length > 0) {
+					var post_ids = all_post_ids.splice(0, 10);
+					jQuery.post(ajaxurl, {
+						action: "sublanguage_upgrade_posts",
+						post_ids: post_ids
+					}, function(r) {
+						var percent = Math.ceil(100*(total - all_post_ids.length)/total);
+						document.getElementById("sublanguage-upgrade-log").innerHTML = "Updating Posts: " + percent + "%";
+						upgrade();
+					});
+				} else {
+					if (callback) callback();
 				}
-				upgrade();
-			}, "json");
+			}
+			upgrade();
 		};
 		var upgradeTerms = function(callback) {
-			jQuery.get(ajaxurl, {
-				action: "sublanguage_upgrade_get_terms"
-			}, function(results) {
-				var total = results.length;
-				var upgrade = function() {
-					if (results.length > 0) {
-						var term_ids = results.splice(0, 10);
-						jQuery.post(ajaxurl, {
-							action: "sublanguage_upgrade_terms",
-							term_ids: term_ids
-						}, function(r) {
-							var percent = Math.ceil(100*(total - results.length)/total);
-							document.getElementById("sublanguage-upgrade-log").innerHTML = "Updating Terms: " + percent + "%";
-							upgrade();
-						});
-					} else {
-						if (callback) callback();
-					}
+			var total = all_term_ids.length;
+			var upgrade = function() {
+				if (all_term_ids.length > 0) {
+					var term_ids = all_term_ids.splice(0, 10);
+					jQuery.post(ajaxurl, {
+						action: "sublanguage_upgrade_terms",
+						term_ids: term_ids
+					}, function(r) {
+						var percent = Math.ceil(100*(total - all_term_ids.length)/total);
+						document.getElementById("sublanguage-upgrade-log").innerHTML = "Updating Terms: " + percent + "%";
+						upgrade();
+					});
+				} else {
+					if (callback) callback();
 				}
-				upgrade();
-			}, "json");
+			}
+			upgrade();
 		};
 		upgradePosts(function() {
 			upgradeTerms(function() {

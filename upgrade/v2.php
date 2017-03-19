@@ -33,9 +33,15 @@ class Sublanguage_V2 {
 	 * @from 2.0
 	 */
 	public function sample_admin_notice__success() {
-    global $sublanguage_admin;
-        
-    include plugin_dir_path( __FILE__ ) . 'include/v2-upgrader.php';
+       
+		$post_ids = $this->get_non_upgraded_posts();
+		$term_ids = $this->get_non_upgraded_term_ids();
+		
+		if ($post_ids || $term_ids) {
+  		
+  		include plugin_dir_path( __FILE__ ) . 'include/v2-upgrader.php';
+    
+    }
     
 	}
 	
