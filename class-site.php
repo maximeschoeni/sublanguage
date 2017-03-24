@@ -272,7 +272,7 @@ class Sublanguage_site extends Sublanguage_current {
 			
 			if ($menu_item->title == 'language') {
 				
-				static $language, $language_index;
+				static $languages, $language_index;
 				
 				if (!isset($languages)) {
 				
@@ -1207,7 +1207,7 @@ class Sublanguage_site extends Sublanguage_current {
 		if (!isset($languages)) {
 			
 			$languages = $wpdb->get_results( $wpdb->prepare(
-				"SELECT post.ID, post.post_name, post.post_title, post.post_content, post.post_excerpt, post.menu_order FROM $wpdb->posts AS post
+				"SELECT post.ID, post.post_name, post.post_title, post.post_content, post.post_excerpt, post.menu_order, post.post_status FROM $wpdb->posts AS post
 					WHERE post.post_type = %s AND post_status = %s
 					ORDER BY post.menu_order ASC",					
 				$this->language_post_type,

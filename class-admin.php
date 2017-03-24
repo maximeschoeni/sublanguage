@@ -32,7 +32,7 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 			
 			parent::load();
 			
-			add_filter('get_post_metadata', array($this, 'translate_meta_data'), null, 4);
+			add_filter('get_post_metadata', array($this, 'translate_meta_data'), 10, 4);
 			add_filter('sublanguage_postmeta_override', '__return_true');
 
 			add_filter('the_posts', array($this, 'translate_the_posts'), 20, 2);
@@ -186,7 +186,7 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 	 */
 	public function update() {
 		
-		if (version_compare($this->get_option('version', '0'), '2.0') < 0) {
+		if (version_compare($this->get_option('version', '0'), '2.0') < 0) { // version < 2.0
 			
 			require( plugin_dir_path( __FILE__ ) . 'upgrade/v2.php');
 			
@@ -194,7 +194,7 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 			$v2->notice();
 			$v2->upgrade_options();
 			
-		} else if (version_compare($this->get_option('db_version', '0'), '2.0') < 0) {
+		} else if (version_compare($this->get_option('db_version', '0'), '2.0') < 0) { // db_version < 2.0
 			
 			require( plugin_dir_path( __FILE__ ) . 'upgrade/v2.php');
 			
@@ -209,7 +209,13 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 			
 			$v2 = new Sublanguage_V2();
 			
-			add_action('load-settings_page_sublanguage-settings', array($v2, 'notice'));
+			add_action('load-settings_page_sublanguage-settings', array($v2, 'notice')); // -> only check on the settings page
+			
+			if (version_compare($this->get_option('version', '0'), $this->version) < 0) { // version < current version
+			
+				$this->update_option('version', $this->version);
+				
+			}
 	
 		}
 	
@@ -269,10 +275,7 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 					
 				$post_meta_keys = esc_sql($this->prefix_array($post_meta_keys, $prefix));
 					
-				$wpdb->query($wpdb->prepare( 
-					"DELETE FROM $wpdb->postmeta WHERE meta_key IN ('".implode("','", $post_meta_keys)."')",
-					$prefix . '%'
-				));
+				$wpdb->query("DELETE FROM $wpdb->postmeta WHERE meta_key IN ('".implode("','", $post_meta_keys)."')");
 				
 			}
 			
@@ -283,10 +286,7 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 				
 				$term_meta_keys = esc_sql($this->prefix_array($term_meta_keys, $prefix));
 				
-				$wpdb->query($wpdb->prepare( 
-					"DELETE FROM $wpdb->termmeta WHERE meta_key IN ('".implode("','", $term_meta_keys)."')",
-					$prefix . '%'
-				));
+				$wpdb->query("DELETE FROM $wpdb->termmeta WHERE meta_key IN ('".implode("','", $term_meta_keys)."')");
 				
 			}
 			
@@ -702,9 +702,9 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 		if ($post && $this->is_sub() && $this->is_meta_key_translatable($post->post_type, $meta_key)) {
 			
 			update_post_meta($object_id, $this->get_prefix().$meta_key, $meta_value, $prev_value);
-		
+			
 			return true; // -> exit;
-							
+			
 		}
 		
 		return $null;

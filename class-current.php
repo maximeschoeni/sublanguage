@@ -1008,7 +1008,7 @@ class Sublanguage_current extends Sublanguage_core {
 		$object = get_post($object_id);
 		
 		if (isset($object->post_type) && $this->is_sub()) {
-							
+			
 			if (!$meta_key) { // meta_key is not defined -> more work
 				
 				$disable = true;
@@ -1045,15 +1045,15 @@ class Sublanguage_current extends Sublanguage_core {
 				return $meta_vals;
 				
 			} else if (in_array($meta_key, $this->get_post_type_metakeys($object->post_type))) { // -> just one key
-			
+				
 				$meta_val = $this->get_post_meta_translation($object, $meta_key, $single);
-			
+				
 				/**
 				 * Documented just above
 				 */	
 				if (apply_filters('sublanguage_postmeta_override', $meta_val, $meta_key, $object_id)) {
-			
-					return $meta_val;
+					
+					return ($single && is_array($meta_val)) ? array($meta_val) : $meta_val; // watch out: foresee meta_val array check in get_metadata()
 				
 				}
 				

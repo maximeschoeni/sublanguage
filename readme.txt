@@ -3,7 +3,7 @@ Contributors: maximeschoeni
 Tags: multilanguage, multilingual, language, translation
 Requires at least: 4.4
 Tested up to: 4.7
-Stable tag: 1.5.3
+Stable tag: 2.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -247,6 +247,15 @@ Use any language instead, then update, then edit language title, slug and locale
 
 
 == Changelog ==
+
+= 2.1 =
+
+- When upgrading, ajax_frontend option should default true
+- On activation, set main language post_content (locale code)
+- Query post_status when quering languages
+- Fix error in translate_menu_nav_item()
+- Set db_version to '2.0' also when there is nothing to upgrade
+- Fix error when translatable post meta value is an array
 
 = 2.0 =
 

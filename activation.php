@@ -35,7 +35,8 @@ class Sublanguage_Activation {
 					'post_type' 	=> $sublanguage_admin->language_post_type,
 					'post_title'    => $language_name,
 					'post_name'  	=> $language_slug,
-					'post_status'   => 'publish'
+					'post_status'   => 'publish',
+					'post_content' => $locale === 'en_US' ? '' : $locale
 				));
 				
 			}
@@ -53,6 +54,7 @@ class Sublanguage_Activation {
 					'post' => array('translatable' => true), 
 					'page' => array('translatable' => true)
 				),
+				'frontend_ajax' => false,
 				'need_flush' => 1,
 				'version' => $sublanguage_admin->version
 			);

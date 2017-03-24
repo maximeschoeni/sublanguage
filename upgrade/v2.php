@@ -23,7 +23,7 @@ class Sublanguage_V2 {
 	 */
 	public function notice() {
 		
-		add_action('admin_notices', array($this, 'sample_admin_notice__success'));
+		add_action('admin_notices', array($this, 'print_admin_notice'));
 		
 	}
 	
@@ -32,14 +32,19 @@ class Sublanguage_V2 {
 	 *
 	 * @from 2.0
 	 */
-	public function sample_admin_notice__success() {
-       
+	public function print_admin_notice() {
+    global $sublanguage_admin;
+      
 		$post_ids = $this->get_non_upgraded_posts();
 		$term_ids = $this->get_non_upgraded_term_ids();
 		
 		if ($post_ids || $term_ids) {
   		
   		include plugin_dir_path( __FILE__ ) . 'include/v2-upgrader.php';
+    
+    } else {
+    	
+    	$sublanguage_admin->update_option('db_version', $sublanguage_admin->db_version);
     
     }
     
@@ -65,6 +70,7 @@ class Sublanguage_V2 {
 		$new_options['default'] = isset($old_options['default']) ? intval($old_options['default']) : 0;
     $new_options['version'] = $sublanguage_admin->version;
     $new_options['need_flush'] = 1;
+    $new_options['frontend_ajax'] = true; // -> default true when upgrade from previous version
     
 		// custom post types
 		if (isset($old_options['cpt'])) {
@@ -443,7 +449,7 @@ class Sublanguage_V2 {
 	public function ajax_upgrade_done() {
 		global $sublanguage_admin;
 		
-		$sublanguage_admin->update_option('db_version', '2.0');
+		$sublanguage_admin->update_option('db_version', $sublanguage_admin->db_version);
 		
 		echo json_encode('done');
 		die();

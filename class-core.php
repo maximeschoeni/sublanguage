@@ -9,10 +9,17 @@ class Sublanguage_core {
 	/** 
 	 * @from 1.1
 	 *
-	 * @var float
+	 * @var string
 	 */
-	var $version = '2.0';
+	var $version = '2.1';
 
+	/** 
+	 * @from 2.0
+	 *
+	 * @var string
+	 */
+	var $db_version = '2.0';
+	
 	/**
 	 * @from 1.0
 	 *
@@ -211,7 +218,7 @@ class Sublanguage_core {
 		if (!isset($languages)) {
 
 			$languages = $wpdb->get_results( $wpdb->prepare(
-				"SELECT post.ID, post.post_name, post.post_title, post.post_content, post.menu_order, post.post_excerpt FROM $wpdb->posts AS post
+				"SELECT post.ID, post.post_name, post.post_title, post.post_content, post.menu_order, post.post_excerpt, post.post_status FROM $wpdb->posts AS post
 					WHERE post.post_type = %s
 					ORDER BY post.menu_order ASC",					
 				$this->language_post_type
