@@ -41,11 +41,50 @@ Plugin documentation is available on [github](https://github.com/maximeschoeni/s
 
 == Installation ==
 
-1. Upload to the `/wp-content/plugins/` directory
-1. Activate the plugin through the 'Plugins' menu in WordPress
-1. Use `do_action('sublanguage_print_language_switch')` in your template file to print the language switch. Please read the faq if you need to customize it.
-1. Add language in `Sublanguage>Languages` and click on `Add language`
-1. Configure further options in `Sublanguage>Settings`
+Upload and activate the plugin
+
+Add languages
+
+1. click the "Languages" tab
+2. click the "Add language" sub-tab
+3. choose a language in the list. If it is not in the list, you can just pick any one, then edit the language title, slug and locale code (xx_XX) later
+4. choose the language order (it will affect order in the language switch)
+5. click "Publish". If you want to keep the language hidden on the front-end while you edit the translations, you can click "Save draft" instead
+
+Add a language switch on the site (within a menu)
+
+1. click the "Appearance" tab
+2. click the "Menus" sub-tab. 
+3. choose or create a menu
+4. click "Screen Options" (top right) and verify "Language" is checked
+5. open the "language" tab on the left, check the checkbox and click "Add to Menu". Repeat it once for every language.
+6. if you want to organize the language items hierarchically, with the current language as root, you also need to go in the Sublanguage Settings and check "Current language first" checkbox.
+
+Add a language switch in a widgets zone
+
+1. click the "Appearance" tab
+2. click the "Widgets" sub-tab
+3. Drag "Sublanguage" item in the zone you want
+
+Add a language switch anywhere on the site (for developpers)
+
+1. Use this function: `do_action('sublanguage_print_language_switch');`. You can customize HTML output through the filter "sublanguage_custom_switch" (read FAQ for more info).
+
+Add translatable custom post types or custom taxonomies
+Plugins or themes may add any number of extra post-type and extra taxonomies. If you can't figure wether a post type or taxonomy need to be translatable, please ask in the forum.
+
+1. click the "Settings" tab
+2. click the "Sublanguage" sub-tab
+3. select every post type and every taxonomy you need. For better performance, only select translatable post types and taxonomies.
+4. click "Save Change"
+5. click "Option" link after a post type or taxonomy to access specific options
+
+Translate menu items when your menu is using custom links or item names different from page titles
+
+1. In sublanguage settings select "Navigation Menu Items" in "Translate Post Type" section
+2. click "Save Change"
+3. click "Edit translations" after "Navigation Menu Items" in "Translate Post Type" section
+4. find the items you need to translate and click to edit 
 
 == Frequently Asked Questions ==
 
@@ -248,6 +287,12 @@ Use any language instead, then update, then edit language title, slug and locale
 
 == Changelog ==
 
+= 2.2 =
+
+- Improve search in sub-languages
+- Fix bug when saving multiple posts at once in admin
+- Fix bug when upgrading from 1.x with orphan translation posts
+
 = 2.1 =
 
 - When upgrading, ajax_frontend option should default true
@@ -261,6 +306,7 @@ Use any language instead, then update, then edit language title, slug and locale
 
 - The core of Sublanguage have been rewriten in order to improve general performances and compatibility
 - Store posts and terms translations in postmeta/termmeta instead of child posts/terms
+- Bugs fixed in rewrite URL
 - User interface restructuration
 
 = 1.5.4 =

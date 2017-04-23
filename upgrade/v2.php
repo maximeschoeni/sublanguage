@@ -212,7 +212,7 @@ class Sublanguage_V2 {
 		
 		}
 		
-		$translation_posts = $wpdb->get_col($wpdb->prepare(
+		$post_ids = $wpdb->get_col($wpdb->prepare(
 			"SELECT p.post_parent FROM $wpdb->posts  AS p
 			LEFT JOIN $wpdb->postmeta AS pm ON (p.ID = pm.post_id AND pm.meta_key = %s) 
 			WHERE pm.post_id IS NULL AND p.post_type IN ('".implode("','", $translation_post_types)."')
@@ -220,7 +220,14 @@ class Sublanguage_V2 {
 			'sublanguage_upgraded'
 		));
 		
-		return $translation_posts;
+		// filter orphans
+		if ($post_ids) {
+			$post_ids = $wpdb->get_col(
+				"SELECT p.ID FROM $wpdb->posts  AS p WHERE p.ID IN (".implode(",", array_map('intval',$post_ids)).")"
+			);
+		}
+		
+		return $post_ids;
 		
 	}
 	
@@ -403,6 +410,13 @@ class Sublanguage_V2 {
 			GROUP BY t.term_id",
 			'sublanguage_upgraded'
 		));
+		
+		// filter orphans
+		if ($term_ids) {
+			$term_ids = $wpdb->get_col(
+				"SELECT t.term_id FROM $wpdb->terms AS t WHERE t.term_id IN (".implode(",", array_map('intval',$term_ids)).")"
+			);
+		}
 		
 		return $term_ids;
 		

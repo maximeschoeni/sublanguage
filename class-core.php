@@ -11,7 +11,7 @@ class Sublanguage_core {
 	 *
 	 * @var string
 	 */
-	var $version = '2.1';
+	var $version = '2.2';
 
 	/** 
 	 * @from 2.0

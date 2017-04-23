@@ -4,7 +4,7 @@
 	<table class="form-table">
 		<tbody>
 			<tr>
-				<th><?php echo __('Post Type Archive Link', 'sublanguage'); ?></th>
+				<th><?php echo __('Translate Post Types', 'sublanguage'); ?></th>
 				<td>
 					<?php 
 						$cpts = get_post_types(array(

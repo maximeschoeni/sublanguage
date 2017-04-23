@@ -95,11 +95,11 @@ class Sublanguage_current extends Sublanguage_core {
 	}
 	
 	/**
-	 * Remove suppress filters and handle search query
+	 * Handle search query
 	 *
 	 * @hook for 'parse_query'
 	 *
-	 * @from 2.0
+	 * @from 2.2
 	 */
 	public function parse_query($wp_query) {
 		
@@ -107,29 +107,18 @@ class Sublanguage_current extends Sublanguage_core {
 		
 		if ($this->is_sub($language) && $this->is_query_translatable($wp_query->query_vars)) {
 			
-			$wp_query->query_vars['suppress_filters'] = false;
-			
 			if (isset($wp_query->query_vars['s']) && $wp_query->query_vars['s']) { // query_vars['s'] is empty string by default 
 				
-				$wp_query->query_vars['meta_query']['relation'] = 'OR';
+				$wp_query->query_vars['sublanguage_search_meta'] = array(
+					$this->get_prefix($language) . 'post_title',
+					$this->get_prefix($language) . 'post_content',
+					$this->get_prefix($language) . 'post_excerpt'
+				);
+				$wp_query->query_vars['sublanguage_search_alias'] = 'postmeta_search';
 				
-				$wp_query->query_vars['meta_query'][] = array(
-					'key'     => $this->get_prefix($language) . 'post_title',
-					'value'   => $wp_query->query_vars['s'],
-					'compare' => 'LIKE',
-				);
-				$wp_query->query_vars['meta_query'][] = array(
-					'key'     => $this->get_prefix($language) . 'post_content',
-					'value'   => $wp_query->query_vars['s'],
-					'compare' => 'LIKE',
-				);
-				$wp_query->query_vars['meta_query'][] = array(
-					'key'     => $this->get_prefix($language) . 'post_excerpt',
-					'value'   => $wp_query->query_vars['s'],
-					'compare' => 'LIKE',
-				);
-				
-				add_filter('posts_search', array($this, 'catch_search'), 10, 2);
+				add_filter('posts_join_request', array($this, 'meta_search_join'), 10, 2);
+				add_filter('posts_search', array($this, 'meta_search'), 10, 2);
+				add_filter('posts_distinct_request', array($this, 'meta_search_distinct'), 10, 2);
 				
 			}
 			
@@ -1170,6 +1159,129 @@ class Sublanguage_current extends Sublanguage_core {
 		register_widget( 'Sublanguage_Widget' );
 		
 	}
+	
+	/** 
+	 * @filter 'posts_join'
+	 *
+	 * @from 1.3
+	 */
+	public function meta_search_join($join, $wp_query) {
+		global $wpdb;
+		
+		if (isset($wp_query->query_vars['sublanguage_search_alias'])) {
+			$alias = $wp_query->query_vars['sublanguage_search_alias'];
+			$fields = $wp_query->query_vars['sublanguage_search_meta'];
+			return "LEFT JOIN $wpdb->postmeta AS $alias ON ($wpdb->posts.ID = $alias.post_id AND $alias.meta_key IN ('".implode("','", esc_sql($fields))."')) " . $join;
+		} 
+		
+		return $join;
+	}
+	
+	/** 
+	 * @filter 'posts_distinct_request'
+	 *
+	 * @from 1.3
+	 */
+	public function meta_search_distinct($distinct, $wp_query) {
+		if (isset($wp_query->query_vars['sublanguage_search_alias'])) {
+			return 'DISTINCT';
+		}
+		return $distinct;
+	}
+	
+	/** 
+	 * @filter 'posts_search'
+	 *
+	 * @from 1.3
+	 */
+	public function meta_search($search, $wp_query) {
+		global $wpdb;
+		
+		if (isset($wp_query->query_vars['sublanguage_search_alias'])) {
+			$alias = $wp_query->query_vars['sublanguage_search_alias'];
+			
+			$q = $wp_query->query_vars;
+
+			$search = '';
+
+			// added slashes screw with quote grouping when done early, so done later
+			$q['s'] = stripslashes( $q['s'] );
+			if ( empty( $_GET['s'] ) && $wp_query->is_main_query() )
+				$q['s'] = urldecode( $q['s'] );
+			// there are no line breaks in <input /> fields
+			$q['s'] = str_replace( array( "\r", "\n" ), '', $q['s'] );
+			$q['search_terms_count'] = 1;
+			if ( ! empty( $q['sentence'] ) ) {
+				$q['search_terms'] = array( $q['s'] );
+			} else {
+				if ( preg_match_all( '/".*?("|$)|((?<=[\t ",+])|^)[^\t ",+]+/', $q['s'], $matches ) ) {
+					$q['search_terms_count'] = count( $matches[0] );
+					$q['search_terms'] = $wp_query->parse_search_terms( $matches[0] );
+					// if the search string has only short terms or stopwords, or is 10+ terms long, match it as sentence
+					if ( empty( $q['search_terms'] ) || count( $q['search_terms'] ) > 9 )
+						$q['search_terms'] = array( $q['s'] );
+				} else {
+					$q['search_terms'] = array( $q['s'] );
+				}
+			}
+		
+			$n = ! empty( $q['exact'] ) ? '' : '%';
+			$searchand = '';
+			$q['search_orderby_title'] = array();
+
+			/**
+			 * Filters the prefix that indicates that a search term should be excluded from results.
+			 *
+			 * @since 4.7.0
+			 *
+			 * @param string $exclusion_prefix The prefix. Default '-'. Returning
+			 *                                 an empty value disables exclusions.
+			 */
+			$exclusion_prefix = apply_filters( 'wp_query_search_exclusion_prefix', '-' );
+
+			foreach ( $q['search_terms'] as $term ) {
+				// If there is an $exclusion_prefix, terms prefixed with it should be excluded.
+				$exclude = $exclusion_prefix && ( $exclusion_prefix === substr( $term, 0, 1 ) );
+				if ( $exclude ) {
+					$like_op  = 'NOT LIKE';
+					$andor_op = 'AND';
+					$term     = substr( $term, 1 );
+				} else {
+					$like_op  = 'LIKE';
+					$andor_op = 'OR';
+				}
+
+				if ( $n && ! $exclude ) {
+					$like = '%' . $wpdb->esc_like( $term ) . '%';
+					$q['search_orderby_title'][] = $wpdb->prepare( "{$wpdb->posts}.post_title LIKE %s", $like );
+				}
+
+				$like = $n . $wpdb->esc_like( $term ) . $n;
+
+				$termsearch = $wpdb->prepare( "($wpdb->posts.post_title $like_op %s) $andor_op ($wpdb->posts.post_excerpt $like_op %s) $andor_op ($wpdb->posts.post_content $like_op %s)", $like, $like, $like );
+				
+				// -> modified
+				$termsearch .= $wpdb->prepare( " $andor_op ($alias.meta_value $like_op %s)", $like );
+			
+				$search .= "{$searchand}($termsearch)";
+
+				$searchand = ' AND ';
+			}
+
+			if ( ! empty( $search ) ) {
+				$search = " AND ({$search}) ";
+				if ( ! is_user_logged_in() ) {
+					$search .= " AND ({$wpdb->posts}.post_password = '') ";
+				}
+			}
+		
+		}
+		
+		return $search;
+		
+	}
+	
+	
   
 }
 

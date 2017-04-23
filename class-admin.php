@@ -434,40 +434,49 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 			
 			if ($this->is_sub($language)) { 
 				
-				$this->sublanguage_data = array();
-			
-				$post = get_post($postarr['ID']); // original post
+				if (!isset($this->sublanguage_data)) {
 				
-				// set default post name
-				if ($data['post_title'] == '') {
-					
-					if (empty($_POST['post_name']) || $_POST['post_name'] == '') {
-					
-						if ($post->post_name) {
-					
-							$data['post_name'] = $post->post_name;
-					
-						} else if ($post->post_title) {
-					
-							$data['post_name'] = sanitize_title($post->post_title);
-						
-						}
-					
-					}
-				
-				} else if ($data['post_name'] == '') {
-				
-					$data['post_name'] = sanitize_title($data['post_title']);
+					$this->sublanguage_data = array();
 				
 				}
 				
-				foreach ($this->fields as $field) {
+				$post = get_post($postarr['ID']); // original post
+				
+				if ($post && empty($this->sublanguage_data[$post->ID])) { // -> verify insert_post was not already called
+				
+					// set default post name
+					if ($data['post_title'] == '') {
 					
-					// store translated data
-					$this->sublanguage_data[$language->ID][$field] = $data[$field];
+						if (empty($_POST['post_name']) || $_POST['post_name'] == '') {
 					
-					// and restore original data
-					$data[$field] = wp_slash($post->$field);
+							if ($post->post_name) {
+					
+								$data['post_name'] = $post->post_name;
+					
+							} else if ($post->post_title) {
+					
+								$data['post_name'] = sanitize_title($post->post_title);
+						
+							}
+					
+						}
+				
+					} else if ($data['post_name'] == '') {
+				
+						$data['post_name'] = sanitize_title($data['post_title']);
+				
+					}
+				
+					foreach ($this->fields as $field) {
+					
+						// store translated data
+						$this->sublanguage_data[$post->ID][$language->ID][$field] = $data[$field];
+					
+						// and restore original data
+						$data[$field] = wp_slash($post->$field);
+						
+					}
+					
 				}
 				
 			}
@@ -490,9 +499,9 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 			
 			$language = $this->get_language();
 			
-			if ($this->is_sub($language) && isset($this->sublanguage_data[$language->ID])) {
+			if ($this->is_sub($language) && isset($this->sublanguage_data[$post_id][$language->ID])) {
 			
-				$this->update_post_translation($post_id, $this->sublanguage_data[$language->ID], $language);
+				$this->update_post_translation($post_id, $this->sublanguage_data[$post_id][$language->ID], $language);
 				
 			}
 					
@@ -582,11 +591,11 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 				
 				$language_id = $this->get_language()->ID;
 				 
-				if (isset($this->sublanguage_data[$language_id]['post_title']) && $this->sublanguage_data[$language_id]['post_title']) {
+				if (isset($this->sublanguage_data[$post_id][$language_id]['post_title']) && $this->sublanguage_data[$post_id][$language_id]['post_title']) {
 					
 					$key = $this->get_prefix() . 'order_title';
 					
-					update_post_meta($post->ID, $key, $this->sublanguage_data[$language_id]['post_title']);
+					update_post_meta($post->ID, $key, $this->sublanguage_data[$post_id][$language_id]['post_title']);
 				
 				}
 				
