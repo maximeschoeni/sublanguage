@@ -81,10 +81,12 @@ Plugins or themes may add any number of extra post-type and extra taxonomies. If
 
 Translate menu items when your menu is using custom links or item names different from page titles
 
-1. In sublanguage settings select "Navigation Menu Items" in "Translate Post Type" section
-2. click "Save Change"
-3. click "Edit translations" after "Navigation Menu Items" in "Translate Post Type" section
-4. find the items you need to translate and click to edit 
+1. click the "Settings" tab
+2. click the "Sublanguage" sub-tab
+3. select "Navigation Menu Items" in "Translate Post Type" section
+4. click "Save Change"
+5. click "Edit translations" after "Navigation Menu Items" in "Translate Post Type" section
+6. find the items you need to translate and click to edit
 
 == Frequently Asked Questions ==
 
