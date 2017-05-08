@@ -289,6 +289,10 @@ Use any language instead, then update, then edit language title, slug and locale
 
 == Changelog ==
 
+= 2.3 =
+
+- Fix bug when post or page was not translatable
+
 = 2.2 =
 
 - Improve search in sub-languages

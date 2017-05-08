@@ -446,6 +446,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 				$options['main'] = isset($_POST['main']) ? intval($_POST['main']) : 0;
 				$options['default'] = isset($_POST['default']) ? intval($_POST['default']) : 0;
 				$options['frontend_ajax'] = (isset($_POST['frontend_ajax']) && $_POST['frontend_ajax']) ? true : false;
+				$options['need_flush'] = 1;
 				
 				update_option($this->option_name, $options);
 			

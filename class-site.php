@@ -449,110 +449,100 @@ class Sublanguage_site extends Sublanguage_current {
 		
 		if (isset($query_vars['sublanguage_page']) || isset($query_vars['pagename']) || isset($query_vars['name'])) { // -> page, post or custom post type 
 			
+			$name = '';
+			
+			if (isset($query_vars['sublanguage_page'])) {
+				
+				$name = $query_vars['sublanguage_page'];
+			
+			} else if (isset($query_vars['pagename'])) {
+				
+				$name = $query_vars['pagename'];
+			
+			} else if (isset($query_vars['name'])) {
+				
+				$name = $query_vars['name'];
+			
+			}
+			
+			$ancestors = explode('/', $name);
+			
+			// -> remove the permalink structure prefix if there is one
+			if (isset($query_vars['sublanguage_page']) && !empty($wp_rewrite->front) && $wp_rewrite->front !== '/' && trim($wp_rewrite->front, '/') === $ancestors[0]) {
+				
+				array_shift($ancestors);
+			
+			}
+			
+			$post_name = array_pop($ancestors);
+			
 			$post_types = isset($query_vars['post_type']) ? array($query_vars['post_type']) : array('page', 'post');
 			
-			$post_types = array_filter($post_types, array($this, 'is_post_type_translatable'));
+			$post = $this->query_post($post_name, $post_types, $ancestors);
 			
-			if ($post_types) {
+			if ($post) {
 				
-				$name = '';
+				$post_type_obj = get_post_type_object($post->post_type);
 				
-				if (isset($query_vars['sublanguage_page'])) {
+				if (isset($query_vars['sublanguage_slug']) && $query_vars['sublanguage_slug'] !== $this->translate_cpt($post->post_type, null, $post->post_type)) {
 					
-					$name = $query_vars['sublanguage_page'];
-				
-				} else if (isset($query_vars['pagename'])) {
+					// wrong slug
+					$this->canonical = false;
 					
-					$name = $query_vars['pagename'];
-				
-				} else if (isset($query_vars['name'])) {
-					
-					$name = $query_vars['name'];
-				
 				}
 				
-				$ancestors = explode('/', $name);
-				
-				// -> remove the permalink structure prefix if there is one
-				if (isset($query_vars['sublanguage_page']) && !empty($wp_rewrite->front) && $wp_rewrite->front !== '/' && trim($wp_rewrite->front, '/') === $ancestors[0]) {
+				if ($post_type_obj->hierarchical) {
 					
-					array_shift($ancestors);
-				
-				}
-				
-				$post_name = array_pop($ancestors);
-				
-				$post = $this->query_post($post_name, $post_types, $ancestors);
-				
-				if ($post) {
+					$path = '';
+					$parent_id = $post->post_parent;
 					
-					$post_type_obj = get_post_type_object($post->post_type);
-					
-					if (isset($query_vars['sublanguage_slug']) && $query_vars['sublanguage_slug'] !== $this->translate_cpt($post->post_type, null, $post->post_type)) {
+					while ($parent_id) {
 						
-						// wrong slug
-						$this->canonical = false;
+						$parent = get_post($parent_id);
+						$path = $parent->post_name . '/' . $path;
+						$parent_id = $parent->post_parent;
 						
 					}
 					
-					if ($post_type_obj->hierarchical) {
+					if (isset($query_vars[$post->post_type])) {
 						
-						$path = '';
-						$parent_id = $post->post_parent;
+						$query_vars[$post->post_type] = $path . $post->post_name;
+					
+					}
+					
+					if (isset($query_vars['name'])) {
 						
-						while ($parent_id) {
-							
-							$parent = get_post($parent_id);
-							$path = $parent->post_name . '/' . $path;
-							$parent_id = $parent->post_parent;
-							
-						}
-						
-						if (isset($query_vars[$post->post_type])) {
-							
-							$query_vars[$post->post_type] = $path . $post->post_name;
-						
-						}
-						
-						if (isset($query_vars['name'])) {
-							
-							$query_vars['name'] = $path . $post->post_name;
-							
-						} else {
-							
-							$query_vars['pagename'] = $path . $post->post_name;
-						
-						}
+						$query_vars['name'] = $path . $post->post_name;
 						
 					} else {
+						
+						$query_vars['pagename'] = $path . $post->post_name;
 					
-						if (isset($query_vars['pagename'])) {
-							
-							$query_vars['pagename'] = $post->post_name;
-							
-						} else {
-							
-							$query_vars['name'] =  $post->post_name;
-						
-						}
-						
-						if (isset($query_vars[$post->post_type])) {
-							
-							$query_vars[$post->post_type] = $post->post_name;
-						
-						}
-						
 					}
 					
-				} else if (isset($query_vars['sublanguage_page'])) { // -> nothing found. Let's pretend we did not see
+				} else {
 				
-					$query_vars['pagename'] = $query_vars['sublanguage_page'];
-				
+					if (isset($query_vars['pagename'])) {
+						
+						$query_vars['pagename'] = $post->post_name;
+						
+					} else {
+						
+						$query_vars['name'] =  $post->post_name;
+					
+					}
+					
+					if (isset($query_vars[$post->post_type])) {
+						
+						$query_vars[$post->post_type] = $post->post_name;
+					
+					}
+					
 				}
 				
-			} else if (isset($query_vars['sublanguage_page'])) { // -> whoops! This one shouldn't be translated
-				
-				$query_vars['pagename'] = $query_vars['sublanguage_page'];
+			} else if (isset($query_vars['sublanguage_page'])) { // -> nothing found. Let's pretend we did not see
+			
+				$query_vars['name'] = $query_vars['sublanguage_page'];
 			
 			}
 			
@@ -799,7 +789,7 @@ class Sublanguage_site extends Sublanguage_current {
 					if ($parent && $post->post_parent == $parent->ID) {
 						
 						// Post found
-						if (get_post_meta($post->ID, $this->get_prefix() . 'post_name', true)) {
+						if ($this->is_post_type_translatable($post->post_type) && get_post_meta($post->ID, $this->get_prefix() . 'post_name', true)) {
 							
 							// But there is a specific translation for this post
 							$this->canonical = false;
@@ -813,7 +803,7 @@ class Sublanguage_site extends Sublanguage_current {
 				} else {
 					
 					// Post found
-					if (get_post_meta($post->ID, $this->get_prefix() . 'post_name', true)) {
+					if ($this->is_post_type_translatable($post->post_type) && get_post_meta($post->ID, $this->get_prefix() . 'post_name', true)) {
 				
 						// But there is a specific translation for this post
 						$this->canonical = false;
@@ -922,7 +912,7 @@ class Sublanguage_site extends Sublanguage_current {
 
 		if ($term) {
 		
-			if (get_term_meta($term->term_id, $this->get_prefix() . 'slug', true)) {
+			if ($this->is_taxonomy_translatable($term->taxonomy) && get_term_meta($term->term_id, $this->get_prefix() . 'slug', true)) {
 				
 				// -> But there is a specific translation for this term
 				$this->canonical = false;
