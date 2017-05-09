@@ -1063,7 +1063,7 @@ class Sublanguage_current extends Sublanguage_core {
 	public function translate_term_link($termlink, $term, $taxonomy) {
 		global $wp_rewrite;
 		
-		if (get_option('permalink_structure')) {
+		if (get_option('permalink_structure') && $this->is_taxonomy_translatable($taxonomy)) {
 			
 			$taxonomy_obj = get_taxonomy($taxonomy);
 			$termlink = ($taxonomy_obj->rewrite['with_front']) ? $wp_rewrite->front : $wp_rewrite->root;

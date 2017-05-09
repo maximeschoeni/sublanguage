@@ -188,7 +188,13 @@ class Sublanguage_rewrite extends Sublanguage_current {
 	 */
 	public function register_taxonomy_args($args, $taxonomy) {
 		
-		if ($this->is_taxonomy_translatable($taxonomy) && isset($args['rewrite']) && $args['rewrite'] !== false && get_option('permalink_structure') != '') {
+		if ($this->is_taxonomy_translatable($taxonomy) && (!isset($args['rewrite']) || $args['rewrite'] !== false) && get_option('permalink_structure') != '') {
+			
+			if (!isset($args['rewrite'])) {
+				
+				$args['rewrite'] = $taxonomy;
+				
+			}
 			
 			$args['rewrite'] = wp_parse_args( $args['rewrite'], array(
 				'with_front'   => true,

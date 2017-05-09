@@ -292,6 +292,8 @@ Use any language instead, then update, then edit language title, slug and locale
 = 2.3 =
 
 - Fix bug when post or page was not translatable
+- Fix bug: dont translate untranslatable taxonomy
+- Fix bug when a taxonomy was registered without rewrite args
 
 = 2.2 =
 
