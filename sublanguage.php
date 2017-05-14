@@ -29,13 +29,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 require( plugin_dir_path( __FILE__ ) . 'class-core.php');
 require( plugin_dir_path( __FILE__ ) . 'class-current.php');
-
+require( plugin_dir_path( __FILE__ ) . 'class-rewrite.php');
 
 if (is_admin()) {
 	
 	global $sublanguage_admin;
 	
-	require( plugin_dir_path( __FILE__ ) . 'class-rewrite.php');
+	
 	require( plugin_dir_path( __FILE__ ) . 'class-admin.php');
 	
 	if (defined('DOING_AJAX') && DOING_AJAX) {

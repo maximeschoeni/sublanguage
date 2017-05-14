@@ -220,7 +220,7 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 		}
 	
 	}
-
+	
 	/**
 	 * delete all translations when deleting a language post
 	 * @hook 'before_delete_post'

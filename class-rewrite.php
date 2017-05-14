@@ -19,30 +19,17 @@ class Sublanguage_rewrite extends Sublanguage_current {
 		
 		parent::load();
 		
-		add_action('generate_rewrite_rules', array($this, 'generate_rewrite_rules'));
-		
 		add_filter('register_post_type_args', array($this, 'register_post_type_args'), 10, 2);
 		add_action('registered_post_type', array($this, 'registered_post_type'), 10, 2);
 		
 		add_filter('register_taxonomy_args', array($this, 'register_taxonomy_args'), 10, 2);
 		add_action('registered_taxonomy', array($this, 'registered_taxonomy'), 10, 3);
 		
+		// rewrite pages
 		add_filter('page_rewrite_rules', array($this, 'page_rewrite_rules'));
 		
 		// Append language slugs to every rules
 		add_filter('rewrite_rules_array', array($this, 'append_language_slugs'), 12);
-		
-	}
-	
-	/**
-	 * Update rules
-	 *
-	 * @hook for 'generate_rewrite_rules'
-	 * @from 2.0
-	 */
-	public function generate_rewrite_rules($wp_rewrite) {
-		
-		$this->update_option('need_flush', 0);
 		
 	}
 	
@@ -261,35 +248,119 @@ class Sublanguage_rewrite extends Sublanguage_current {
 	}
 	
 	/**
-	 * Duplicate page rules.
-	 * - bypass WP "verbose page rules" check in WP::parse_request()
-	 * - deal with WooCommerce "permalink fix" that modifie page rules order
+	 * Overwrite page rules to bypass WP "verbose page rules", because get_page_by_path() is impossible to hook into.
 	 *
-	 * @filter 'register_post_type_args'
+	 * @filter 'page_rewrite_rules'
 	 * @from 2.0
+	 * @from 2.3 Use root page names
 	 */
 	public function page_rewrite_rules($rules) {
+		global $wp_rewrite, $wpdb;
 		
 		if ($this->is_post_type_translatable('page')) {
 		
+			$page_query = new WP_Query(array(
+				'post_type' => 'page',
+				'post_status' => 'publish',
+				'post_parent' => 0,
+				'posts_per_page' => -1,
+				$this->language_query_var => false
+			));
+		
 			$duplicate_rules = array();
 		
-			foreach ($rules as $key => $rule) {
+			foreach ($page_query->posts as $page) {
 			
-				$key = str_replace('(.?.+?)', '(x|.?.+?)', $key);
-				$rule = str_replace('pagename=', 'sublanguage_page=', $rule);
+				$slugs = array();
 			
-				$duplicate_rules[$key] = $rule;
+				foreach ($this->get_languages() as $language) {
+				
+					$translated_slug = $this->translate_post_field($page, 'post_name', $language);
+				
+					if (!in_array($translated_slug, $slugs)) {
+					
+						$slugs[] = $translated_slug;
+				
+					}
 			
+				}
+				
+				if ($slugs) {
+					
+					$regex_base = '((?:'.implode('|', $slugs).').*?)';
+					
+					if (!empty($wp_rewrite->endpoints)) {
+					
+						foreach ($wp_rewrite->endpoints as $ep) {
+						
+							if ($ep[0] & EP_PAGES) {
+							
+								$epregex = $regex_base . '/' . $ep[1] . '(/(.*))?/?$';
+								$duplicate_rules[$epregex] =  $wp_rewrite->index . '?sublanguage_page=$matches[1]&'.$ep[2].'=$matches[3]';
+						
+							}
+						
+						}
+					
+					}
+					
+					if (apply_filters('sublanguage_page_use_feeds', false)) {
+												
+						$feedregex = '(' . implode('|', (array) $wp_rewrite->feeds) . ')/?$';
+						$feedregex1 = $regex_base . '/' . $wp_rewrite->feed_base . '/' . $feedregex;
+						$feedregex2 = $regex_base . '/' . $feedregex;
+						
+						$duplicate_rules[$feedregex1] = $wp_rewrite->index . '?sublanguage_page=$matches[1]&feed=$matches[2]';
+						$duplicate_rules[$feedregex2] = $wp_rewrite->index . '?sublanguage_page=$matches[1]&feed=$matches[2]';
+						
+					}
+					
+					if (apply_filters('sublanguage_page_use_comment_pagination', false)) {
+						
+						$commentregex = $regex_base . '/' . $wp_rewrite->comments_pagination_base . '-([0-9]{1,})/?$';
+						$duplicate_rules[$commentregex] =  $wp_rewrite->index . '?sublanguage_page=$matches[1]&cpage=$matches[2]';
+					
+					}
+					
+					if (apply_filters('sublanguage_page_use_trackback', false)) {
+						
+						$trackbackregex = $regex_base . '/trackback/?$';
+						$duplicate_rules[$trackbackregex] =  $wp_rewrite->index . '?sublanguage_page=$matches[1]&tb=1';
+					
+					}
+					
+					if (apply_filters('sublanguage_page_use_embed', false)) {
+						
+						$embedregex = $regex_base . '/embed/?$';
+						$duplicate_rules[$embedregex] =  $wp_rewrite->index . '?sublanguage_page=$matches[1]&embed=true'; // sic!
+					
+					}
+					
+					if (apply_filters('sublanguage_page_use_pagination', false)) {
+						
+						$pageregex = $regex_base . '/' . $wp_rewrite->pagination_base . '/?([0-9]{1,})/?$';
+						$duplicate_rules[$pageregex] =  $wp_rewrite->index . '?sublanguage_page=$matches[1]&page=$matches[2]';
+						
+						$regex = $regex_base . '(?:/([0-9]+))?/?$';
+						$duplicate_rules[$regex] =  $wp_rewrite->index . '?sublanguage_page=$matches[1]&page=$matches[2]';
+						
+					} else {
+						
+						$regex = $regex_base . '/?$';
+						$duplicate_rules[$regex] =  $wp_rewrite->index . '?sublanguage_page=$matches[1]';
+					
+					}
+					
+				}
+		
 			}
 		
 			$rules = array_merge($duplicate_rules, $rules);
-			
+		
 		}
 		
 		return $rules;
 	}
-	
 	
 	/**
 	 * Append language slugs to every rules
@@ -313,18 +384,29 @@ class Sublanguage_rewrite extends Sublanguage_current {
 		
 		$languages_slug = '(?:' . implode('/|', $language_slugs) . '/)?';
 		
+		$black_list = array(
+			'^wp-json/?$',
+			'^wp-json/(.*)?',
+			'^index.php/wp-json/?$',
+			'^index.php/wp-json/(.*)?'
+		);
+		
 		foreach ($rules as $key => $rule) {
 			
-			if (substr($key, 0, 1) !== '^') {
+			if (in_array($key, $black_list)) { // -> REST API queries do not need language slug
+			
+				$new_rules[$key] = $rule;
+			
+			} else if (substr($key, 0, 1) === '^') { // -> get ride of the leading ^
+				
+				$new_rules[$languages_slug . substr($key, 1)] = $rule;
+			
+			} else {
 			
 				$new_rules[$languages_slug . $key] = $rule;
-				
-			} else {
-				
-				$new_rules[$key] = $rule;
-				
-			}
 			
+			}
+							
 		}
 		
 		return $new_rules;

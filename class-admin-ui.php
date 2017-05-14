@@ -83,6 +83,8 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 		
 		// Flush rewrite rules if needed
 		add_action('wp_loaded', array($this, 'flush_rewrite_rules'), 12);
+		add_action('generate_rewrite_rules', array($this, 'generate_rewrite_rules'));
+		add_action('post_updated', array($this, 'update_page'), 10, 3);
 		
 		// set nav menu item translation defaults
   	add_filter('sublanguage_post_type_default', array($this, 'nav_menu_item_post_type_default'));
@@ -369,7 +371,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 					// advanced options
 					$exclude_untranslated = isset($_POST['exclude_untranslated']) && $_POST['exclude_untranslated'];
 					$post_types_options[$post_type]['exclude_untranslated'] = $exclude_untranslated;
-			
+					
 					$this->update_option('post_type', $post_types_options);
 				
 				}
@@ -613,6 +615,34 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 			
 		}
 		
+	}
+	
+	/**
+	 * Remove 'need_flush' flag after flush
+	 *
+	 * @hook for 'generate_rewrite_rules'
+	 * @from 2.0
+	 */
+	public function generate_rewrite_rules($wp_rewrite) {
+		
+		$this->update_option('need_flush', 0);
+		
+	}
+	
+	/**
+	 * Flush after editing a root page
+	 *
+	 * @hook for 'post_updated'
+	 * @from 2.0
+	 */
+	public function update_page($post_ID, $post_after, $post_before) {
+		
+		if (($post_after->post_type === 'page' || $post_before->post_type === 'page') && $post_after->post_name !== $post_before->post_name && ($post_after->post_parent === 0 || $post_before->post_parent === 0) && ($post_after->post_status === 'publish' || $post_before->post_status === 'publish')) {
+			
+			$this->update_option('need_flush', 1);
+		
+		}
+	
 	}
 	
 	

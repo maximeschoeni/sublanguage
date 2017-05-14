@@ -294,6 +294,7 @@ Use any language instead, then update, then edit language title, slug and locale
 - Fix bug when post or page was not translatable
 - Fix bug: dont translate untranslatable taxonomy
 - Fix bug when a taxonomy was registered without rewrite args
+- Overwrite rewrite rules for pages using every root pages
 
 = 2.2 =
 

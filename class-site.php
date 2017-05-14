@@ -252,19 +252,23 @@ class Sublanguage_site extends Sublanguage_current {
 				
 				$original_term = get_term($menu_item->object_id, $menu_item->object);
 				
-				$menu_item = $this->translate_nav_menu_item($menu_item);
+				if ($original_term && !is_wp_error($original_term)) {
 				
-				if (empty($menu_item->post_title)) {
+					$menu_item = $this->translate_nav_menu_item($menu_item);
+				
+					if (empty($menu_item->post_title)) {
 					
-					$menu_item->title = $this->translate_term_field($original_term, $original_term->taxonomy, 'name', null, $menu_item->title);
+						$menu_item->title = $this->translate_term_field($original_term, $original_term->taxonomy, 'name', null, $menu_item->title);
 					
-				} else {
+					} else {
 					
-					$menu_item->title = $menu_item->post_title;
+						$menu_item->title = $menu_item->post_title;
+				
+					}
+				
+					// url already filtered
 				
 				}
-				
-				// url already filtered
 				
 			}
 		
