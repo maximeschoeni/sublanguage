@@ -264,6 +264,10 @@ class Sublanguage_rewrite extends Sublanguage_current {
 				'post_status' => 'publish',
 				'post_parent' => 0,
 				'posts_per_page' => -1,
+				'post__not_in' => array_filter(array_map('intval', array(
+					get_option('page_for_posts'),
+					get_option('page_on_front')
+				))),
 				$this->language_query_var => false
 			));
 		
