@@ -6,36 +6,48 @@
 	<table class="form-table">
 		<tbody>
 			<?php if ($post_type !== 'post' && $post_type !== 'page' && $post_type !== 'attachment' && $post_type_obj->publicly_queryable) { ?>
+				<?php 
+					add_filter('home_url', array($this,'translate_home_url'), 10, 4);
+				?>
 				<tr>
-					<th><?php echo __('Post Type Archive Link', 'sublanguage'); ?></th>
+					<th><?php echo __('Post Type Permalink Base', 'sublanguage'); ?></th>
 					<td>
-						<?php 
-							add_filter('home_url', array($this,'translate_home_url'), 10, 4);
-							add_filter('post_type_archive_link', array($this, 'translate_post_type_archive_link'), 10, 2);
-						?>
 						<ul id="sublanguage-post-options-permalink">
 							<?php foreach ($this->get_languages() as $language) { ?>
 								<?php 
 									$this->set_language($language);
-									$link = get_post_type_archive_link($post_type);
 									$cpt_translation = $this->get_cpt_translation($post_type, $language);
-									$translated_slug = $cpt_translation ? $cpt_translation : $post_type;
+									$cpt_default = $this->translate_cpt($post_type, $language);
 								?>
 								<li>
-									<code><?php echo $language->post_name; ?></code>
-									<span class="read-mode">
-										<a class="full-url" target="_blank" href="<?php echo $link; ?>"><?php echo home_url('/'); ?><span class="slug"><?php echo $translated_slug; ?></span>/</a>
-										<button class="button button-small edit-btn" style="vertical-align: bottom;"><?php echo __('edit', 'sublanguage'); ?></button>
-									</span>
-									<span class="edit-mode hidden"><?php echo home_url('/'); ?>
-										<input type="text" class="text-input" name="cpt[<?php echo $language->ID; ?>]" value="<?php echo $cpt_translation; ?>" data-def="<?php echo $post_type; ?>" placeholder="<?php echo $post_type; ?>" autocomplete="off" style="padding: 0 3px;">
-										<button class="button button-small ok-btn" style="vertical-align: bottom;">ok</button>
-									</span>
+									<code><?php echo home_url('/'); ?></code><input type="text" class="text-input" name="cpt[<?php echo $language->ID; ?>]" value="<?php echo $cpt_translation; ?>" placeholder="<?php echo $cpt_default; ?>" autocomplete="off" style="padding: 0 3px;"><code>/...</code>
 								</li>
 							<?php } ?>
 						</ul>
+						<p class="description"><?php echo sprintf(__('Permalink base slug is originally: %s. It is overwrited by Sublanguage.'), '<code>'.$post_type_obj->rewrite['slug'].'</code>'); ?></p>
 					</td>
 				</tr>
+				<?php if ($post_type_obj->has_archive && $post_type_obj->has_archive !== true) { ?>
+					<tr>
+						<th><?php echo __('Post Type Archive Link', 'sublanguage'); ?></th>
+						<td>
+						
+							<ul id="sublanguage-post-options-permalink">
+								<?php foreach ($this->get_languages() as $language) { ?>
+									<?php 
+										$this->set_language($language);
+										$cpt_archive_translation = $this->get_cpt_archive_translation($post_type, $language, '');
+										$cpt_archive_default = $this->translate_cpt_archive($post_type, $language);
+									?>
+									<li>
+										<code><?php echo home_url('/'); ?></code><input type="text" class="text-input" name="cpt_archive[<?php echo $language->ID; ?>]" value="<?php echo $cpt_archive_translation; ?>" placeholder="<?php echo $cpt_archive_default; ?>" autocomplete="off" style="padding: 0 3px;">
+									</li>
+								<?php } ?>
+							</ul>
+							<p class="description"><?php echo sprintf(__('Archive slug is originally: %s. It is overwrited by Sublanguage.'), '<code>'.$post_type_obj->has_archive.'</code>'); ?></p>
+						</td>
+					</tr>
+				<?php } ?>
 			<?php } ?>
 			<tr>
 				<th><?php echo __('Translatable post fields', 'sublanguage'); ?></th>
@@ -63,26 +75,3 @@
 	</table>
 	<?php echo submit_button(); ?>
 </form>
-<script>
-	(function() {
-		var ul = document.getElementById("sublanguage-post-options-permalink");
-		var registerClick = function(editMode, readMode) {
-			var onClick = function(event) {
-				editMode.classList.toggle("hidden");
-				readMode.classList.toggle("hidden");
-				event.preventDefault();
-			};
-			readMode.querySelector("button").addEventListener("click", onClick);
-			editMode.querySelector("button").addEventListener("click", function(event) {
-				var input = editMode.querySelector("input");
-				readMode.querySelector(".slug").innerHTML = input.value ? input.value : input.dataset.def;
-				onClick(event);
-			});
-		}
-		if (ul) {
-			for (var i = 0; i < ul.children.length; i++) {
-				registerClick(ul.children[i].querySelector(".edit-mode"), ul.children[i].querySelector(".read-mode"));
-			}
-		}
-	})();
-</script>

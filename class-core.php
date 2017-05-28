@@ -745,45 +745,6 @@ class Sublanguage_core {
 		return false;
 	}
 	
-	
-	/**
-	 * Get translation post type
-	 *
-	 * @deprecated from 2.0
-	 * @from 1.4.7
-	 *
-	 * @return boolean
-	 */
-	public function get_translation_post_type($language = null) {
-		
-		if (empty($language)) {
-			
-			$language = $this->get_language();
-		
-		}
-			
-		return $language->post_excerpt;
-	}
-	
-	/**
-	 * Get translation taxonomy
-	 *
-	 * @deprecated from 2.0
-	 * @from 1.4.7
-	 *
-	 * @return boolean
-	 */
-	public function get_translation_taxonomy($language = null) {
-		
-		if (empty($language)) {
-			
-			$language = $this->get_language();
-		
-		}
-		
-		return $language->post_excerpt;
-	}
-	
 	/**
 	 * Check whether meta key is translatable
 	 *
@@ -1014,7 +975,99 @@ class Sublanguage_core {
     return false;
 
 	}
+
+	/**
+	 * get slug used by custom post type archive link
+	 *
+	 * @from 2.3
+	 *
+	 * @param string $original_cpt. Original custom post type name (e.g 'book')
+	 * @param int $language_id. Language id
+	 * @return string Translated cpt (may be equal to original).
+	 */
+	public function get_cpt_archive_translation($original_cpt, $language = null) {
+		
+		if (empty($language)) {
+			
+			$language = $this->get_language();
+			
+		}
+		
+		$translations = $this->get_option('translations', array());
+		
+		if ($language && isset($translations['cpt_archive'][$original_cpt][$language->ID]) && $translations['cpt_archive'][$original_cpt][$language->ID]) {
+			
+			return $translations['cpt_archive'][$original_cpt][$language->ID];
+
+		}
+		
+		return false;
+	}
 	
+	/**
+	 * Translate slug used by custom post type archive link
+	 *
+	 * @from 2.3
+	 *
+	 * @param string $original_cpt. Original custom post type name (e.g 'book')
+	 * @param int $language_id. Language id
+	 * @param string $fallback Fallback. Optional
+	 * @return string Translated cpt (may be equal to original).
+	 */
+	public function translate_cpt_archive($original_cpt, $language = null, $fallback = null) {
+		
+		$translated_cpt = $this->get_cpt_archive_translation($original_cpt, $language);
+		
+		if ($translated_cpt) {
+		
+			return $translated_cpt;
+			
+		} else if (isset($fallback)) {
+		
+			return $fallback;
+			
+		}
+		
+		return $this->translate_cpt($original_cpt, $language, $fallback);
+	}
+	
+	/**
+	 * get original custom post type by translated archive slug
+	 *
+	 * @from 2.3
+	 *
+	 * @param string $translated_taxonomy. Translated custom post type name (e.g 'livre')
+	 * @param int $language_id. Language id
+	 * @return string|false
+	 */
+	public function get_cpt_archive_original($translated_cpt_archive, $language = null) {
+		
+		if (empty($language)) {
+			
+			$language = $this->get_language();
+			
+		}
+		
+		$translations = $this->get_option('translations', array());
+		
+		if ($language && isset($translations['cpt_archive'])) {
+		
+			foreach ($translations['cpt_archive'] as $original => $translation) {
+
+				if (isset($translation[$language->ID]) && $translation[$language->ID] === $translated_cpt_archive) {
+
+					return $original;
+
+				}
+
+			}
+    
+    }
+    
+    return $this->get_cpt_original($translated_cpt_archive, $language);
+	}
+
+
 	/**
 	 * get option translation
 	 *

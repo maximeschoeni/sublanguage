@@ -997,20 +997,28 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 		
 		$options = $wpdb->get_results( "SELECT option_name, option_value FROM $wpdb->options ORDER BY option_name" );
 		
-		$options = array_reduce($options, array($this, 'unserialize_option'), array());
+		$unserialized_options = array();
 		
-		echo json_encode($options);
+		foreach ($options as $option) {
+			
+			$unserialized_options[$option->option_name] = $this->unserialize_deep($option->option_value);
+			
+		}
 		
-		wp_die();
+		echo json_encode($unserialized_options);
+		
+		die();
 		
 	}
-	
+
+
 	/**
 	 * Unserialize options. Callback for array_reduce
 	 *
 	 * @from 1.5
+	 * @deprecated from 2.3
 	 */	
-	public function unserialize_option($result, $option) {
+	public function unserialize_option($options) {
 		
 		if ( $option->option_name != '' ) {
 			
@@ -1020,6 +1028,34 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 		
 		return $result;
 	}
+
+	
+	/**
+	 * Unserialize options. Callback for array_reduce
+	 *
+	 * @from 2.3
+	 */	
+	public function unserialize_deep($value) {
+		
+		if ($value) {
+			
+			$value = maybe_unserialize($value);
+			
+			if (is_array($value)) {
+				
+				foreach ($value as $key => $child) {
+				
+					$value[$key] = $this->unserialize_deep($child);
+				
+				}
+				
+			}
+			
+		}
+		
+		return $value;
+	}
+	
 	
 	
 	/**

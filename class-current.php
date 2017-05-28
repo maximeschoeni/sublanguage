@@ -954,6 +954,7 @@ class Sublanguage_current extends Sublanguage_core {
 	 * Filter for 'post_type_archive_link'
 	 *
 	 * @from 1.0
+	 * @from 2.3 use specific archive slug if any
 	 */
 	function translate_post_type_archive_link($link, $post_type) {
 		global $wp_rewrite;
@@ -962,15 +963,17 @@ class Sublanguage_current extends Sublanguage_core {
     	
 			$post_type_obj = get_post_type_object($post_type);
 			
-			$translated_cpt = $this->translate_cpt($post_type, null, $post_type);
-			
-			if ($post_type_obj && get_option( 'permalink_structure' ) ) {
+			if ($post_type_obj && get_option( 'permalink_structure' )) {
+				
+				$struct = $this->translate_cpt_archive($post_type);
+        
 				if ( $post_type_obj->rewrite['with_front'] )
-					$struct = $wp_rewrite->front . $translated_cpt;
+					$struct = $wp_rewrite->front . $struct;
 				else
-					$struct = $wp_rewrite->root . $translated_cpt;
+					$struct = $wp_rewrite->root . $struct;
+				
 				$link = home_url( user_trailingslashit( $struct, 'post_type_archive' ) );
-			} 
+			}
     	
 		}
    		

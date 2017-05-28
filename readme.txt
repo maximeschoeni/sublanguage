@@ -295,6 +295,8 @@ Use any language instead, then update, then edit language title, slug and locale
 - Fix bug: dont translate untranslatable taxonomy
 - Fix bug when a taxonomy was registered without rewrite args
 - Overwrite rewrite rules for pages using every root pages
+- Separate custom post type permalink base and archive slug
+- Customize notice message when editing language
 
 = 2.2 =
 

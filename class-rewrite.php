@@ -113,7 +113,16 @@ class Sublanguage_rewrite extends Sublanguage_current {
 			}
 			
 			if ( $post_type_obj->has_archive ) {
-				$archive_slug = $translation_slug;
+				
+				foreach ($this->get_languages() as $language) {
+			
+					$archive_slugs[] = $this->translate_cpt_archive($post_type, $language);
+			
+				}
+				
+				$archive_slugs = array_unique($archive_slugs);
+				
+				$archive_slug = '(' . implode('|', $archive_slugs) . ')';
 				
 				if ( $post_type_obj->rewrite['with_front'] ) {
 					$archive_slug = substr( $wp_rewrite->front, 1 ) . $archive_slug;
@@ -258,7 +267,7 @@ class Sublanguage_rewrite extends Sublanguage_current {
 		global $wp_rewrite, $wpdb;
 		
 		if ($this->is_post_type_translatable('page')) {
-		
+			
 			$page_query = new WP_Query(array(
 				'post_type' => 'page',
 				'post_status' => 'publish',
@@ -270,7 +279,7 @@ class Sublanguage_rewrite extends Sublanguage_current {
 				))),
 				$this->language_query_var => false
 			));
-		
+			
 			$duplicate_rules = array();
 		
 			foreach ($page_query->posts as $page) {

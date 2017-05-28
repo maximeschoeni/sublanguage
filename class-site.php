@@ -565,8 +565,8 @@ class Sublanguage_site extends Sublanguage_current {
 			$post_type = $query_vars['post_type'];
 			
 			if ($this->is_post_type_translatable($post_type)) {
-				
-				if (isset($query_vars['sublanguage_slug']) && $query_vars['sublanguage_slug'] !== $this->translate_cpt($post_type, null, $post_type)) {
+								
+				if (isset($query_vars['sublanguage_slug']) && $query_vars['sublanguage_slug'] !== $this->translate_cpt_archive($post_type, null)) {
 	
 					// wrong slug
 					$this->canonical = false;
@@ -1141,7 +1141,13 @@ class Sublanguage_site extends Sublanguage_current {
 			$link = home_url('/');
 			
 		}
-				
+		
+		/* TODO: keep paged, endpoints and url search arguments 
+		
+			 -> get_pagenum_link()
+			 
+		*/
+		
 		$this->restore_language(); // restore original current language after messing with it		
 		
 		return $link;

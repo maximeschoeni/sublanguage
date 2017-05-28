@@ -84,6 +84,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 		// Flush rewrite rules if needed
 		add_action('wp_loaded', array($this, 'flush_rewrite_rules'), 12);
 		add_action('generate_rewrite_rules', array($this, 'generate_rewrite_rules'));
+		add_action('save_post_page', array($this, 'save_page'), 10, 3);
 		add_action('post_updated', array($this, 'update_page'), 10, 3);
 		
 		// set nav menu item translation defaults
@@ -191,7 +192,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 		}
 		
 		$taxonomies = get_taxonomies(array(
-			'public'   => true
+			// 'public'   => true
 		));
 		
 		foreach ($taxonomies as $taxonomy) {
@@ -343,15 +344,29 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 				$post_type = esc_attr($_POST['post_type']);
 			
 				if ($this->is_post_type_translatable($post_type)) {
-				
+					
+					$translations = $this->get_option('translations', array());
+					
 					// permalinks
 					if (isset($_POST['cpt'])) {
-					
-						$translations = $this->get_option('translations', array());
-						$cpt = isset($_POST['cpt']) ? array_map('esc_attr', $_POST['cpt']) : array();
+						
+						$cpt = isset($_POST['cpt']) ? array_map(array($this, 'sanitize_slug'), $_POST['cpt']) : array();
 					
 						if (!isset($translations['post_type'][$post_type]) || $translations['post_type'][$post_type] !== $cpt) {
 							$translations['post_type'][$post_type] = $cpt;
+							$this->update_option('translations', $translations);
+							$this->update_option('need_flush', 1);
+						}
+					
+					}
+					
+					// custom post type archive
+					if (isset($_POST['cpt_archive'])) {
+					
+						$cpt_archive = isset($_POST['cpt_archive']) ? array_map(array($this, 'sanitize_slug'), $_POST['cpt_archive']) : array();
+					
+						if (!isset($translations['cpt_archive'][$post_type]) || $translations['cpt_archive'][$post_type] !== $cpt_archive) {
+							$translations['cpt_archive'][$post_type] = $cpt_archive;
 							$this->update_option('translations', $translations);
 							$this->update_option('need_flush', 1);
 						}
@@ -389,7 +404,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 					if (isset($_POST['tax'])) {
 					
 						$translations = $this->get_option('translations', array());
-						$tax =  isset($_POST['tax']) ? array_map('esc_attr', $_POST['tax']) : array();
+						$tax =  isset($_POST['tax']) ? array_map(array($this, 'sanitize_slug'), $_POST['tax']) : array();
 					
 						if (!isset($translations['taxonomy'][$taxonomy]) || $translations['taxonomy'][$taxonomy] !== $tax) {
 							$translations['taxonomy'][$taxonomy] = $tax;
@@ -459,6 +474,17 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 		
 		}
 		
+	}
+	
+	/**
+	 * Sanitize slug
+	 *
+	 * @from 2.3
+	 */
+	public function sanitize_slug($slug) {
+		
+		return sanitize_title($slug);
+	
 	}
 	
 	/**
@@ -630,6 +656,22 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	}
 	
 	/**
+	 * Flush after creating a root page 
+	 *
+	 * @hook for 'generate_rewrite_rules'
+	 * @from 2.0
+	 */
+	public function save_page($post_ID, $post, $update) {
+		
+		if (!$update && $post->post_parent === 0) {
+			
+			$this->update_option('need_flush', 1);
+		
+		}
+	
+	}
+	
+	/**
 	 * Flush after editing a root page
 	 *
 	 * @hook for 'post_updated'
@@ -715,10 +757,33 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 			'can_export'		 => false
 		));
 	
-	
+		add_filter( 'post_updated_messages', array($this, 'post_updated_messages'));
 		
 	}
 	
+	/**
+	 * Customize notice messages for language posts
+	 *
+	 * @filter for 'post_updated_messages'
+	 *
+	 * @from 2.3
+	 */	
+	public function post_updated_messages($messages) {
+		
+		$post = get_post();
+		
+		if (isset($post->post_type) && $post->post_type === $this->language_post_type) {
+		
+			$messages[$this->language_post_type][1] = __( 'Language updated.', 'sublanguage' );
+			$messages[$this->language_post_type][4] = __( 'Language updated.', 'sublanguage' );
+			$messages[$this->language_post_type][6] = __( 'Language added.', 'sublanguage' );
+			$messages[$this->language_post_type][7] = __( 'Language saved.', 'sublanguage' );
+			$messages[$this->language_post_type][10] = __( 'Language draft updated.', 'sublanguage' );
+		
+		}
+		
+		return $messages;
+	}
 	
 	/**
 	 * Remove title on post-new.php
