@@ -297,6 +297,9 @@ Use any language instead, then update, then edit language title, slug and locale
 - Overwrite rewrite rules for pages using every root pages
 - Separate custom post type permalink base and archive slug
 - Customize notice message when editing language
+- Fix bug: nav menu items couldn't be hidden 
+- Improve default post type options settings
+- Enable nav menu item classes translation
 
 = 2.2 =
 

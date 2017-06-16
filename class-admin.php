@@ -67,7 +67,6 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 			add_filter('add_post_metadata', array($this, 'add_translated_postmeta'), 10, 5);
 			add_filter('delete_post_metadata', array($this, 'delete_translated_meta_data'), 10, 5);				
 			
-			
 			add_filter('terms_clauses', array($this, 'terms_clauses'), 10, 3); // -> added in 1.4.4
 			add_filter('pre_insert_term', array($this, 'cancel_term'), 10, 2); // -> added in 1.4.5
 		
@@ -80,6 +79,11 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 		
 			// update db on slug change (must also be fired on upgrade)
 			add_action('post_updated', array($this, 'update_language_slug'), 9, 3);
+			
+			// set posts, pages and taxonomy translatable by default	  	
+  		add_filter('sublanguage_default-post', array($this, 'set_post_type_translatable'));
+  		add_filter('sublanguage_default-page', array($this, 'set_post_type_translatable'));
+  		add_filter('sublanguage_taxonomy_default-category', array($this, 'set_post_type_translatable'));
 			
 			// Attachments
 			if ($this->is_post_type_translatable('attachment')) {
@@ -211,6 +215,22 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 			
 			add_action('load-settings_page_sublanguage-settings', array($v2, 'notice')); // -> only check on the settings page
 			
+			// fixe sublanguage_hide not registered by default in meta_keys for nav_menu_items
+			if (version_compare($this->get_option('version', '0'), '2.3') < 0) { // version < 2.3
+				
+				if ($this->is_post_type_translatable('nav_menu_item')) {
+					
+					$post_types_options = $this->get_post_types_options();
+					$post_types_options['nav_menu_item']['meta_keys'][] = 'sublanguage_hide';
+					$post_types_options['nav_menu_item']['meta_keys'][] = '_menu_item_url';
+					$this->update_option('post_type', $post_types_options);
+					
+				}
+			
+			}
+			
+			// Add latest upgrade here...
+			
 			if (version_compare($this->get_option('version', '0'), $this->version) < 0) { // version < current version
 			
 				$this->update_option('version', $this->version);
@@ -218,7 +238,7 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 			}
 	
 		}
-	
+		
 	}
 	
 	/**
@@ -742,7 +762,19 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 		
 	}
 	
-
+	/**
+   * set post_type translatable by default
+   *
+	 * @filter "sublanguage_default-$post_type"
+	 * @from 2.3
+	 */
+	public function set_post_type_translatable($defaults) {
+		
+		$defaults['translatable'] = true;
+		
+		return $defaults;
+  }
+  
 	
 	/* Terms
 	----------------------------------------------- */	

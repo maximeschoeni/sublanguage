@@ -22,7 +22,7 @@
 										|
 										<?php if ($post_type->name === 'nav_menu_item' || in_array($post_type->name, $this->extra_post_types)) { ?>
 											<a href="<?php echo admin_url('edit.php?') . 'post_type=' . $post_type->name; ?>"><?php echo __('Edit translations', 'sublanguage'); ?></a> |
-											<a href="<?php echo admin_url('tool.php?') . 'page=' . $post_type->name . '_language_option'; ?>"><?php echo __('Options', 'sublanguage'); ?></a>
+											<a href="<?php echo admin_url('tools.php?') . 'page=' . $post_type->name . '_language_option'; ?>"><?php echo __('Options', 'sublanguage'); ?></a>
 										<?php } else { ?>
 											<a href="<?php echo admin_url('edit.php?').($post_type->name === 'post' ? '' : 'post_type='.$post_type->name.'&') . 'page=' . $post_type->name . '_language_option'; ?>"><?php echo __('Options', 'sublanguage'); ?></a>
 										<?php } ?>

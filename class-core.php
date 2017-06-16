@@ -392,43 +392,60 @@ class Sublanguage_core {
 	 * Get post_type options for translation.
 	 *
 	 * @from 2.0
+	 * @from 2.3. Remove filter 'sublanguage_post_type_default'. Use "sublanguage_default_$post_type_$option_name" instead
 	 * 
 	 * @return mixed
 	 */
-	public function get_post_type_options() {
+	public function get_post_types_options() {
 		
 		static $post_types_options;
 		
 		if (!isset($post_types_options)) {
 			
-			$post_types_options = $this->get_option('post_type', false);
-			
-			if ($post_types_options === false) {
-			
-				/**
-				 * Filter post type default options
-				 *
-				 * @from 2.0
-				 *
-				 * @param mixed. Default option
-				 */
-				$post_types_options = apply_filters("sublanguage_post_type_default", array(
-					'post' => array('translatable' => true), 
-					'page' => array('translatable' => true)
-				));
-			
-			}
+			$post_types_options = $this->get_option('post_type', array());
 			
 		}
 		
 		return $post_types_options;
 	}
-	
+
+	/**
+	 * Get post_type options for translation.
+	 *
+	 * @from 2.3
+	 * 
+	 * @return mixed
+	 */
+	public function get_post_type_options($post_type, $default = array()) {
+					
+		$post_types_options = $this->get_post_types_options();
+		
+		if (isset($post_types_options[$post_type])) {
+			
+			$value = $post_types_options[$post_type];
+			
+		} else {
+			
+			/**
+			 * Filter default post type option
+			 *
+			 * @from 2.3
+			 *
+			 * @param mixed. Default option
+			 */
+			$value = apply_filters("sublanguage_default-$post_type", $default);
+			
+		}
+		
+		return $value;
+	}
+
 	
 	/**
 	 * Get post_type single option for translation.
 	 *
 	 * @from 2.0
+	 * @from 2.3. Use "sublanguage_default_$post_type_$option_name" filter
 	 *
 	 * @param string $post_type
 	 * @param string $option_name. Accepts 'translatable', 'meta_keys', 'fields', 'title_cached', 'exclude_untranslated'
@@ -438,15 +455,16 @@ class Sublanguage_core {
 	 */
 	public function get_post_type_option($post_type, $option_name, $fallback = false) {
 		
-		$post_types_options = $this->get_post_type_options();
+		$post_type_options = $this->get_post_type_options($post_type);
 		
-		if (isset($post_types_options[$post_type][$option_name])) {
-		
-			return $post_types_options[$post_type][$option_name];
+		if (isset($post_type_options[$option_name])) {
+			
+			return $post_type_options[$option_name];
 			
 		}
-		
+			
 		return $fallback;
+		
 	}
 	
 	/**
@@ -514,6 +532,7 @@ class Sublanguage_core {
 	 * Get taxonomies options for translation.
 	 *
 	 * @from 2.0
+	 * @from 2.3 remove filter "sublanguage_taxonomy_default" and default settings
 	 *
 	 * @return mixed
 	 */
@@ -523,32 +542,50 @@ class Sublanguage_core {
 		
 		if (!isset($taxonomy_options)) {
 		
-			$taxonomy_options = $this->get_option('taxonomy', false);
-			
-			if ($taxonomy_options === false) {
-			
-				/**
-				 * Filter taxonomy default options
-				 *
-				 * @from 2.0
-				 *
-				 * @param mixed. Default option
-				 */
-				$taxonomy_options = apply_filters("sublanguage_taxonomy_default", array(
-					'category' => array('translatable' => true)
-				));
-				
-			}
+			$taxonomy_options = $this->get_option('taxonomy', array());
 			
 		}
 		
 		return $taxonomy_options;
+	}
+
+	/**
+	 * Get taxonomies options for translation.
+	 *
+	 * @from 2.3
+	 *
+	 * @return mixed
+	 */
+	public function get_taxonomy_options($taxonomy, $default = array()) {
+		
+		$taxonomies_options = $this->get_taxonomies_options();
+		
+		if (isset($taxonomies_options[$taxonomy])) {
+			
+			$value = $taxonomies_options[$taxonomy];
+			
+		} else {
+			
+			/**
+			 * Filter default taxonomy options
+			 *
+			 * @from 2.3
+			 *
+			 * @param mixed. Default option
+			 */
+			$value = apply_filters("sublanguage_taxonomy_default-$taxonomy", $default);
+			
+		}
+		
+		return $value;
+		
 	}
 	
 	/**
 	 * Get taxonomy single option for translation.
 	 *
 	 * @from 2.0
+	 * @from 2.3. use filter "sublanguage_taxonomy_default-$taxonomy-$option_name"
 	 *
 	 * @param string $taxonomy
 	 * @param string $option_name. Accepts 'translatable', 'meta_keys', 'fields'
@@ -558,14 +595,14 @@ class Sublanguage_core {
 	 */
 	public function get_taxonomy_option($taxonomy, $option_name, $fallback = false) {
 		
-		$taxonomy_options = $this->get_taxonomies_options();
+		$taxonomy_options = $this->get_taxonomy_options($taxonomy);
 		
-		if (isset($taxonomy_options[$taxonomy][$option_name])) {
-		
-			return $taxonomy_options[$taxonomy][$option_name];
+		if (isset($taxonomy_options[$option_name])) {
 			
-		}
-		
+			return $taxonomy_options[$option_name];
+			
+		} 
+			
 		return $fallback;
 	}
 	

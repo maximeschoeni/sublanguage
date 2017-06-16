@@ -87,8 +87,9 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 		add_action('save_post_page', array($this, 'save_page'), 10, 3);
 		add_action('post_updated', array($this, 'update_page'), 10, 3);
 		
-		// set nav menu item translation defaults
-  	add_filter('sublanguage_post_type_default', array($this, 'nav_menu_item_post_type_default'));
+		// set nav menu item translation defaults  	  	
+  	add_filter('sublanguage_default-nav_menu_item', array($this, 'nav_menu_item_default_options'));
+  	add_filter('sublanguage_post_type_metakeys', array($this, 'nav_menu_item_metakeys'), 10, 2);
   	
 	}
 	
@@ -373,7 +374,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 					
 					}
 					
-					$post_types_options = $this->get_post_type_options();
+					$post_types_options = $this->get_post_types_options();
 					
 					// fields
 					$fields = isset($_POST['fields']) ? array_map('esc_attr', $_POST['fields']) : array();
@@ -437,22 +438,40 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 			
 				$options = get_option($this->option_name);
 			
-				$post_type_options = $this->get_post_type_options();
+				$post_type_options = $this->get_post_types_options();
 				$post_type_objs = get_post_types(array(), 'objects');
 			
 				foreach ($post_type_objs as $post_type_obj) {
-				
-					$post_type_options[$post_type_obj->name]['translatable'] = isset($_POST['post_type']) && in_array($post_type_obj->name, $_POST['post_type']);
-				
+					
+					if (isset($_POST['post_type']) && in_array($post_type_obj->name, $_POST['post_type'])) {
+						
+						$post_type_options[$post_type_obj->name] = $this->get_post_type_options($post_type_obj->name); // use filter to set default options
+						$post_type_options[$post_type_obj->name]['translatable'] = true;
+							
+					} else if ($this->is_post_type_translatable($post_type_obj->name)) {
+						
+						$post_type_options[$post_type_obj->name]['translatable'] = false;
+					
+					}
+					
 				}
 			
 				$taxonomies_options = $this->get_taxonomies_options();
 				$taxonomy_objs = get_taxonomies(array('show_ui' => true), 'objects');
 			
 				foreach ($taxonomy_objs as $taxonomy_obj) {
-				
-					$taxonomies_options[$taxonomy_obj->name]['translatable'] = isset($_POST['taxonomy']) && in_array($taxonomy_obj->name, $_POST['taxonomy']);
-				
+					
+					if (isset($_POST['taxonomy']) && in_array($taxonomy_obj->name, $_POST['taxonomy'])) {
+						
+						$taxonomies_options[$taxonomy_obj->name] = $this->get_taxonomy_options($taxonomy_obj->name); // use filter to set default options
+						$taxonomies_options[$taxonomy_obj->name]['translatable'] = true;
+							
+					} else if ($this->is_taxonomy_translatable($taxonomy_obj->name)) {
+						
+						$taxonomies_options[$taxonomy_obj->name]['translatable'] = false;
+					
+					}
+					
 				}
 			
 				$options['post_type'] = $post_type_options;
@@ -536,6 +555,15 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 		}
 		
 		ksort($meta_keys);
+		
+		/**
+		 * Filter default post type option
+		 *
+		 * @from 2.3
+		 *
+		 * @param mixed. Default option
+		 */
+		$meta_keys = apply_filters("sublanguage_post_type_metakeys", $meta_keys, $post_type);
 		
 		return $meta_keys;
 				
@@ -1423,16 +1451,34 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
   }
   
   /**
-	 * @filter 'sublanguage_post_type_default'
-	 * @from 2.0
+   * set default nav_menu_item options
+   *
+	 * @filter "sublanguage_default-$post_type"
+	 * @from 2.3
 	 */
-	public function nav_menu_item_post_type_default($post_type_options) {
+	public function nav_menu_item_default_options($defaults) {
 		
-		$post_type_options['nav_menu_item']['meta_keys'] = array('sublanguage_hide', '_menu_item_url');
+		$defaults['meta_keys'] = array('sublanguage_hide', '_menu_item_url');
 		
-		return $post_type_options;
+		return $defaults;
+  }
+  
+  /**
+   * Force 'sublanguage_hide' to appear in meta_keys list
+   *
+	 * @filter "sublanguage_post_type_metakeys"
+	 * @from 2.3
+	 */
+	public function nav_menu_item_metakeys($value, $post_type) {
 		
-  }	
+		if ($post_type === 'nav_menu_item' && empty($value['sublanguage_hide'])) {
+			
+			$value['sublanguage_hide'] = true;
+			
+		}
+		
+		return $value;
+  }
   
 	/**
 	 * Re-register translatable custom post without admin UI
@@ -1724,6 +1770,12 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 						update_post_meta($post->ID, $key, $value);
 						
 					}
+				
+				}
+				
+				if (isset($_POST['_menu_item_classes'])) {
+					
+					update_post_meta($post->ID, '_menu_item_classes', explode(' ', $_POST['_menu_item_classes']));
 				
 				}
 				
