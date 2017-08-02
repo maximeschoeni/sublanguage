@@ -36,7 +36,7 @@ class Sublanguage_Activation {
 					'post_title'    => $language_name,
 					'post_name'  	=> $language_slug,
 					'post_status'   => 'publish',
-					'post_content' => $locale === 'en_US' ? '' : $locale
+					'post_content' => $locale
 				));
 				
 			}

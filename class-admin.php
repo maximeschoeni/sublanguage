@@ -88,11 +88,18 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 			// Attachments
 			if ($this->is_post_type_translatable('attachment')) {
 				
-				add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_scripts'));
-			
+				add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_media_scripts'));
+				
+				add_filter('ajax_query_attachments_args', array($this, 'ajax_query_attachments'));
 				add_filter('wp_prepare_attachment_for_js', array($this, 'prepare_attachment_for_js'), 10, 3);
 				add_filter('wp_insert_attachment_data', array($this, 'insert_attachment'), 10, 2);
 				add_action('edit_attachment', array($this, 'edit_attachment'));
+								
+				// set attachment alt field translatable by default
+				add_filter('sublanguage_default-attachment', array($this, 'set_attachment_altfield_translatable'));
+				
+				// alt field always appear in option meta-data
+				add_filter('sublanguage_post_type_metakeys', array($this, 'attachment_post_type_metakeys'), 10, 2);
 				
 				// translate caption when send to editor
 				add_filter('image_add_caption_text', array($this, 'add_caption'), 10, 2);
@@ -888,7 +895,7 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 	 *
 	 * @from 1.4
 	 */	
-	 public function admin_enqueue_scripts($hook) {
+	 public function admin_enqueue_media_scripts($hook) {
 		
 		if ($this->get_languages() && ($hook == 'post.php' || $hook == 'post-new.php' || $hook == 'upload.php')) {
 		
@@ -898,6 +905,51 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 			wp_enqueue_style('sublanguage-style-wp-media', plugin_dir_url( __FILE__ ) . 'js/attachments-style.css');
 		}
 		
+	}
+	
+	/** 
+	 * Do not tanslate attachments queried by wp.media
+	 *
+	 * @filter 'ajax_query_attachments_args'
+	 *
+	 * @from 2.4
+	 */
+	public function ajax_query_attachments($query) {
+		
+		$query[$this->language_query_var] = false;
+	 	
+		return $query;
+	}	
+	
+	/**
+   * set attachment alt meta key translatable by default
+   *
+	 * @filter "sublanguage_default-$post_type"
+	 * @from 2.4
+	 */
+	public function set_attachment_altfield_translatable($defaults) {
+		
+		$defaults['meta_keys'][] = '_wp_attachment_image_alt';
+		
+		return $defaults;
+  }
+	
+	/** 
+	 * Always display alt field in attachment translation options
+	 *
+	 * @filter 'sublanguage_post_type_metakeys'
+	 *
+	 * @from 2.4
+	 */
+	public function attachment_post_type_metakeys($meta_keys, $post_type) {
+		
+		if ($post_type === 'attachment') {
+			
+			$meta_keys['_wp_attachment_image_alt'] = array('ALT field');
+			
+		}
+		
+		return $meta_keys;
 	}
 	
 	/** 
@@ -920,7 +972,7 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 				'description' => $this->translate_post_field($attachment, 'post_content', $language, ''), //$translation ? $translation->post_content : '',
 				'name' => $this->translate_post_field($attachment, 'post_name', $language, ''), //$translation ? $translation->post_name : ''
 			);
-				
+
 		}
 		
 		return $response;

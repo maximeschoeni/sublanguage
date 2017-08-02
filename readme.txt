@@ -3,7 +3,7 @@ Contributors: maximeschoeni
 Tags: multilanguage, multilingual, language, translation
 Requires at least: 4.4
 Tested up to: 4.7
-Stable tag: 2.2
+Stable tag: 2.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -288,6 +288,12 @@ Use any language instead, then update, then edit language title, slug and locale
 
 
 == Changelog ==
+
+= 2.4 =
+
+- Fix bug: attachment translations were not correctly displayed when current language is sub.
+- Fix bug: get_post_meta_translation was returning translated value for main language when current language is sub.
+- First language locale value is set to "en_US" instead of "" when language is english
 
 = 2.3 =
 

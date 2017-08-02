@@ -73,29 +73,30 @@
     	
     	// initialize attachment
     	if (wp.media.model.Attachment) {
-			var initializeAttachment = wp.media.model.Attachment.prototype.initialize;
-			_.extend( wp.media.model.Attachment.prototype, {
-				initialize: function( data, options ) {
-					initializeAttachment.apply(this, arguments);
-					this.translations = {};
-					for (i in sublanguage.languages) {
-						this.translations[sublanguage.languages[i].slug] = {
-							"title": "",
-							"alt": "",
-							"caption": "",
-							"description": "",							
-						};
-					}
-					var onLoad = function (model) {
-						model.off("change", onLoad);
-						if (model.has("sublanguage")) {
-							this.translations = model.get("sublanguage");
-							model.unset("sublanguage"); 
+				var initializeAttachment = wp.media.model.Attachment.prototype.initialize;
+				_.extend( wp.media.model.Attachment.prototype, {
+					initialize: function( data, options ) {
+						initializeAttachment.apply(this, arguments);
+						this.translations = {};
+						
+						for (i in sublanguage.languages) {
+							this.translations[sublanguage.languages[i].slug] = {
+								"title": "",
+								"alt": "",
+								"caption": "",
+								"description": "",							
+							};
 						}
+						var onLoad = function (model) {
+							model.off("change", onLoad);
+							if (model.has("sublanguage")) {
+								this.translations = model.get("sublanguage");
+								model.unset("sublanguage"); 
+							}
+						}
+						this.on('change', onLoad);
 					}
-					this.on('change', onLoad);
-				}
-			});    	
+				});
     	}
     	
     	// Reset language before sending to editor

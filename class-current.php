@@ -999,7 +999,7 @@ class Sublanguage_current extends Sublanguage_core {
 		
 		$object = get_post($object_id);
 		
-		if (isset($object->post_type) && $this->is_sub()) {
+		if (isset($object->post_type) && $this->is_sub() && $this->translate_meta) {
 			
 			if (!$meta_key) { // meta_key is not defined -> more work
 				

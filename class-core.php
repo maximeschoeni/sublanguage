@@ -11,7 +11,7 @@ class Sublanguage_core {
 	 *
 	 * @var string
 	 */
-	var $version = '2.3';
+	var $version = '2.4';
 
 	/** 
 	 * @from 2.0
@@ -94,6 +94,15 @@ class Sublanguage_core {
 	 * @from 1.5.1
 	 */
 	var $translation_prefix = 'translation_';
+	
+	/**
+	 * @var bool
+	 *
+	 * Control wether get_post_meta() is being translated
+	 *
+	 * @from 2.4
+	 */
+	var $translate_meta = true;
 	
 	/** 
 	 * Get option
@@ -1265,6 +1274,21 @@ class Sublanguage_core {
 
 	}
 	
+	/**
+	 * Get untranslated post meta
+	 *
+	 * @from 2.4
+	 */
+	public function get_untranslated_post_meta($post_id, $meta_key, $single) {
+		
+		$this->translate_meta = false;
+			
+		$value = get_post_meta($post_id, $meta_key, $single);
+		
+		$this->translate_meta = true;
+		
+		return $value;
+	}
 	
 	/**
 	 * Get post meta translation if it exists
@@ -1285,7 +1309,11 @@ class Sublanguage_core {
 		
 		}
 		
-		if ($this->is_sub($language) && in_array($meta_key, $this->get_post_type_metakeys($post->post_type))) {
+		if ($this->is_main($language)) {
+			
+			return $this->get_untranslated_post_meta($post->ID, $meta_key, $single);
+			
+		} else if (in_array($meta_key, $this->get_post_type_metakeys($post->post_type))) {
 			
 			return get_post_meta($post->ID, $this->create_prefix($language->post_name) . $meta_key, $single);
 			

@@ -554,8 +554,6 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 		
 		}
 		
-		ksort($meta_keys);
-		
 		/**
 		 * Filter default post type option
 		 *
@@ -564,6 +562,8 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 		 * @param mixed. Default option
 		 */
 		$meta_keys = apply_filters("sublanguage_post_type_metakeys", $meta_keys, $post_type);
+		
+		ksort($meta_keys);
 		
 		return $meta_keys;
 				
