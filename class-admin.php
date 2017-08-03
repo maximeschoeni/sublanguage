@@ -16,7 +16,7 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 	 * @from 1.0
 	 */
 	public function __construct() {
-	
+		
 		add_action( 'plugins_loaded', array($this, 'load'));
 		
 	}
@@ -989,31 +989,33 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 	 */	
 	public function insert_attachment($data, $postarr) {
 		
-		
-		
-		$this->fields = array();
-		
-		if (isset($_REQUEST['changes']['title'])) {
+		if (defined( 'DOING_AJAX' ) && DOING_AJAX) {
 			
-			$this->fields[] = 'post_title';
+			$this->fields = array();
+		
+			if (isset($_REQUEST['changes']['title'])) {
 			
-		}
+				$this->fields[] = 'post_title';
+			
+			}
 
-		if (isset($_REQUEST['changes']['name'])) {
+			if (isset($_REQUEST['changes']['name'])) {
 			
-			$this->fields[] = 'post_name';
+				$this->fields[] = 'post_name';
 			
-		}
+			}
 				
-		if (isset($_REQUEST['changes']['caption'])) {
+			if (isset($_REQUEST['changes']['caption'])) {
 			
-			$this->fields[] = 'post_excerpt';
+				$this->fields[] = 'post_excerpt';
 			
-		}
+			}
 		
-		if (isset($_REQUEST['changes']['description'])) {
+			if (isset($_REQUEST['changes']['description'])) {
 			
-			$this->fields[] = 'post_content';
+				$this->fields[] = 'post_content';
+			
+			}
 			
 		}
 		
