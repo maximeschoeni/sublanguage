@@ -1123,9 +1123,6 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 			// translate $post global
 			add_action('edit_form_top', array($this, 'edit_form')); 
 			
-			// translate post permalink 2.0
-			add_filter('get_sample_permalink', array($this, 'translate_sample_permalink'), 10, 5);
-			
 			// print language tab
 			add_action('edit_form_top', array($this, 'print_post_language_tabs'));
 		
@@ -1159,42 +1156,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 			
 	}
 	
-	/**
-	 * Translate post slug
-	 * 
-	 * @filter 'get_sample_permalink'
-	 * @from 2.0
-	 */	
-	public function translate_sample_permalink($permalink, $post_id, $title, $name, $post) {
-		
-		if ($this->is_post_type_translatable($post->post_type)) {
-		
-			$translation = $this->translate_cpt($post->post_type, null, $post->post_type);
-			$permalink[0] = str_replace("%{$post->post_type}-slug%", $translation, $permalink[0]);
-			
-			if ($this->is_sub()) {
-		
-				// translate ancestors slugs
-				$current = $post;
-				while ($current->post_parent) {
-					$current = get_post($current->post_parent);
-					$original_name = $current->post_name;
-					$translated_name = $this->translate_post_field($current, 'post_name');
-					if ($original_name !== $translated_name) {
-						$permalink[0] = str_replace("/$original_name/", "/$translated_name/", $permalink[0]);
-					}
-				}
-			
-				$permalink[1] = $this->translate_post_field($post, 'post_name');
-		
-			}
-		 
-		}
-		
-		return $permalink;
-	}
-	
-	
+
 	/**
 	 * Customize title placeholder
 	 *

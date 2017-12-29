@@ -62,6 +62,9 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 			
 			add_filter('preview_post_link', array($this, 'translate_preview_post_link'), 10 , 2);
 			
+			// @from 2.4 moved from admin-ui to allow ajax
+			add_filter('get_sample_permalink', array($this, 'translate_sample_permalink'), 10, 5);
+			
 			// add/update/delete post meta data
 			add_filter('update_post_metadata', array($this, 'update_translated_postmeta'), 10, 5);
 			add_filter('add_post_metadata', array($this, 'add_translated_postmeta'), 10, 5);
@@ -782,6 +785,43 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 		return $defaults;
   }
   
+  /**
+	 * Translate post slug
+	 * 
+	 * @filter 'get_sample_permalink'
+	 * @from 2.0
+	 */	
+	public function translate_sample_permalink($permalink, $post_id, $title, $name, $post) {
+// 		 var_dump($permalink);
+		 
+		if ($this->is_post_type_translatable($post->post_type)) {
+		
+			$translation = $this->translate_cpt($post->post_type, null, $post->post_type);
+			$permalink[0] = str_replace("%{$post->post_type}-slug%", $translation, $permalink[0]);
+			
+			if ($this->is_sub()) {
+		
+				// translate ancestors slugs
+				$current = $post;
+				while ($current->post_parent) {
+					$current = get_post($current->post_parent);
+					$original_name = $current->post_name;
+					$translated_name = $this->translate_post_field($current, 'post_name');
+					if ($original_name !== $translated_name) {
+						$permalink[0] = str_replace("/$original_name/", "/$translated_name/", $permalink[0]);
+					}
+				}
+			
+				$permalink[1] = $name; //$this->translate_post_field($post, 'post_name');
+		
+			}
+		 
+		}
+// 		 var_dump($permalink); die();
+		return $permalink;
+	}
+	
+	
 	
 	/* Terms
 	----------------------------------------------- */	

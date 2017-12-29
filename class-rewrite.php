@@ -398,15 +398,15 @@ class Sublanguage_rewrite extends Sublanguage_current {
 		$languages_slug = '(?:' . implode('/|', $language_slugs) . '/)?';
 		
 		$black_list = array(
-			'^wp-json/?$',
-			'^wp-json/(.*)?',
+// 			'^wp-json/?$',
+// 			'^wp-json/(.*)?',
 			'^index.php/wp-json/?$',
 			'^index.php/wp-json/(.*)?'
 		);
 		
 		foreach ($rules as $key => $rule) {
 			
-			if (in_array($key, $black_list)) { // -> REST API queries do not need language slug
+			if (in_array($key, $black_list)) { // -> REST API?
 			
 				$new_rules[$key] = $rule;
 			
