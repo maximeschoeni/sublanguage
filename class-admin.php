@@ -863,6 +863,18 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 			
 			$translation_args = $args;
 			
+			if (empty($translation_args['meta_query'])) {
+				
+				$translation_args['meta_query'] = array();
+				
+			}
+			
+			if (!is_array($translation_args['meta_query'])) {
+				
+				return $pieces;
+				
+			}
+			
 			foreach (array('name', 'slug') as $field) {
 			
 				if (isset($args[$field]) && $args[$field]) {
