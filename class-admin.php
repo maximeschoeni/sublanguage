@@ -792,8 +792,6 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 	 * @from 2.0
 	 */	
 	public function translate_sample_permalink($permalink, $post_id, $title, $name, $post) {
-// 		 var_dump($permalink);
-		 
 		if ($this->is_post_type_translatable($post->post_type)) {
 		
 			$translation = $this->translate_cpt($post->post_type, null, $post->post_type);
@@ -812,12 +810,11 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 					}
 				}
 			
-				$permalink[1] = $name; //$this->translate_post_field($post, 'post_name');
+				$permalink[1] = $name ? $name : $this->translate_post_field($post, 'post_name');
 		
 			}
 		 
 		}
-// 		 var_dump($permalink); die();
 		return $permalink;
 	}
 	
