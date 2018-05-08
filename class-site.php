@@ -1266,7 +1266,15 @@ class Sublanguage_site extends Sublanguage_current {
 			
 		}
 		
-		echo $output;
+		/**
+		 * Filter header alternate language links
+		 *
+		 * @from 2.4
+		 *
+		 * @param String $output html output
+		 * @param Sublanguage_site
+		 */
+		echo apply_filters('sublanguage_hreflang', $output, $this);
 		
 	}
 	
