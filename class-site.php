@@ -1153,6 +1153,55 @@ class Sublanguage_site extends Sublanguage_current {
 		return $link;
 	}
 	
+	/**
+	 * Check if current page has translation
+	 *
+	 * @from 2.5
+	 */
+	public function has_translation($language) {
+		global $wp_query;
+		
+		if (is_category() || is_tag() || is_tax()) {
+			
+			$query_object = get_queried_object();
+			
+			return apply_filters('sublanguage_has_term_translation', true, $query_object, $language, $this);
+				
+		} else if (is_post_type_archive()) {
+			
+			return apply_filters('sublanguage_has_archive_translation', true, $language, $this);
+			
+		} else if (is_singular() || $wp_query->is_posts_page) {
+			
+			$query_object = get_queried_object();
+			
+			return apply_filters('sublanguage_has_post_translation', true, $query_object, $language, $this);
+			
+		} else if (is_date()) {
+			
+			return apply_filters('sublanguage_has_date_translation', true, $language, $this);
+				
+		} else if (is_author()) {
+		
+			return apply_filters('sublanguage_has_author_translation', true, $language, $this);
+		
+		} else if (is_search()) {
+			
+			return apply_filters('sublanguage_has_search_translation', true, $language, $this);
+			
+		} else if (is404()) {
+		
+			return apply_filters('sublanguage_has_404_translation', true, $language, $this);
+			
+		} else if (is_home()) {
+		
+			return apply_filters('sublanguage_has_home_translation', true, $language, $this);
+			
+		}
+		
+		return return apply_filters('sublanguage_has_other_translation', true, $language, $this);
+	}
+	
 	/** 
 	 * Get taxonomy query var
 	 *
@@ -1258,11 +1307,15 @@ class Sublanguage_site extends Sublanguage_current {
 		$output = '';
 		
 		foreach ($languages as $language) {
-		
-			$output .= sprintf('<link rel="alternate" href="%s" hreflang="%s" />',
-				$this->get_translation_link($language),
-				$language->post_content ? strtolower(str_replace('_', '-', $language->post_content)) : 'en'
-			);
+			
+			if ($this->has_translation($language)) {
+			
+				$output .= sprintf('<link rel="alternate" href="%s" hreflang="%s" />',
+					$this->get_translation_link($language),
+					$language->post_content ? strtolower(str_replace('_', '-', $language->post_content)) : 'en'
+				);
+				
+			}
 			
 		}
 		
