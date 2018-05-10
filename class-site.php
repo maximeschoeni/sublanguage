@@ -1199,7 +1199,7 @@ class Sublanguage_site extends Sublanguage_current {
 			
 		}
 		
-		return return apply_filters('sublanguage_has_other_translation', true, $language, $this);
+		return apply_filters('sublanguage_has_other_translation', true, $language, $this);
 	}
 	
 	/** 
