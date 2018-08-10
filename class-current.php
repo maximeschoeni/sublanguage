@@ -183,6 +183,7 @@ class Sublanguage_current extends Sublanguage_core {
 	 * @filter 'the_posts'
 	 *
 	 * @from 1.1
+	 * @from 2.5 perform update_post_caches before translation
 	 */
 	public function translate_the_posts($posts, $wp_query) {
 		
@@ -205,7 +206,11 @@ class Sublanguage_current extends Sublanguage_core {
 		
 		}
 		
-		if ($this->is_sub($language)) {
+		if ($this->is_sub($language) && $posts) {
+			
+			// normally update_post_caches() is performed after 'the_posts' filter trigger.
+			update_post_caches($posts, $posts[0]->post_type, $wp_query->query_vars['update_post_term_cache'], true);
+			$wp_query->query_vars['cache_results'] = false; // prevent further caching
 			
 			/**
 			 * Filter the posts after translation

@@ -289,6 +289,9 @@ Use any language instead, then update, then edit language title, slug and locale
 
 == Changelog ==
 
+= 2.5 =
+- Fix bug: Force update_post_caches before translating posts
+
 = 2.4 =
 
 - Fix bug: attachment translations were not correctly displayed when current language is sub.
