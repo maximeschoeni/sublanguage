@@ -11,7 +11,7 @@ class Sublanguage_core {
 	 *
 	 * @var string
 	 */
-	var $version = '2.4';
+	var $version = '2.5';
 
 	/** 
 	 * @from 2.0
@@ -215,9 +215,10 @@ class Sublanguage_core {
 	/**
 	 * Get array of languages
 	 *
-	 * @from 1.2
-	 *
 	 * @return array of WP_post objects
+	 *
+	 * @from 1.2
+	 * @from 2.5 only select language with post_status 'publish' or 'draft'
 	 */
 	public function get_languages() {
 		global $wpdb;
@@ -227,10 +228,12 @@ class Sublanguage_core {
 		if (!isset($languages)) {
 
 			$languages = $wpdb->get_results( $wpdb->prepare(
-				"SELECT post.ID, post.post_name, post.post_title, post.post_content, post.menu_order, post.post_excerpt, post.post_status FROM $wpdb->posts AS post
-					WHERE post.post_type = %s
+				"SELECT post.ID, post.post_name, post.post_title, post.post_content, post.post_excerpt, post.menu_order, post.post_status FROM $wpdb->posts AS post
+					WHERE post.post_type = %s AND (post_status = %s OR post_status = %s)
 					ORDER BY post.menu_order ASC",					
-				$this->language_post_type
+				$this->language_post_type,
+				'publish',
+				'draft'
 			));
 			
 		}
@@ -343,17 +346,29 @@ class Sublanguage_core {
 	}
 	
 	/**
-	 * Get an array of all languages translation post-types
+	 * Get language tag
 	 *
-	 * @deprecated from 1.5.1. Use get_language_column() instead.
-	 * @from 1.4.4
+	 * @return string
 	 *
-	 * @param string $column.
-	 * @return array
+	 * @from 2.5
 	 */
-	public function get_language_post_types() {
+	public function get_language_tag($language = null) {
 		
-		return $this->get_language_column('post_excerpt');
+		if (empty($language)) {
+			
+			$language = $this->get_language();
+		
+		}
+		
+		if ($language->post_excerpt) {
+		
+			return $language->post_excerpt;
+			
+		} else {
+			
+			return $language->post_name;
+			
+		}
 		
 	}
 	
@@ -762,7 +777,11 @@ class Sublanguage_core {
 		
 			$language_obj = $this->get_language_by($language, 'ID');
 		
-		}
+		} else if ($language instanceof WP_Post) {
+		
+    	return $language;
+        
+    }
 			
 		if (empty($language_obj)) {
 			
@@ -1209,6 +1228,61 @@ class Sublanguage_core {
 		} 
 			
 		return $post->$field;
+		
+	}
+	
+	/**
+	 * Check if post field is translated
+	 *
+	 * @param object WP_Post $post Post to translate field.
+	 * @param string|mixed $field Field name. Accepts 'post_content', 'post_title', 'post_name', 'post_excerpt', an array of those, or null
+	 * @param object WP_Post $language Language.
+	 *
+	 * @return boolean
+	 *
+	 * @from 2.5
+	 */	
+	public function has_post_translation($post = null, $field = null, $language = null) {
+		
+		$post = get_post($post);
+		
+		if (is_string($field)) {
+		
+			return $this->get_post_field_translation($post, $field, $language) !== $post->$field;
+		
+		} else if (is_array($field)) {
+			
+			$fields = $field;
+			
+			foreach ($fields as $field) {
+				
+				if ($this->get_post_field_translation($post, $field, $language) === $post->$field) {
+					
+					return false; // at least one is not translated
+					
+				}
+				
+			}
+			
+			return true;
+			
+		} else {
+			
+			$fields = $this->fields;
+			
+			foreach ($fields as $field) {
+				
+				if ($this->get_post_field_translation($post, $field, $language) !== $post->$field) {
+					
+					return true; // at least one is translated
+					
+				}
+				
+			}
+			
+			return false;
+		
+		}
 		
 	}
   

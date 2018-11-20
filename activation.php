@@ -7,8 +7,9 @@ class Sublanguage_Activation {
 	
 	
 	/** 
-	 * @from 1.5.1 Moved in Sublanguage_Activation
 	 * @from 1.1
+	 * @from 1.5.1 Moved in Sublanguage_Activation
+	 * @from 2.5 bug fix: replace cpt by post_type
 	 */
 	public static function activate() {
 		global $sublanguage_admin;
@@ -50,7 +51,7 @@ class Sublanguage_Activation {
 				'taxonomy' => array(
 					'category' => array('translatable' => true)
 				),
-				'cpt' => array(
+				'post_type' => array(
 					'post' => array('translatable' => true), 
 					'page' => array('translatable' => true)
 				),

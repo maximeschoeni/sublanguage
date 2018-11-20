@@ -458,7 +458,7 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 	 */	
 	public function insert_post($data, $postarr) {
 		
-		if (isset($data['post_type']) && is_string($data['post_type']) && $this->is_post_type_translatable($data['post_type'])) { // -> only for translatable post
+		if (isset($data['post_type']) && is_string($data['post_type']) && $this->is_post_type_translatable($data['post_type']) && empty($postarr['sublanguage_gutenberg_metabox'])) { // -> only for translatable post, @from 2.5 -> skip when gutenberg updates compat metaboxes
 			
 			$language = $this->get_language();
 			

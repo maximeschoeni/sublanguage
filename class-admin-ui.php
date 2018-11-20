@@ -42,8 +42,11 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 		// register post types without UI
 		add_action('init', array($this, 'register_extra_post'), 20);
 		
-		// register languages
-		add_action('init', array($this, 'register_languages'), 20);
+		// init languages @from 2.5
+		add_action('init', array($this, 'init_languages'), 20);
+		
+		// init gutenberg
+		add_action('init', array($this, 'init_gutenberg'));		
 		
 		// redirect post to requested translation
 		add_filter('redirect_post_location', array($this, 'language_redirect'));
@@ -388,6 +391,13 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 					$exclude_untranslated = isset($_POST['exclude_untranslated']) && $_POST['exclude_untranslated'];
 					$post_types_options[$post_type]['exclude_untranslated'] = $exclude_untranslated;
 					
+					// @from 2.5 gutenberg metabox_compat option
+					if (isset($_POST['gutenberg_async_switch']) && $_POST['gutenberg_async_switch']) {
+						unset($post_types_options[$post_type]['gutenberg_metabox_compat']);
+					} else {
+						$post_types_options[$post_type]['gutenberg_metabox_compat'] = 1;
+					}
+					
 					$this->update_option('post_type', $post_types_options);
 				
 				}
@@ -721,10 +731,13 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	----------------------------------------------- */
 	
 	/**
-	 * Register language post-type
-	 * @from 1.0
+	 * Init languages ui
+	 *
+	 * @hook 'init'
+	 *
+	 * @from 2.5
 	 */
-	public function register_languages() {
+	public function init_languages() {
 		
 		// preset slug and title
 		add_filter('wp_insert_post_data', array($this, 'set_default_slug_and_name'), 10, 2);
@@ -743,47 +756,6 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 		
 		// add meta-box for locale and rtl
 		add_action('load-post.php', array($this, 'edit_language_post'));
-	
-		register_post_type($this->language_post_type, array(
-			'labels'             => array(
-				'name'               => __( 'Languages', 'sublanguage' ),
-				'singular_name'      => __( 'Language', 'sublanguage' ),
-				'menu_name'          => __( 'Languages', 'sublanguage' ),
-				'name_admin_bar'     => __( 'Languages', 'sublanguage' ),
-				'add_new'            => __( 'Add language', 'sublanguage' ),
-				'add_new_item'       => __( 'Add language', 'sublanguage' ),
-				'new_item'           => __( 'New language', 'sublanguage' ),
-				'edit_item'          => __( 'Edit language', 'sublanguage' ),
-				'view_item'          => __( 'View language', 'sublanguage' ),
-				'all_items'          => __( 'Languages', 'sublanguage' ),
-				'search_items'       => __( 'Search languages', 'sublanguage' ),
-				'parent_item_colon'  => __( 'Parent language:', 'sublanguage' ),
-				'not_found'          => __( 'No language found.', 'sublanguage' ),
-				'not_found_in_trash' => __( 'No language found in Trash.', 'sublanguage' )
-			),
-			'public'             => false,
-			'publicly_queryable' => false,
-			'show_ui'            => true,
-			//'show_in_menu'       => true,
-			'show_in_menu'       => true,
-			'query_var'          => false,
-			'rewrite'						 => false,
-			'capabilities' => array(
-				'edit_post' => 'edit_language',
-				'edit_posts' => 'edit_languages',
-				'edit_others_posts' => 'edit_other_languages',
-				'publish_posts' => 'publish_languages',
-				'read_post' => 'read_language',
-				'read_private_posts' => 'read_private_languages',
-				'delete_post' => 'delete_language'
-			),
-			'map_meta_cap' => true,
-			'has_archive'        => false,
-			'hierarchical'       => false,
-			'supports'           => array('title', 'slug', 'page-attributes') ,
-			'menu_icon'			 => 'dashicons-translation',
-			'can_export'		 => false
-		));
 	
 		add_filter( 'post_updated_messages', array($this, 'post_updated_messages'));
 		
@@ -915,6 +887,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	 * Filter for 'wp_insert_post_data'
 	 *
 	 * @from 1.0
+	 * @from 2.5 use post_excerpt for language tag (used for language detection + lang href)
 	 */
 	public function set_default_slug_and_name($data, $postarr) {
 		
@@ -938,7 +911,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 					$data['post_title'] = 'English';
 				
 				}
-			
+				
 				if (isset($translations[$locale]['iso'])) {
 				
 					while (is_array($translations[$locale]['iso'])) {
@@ -955,12 +928,34 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 				
 				}
 				
+				// -> @since 2.5
+				$data['post_excerpt'] = $data['post_name'];
+				
+			} else {
+				
+				if (isset($postarr['language_locale_nonce'], $postarr['language_locale']) && wp_verify_nonce($postarr['language_locale_nonce'], 'language_locale_action' )) {
+					
+					$data['post_content'] = $_POST['language_locale'];
+				
+				}
+				
+				if (isset($postarr['language_settings_nonce']) && wp_verify_nonce($postarr['language_settings_nonce'], 'language_settings_action')) {
+					
+					if (isset($postarr['language_tag'])) {
+						
+						$data['post_excerpt'] = $postarr['language_tag'];
+						
+					}
+					
+				}
+				
 			}
+			
+			$this->update_option('need_flush', 1);
 			
 		}	
 		
 		return $data;
-		
 	}
 	
 	/**
@@ -1155,7 +1150,6 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 		}
 			
 	}
-	
 
 	/**
 	 * Customize title placeholder
@@ -2050,6 +2044,57 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	}
 	
 	
+	
+	
+	/* gutenberg
+	------------------- */
+	
+	/**
+	 * Init Gutenberg
+	 *
+	 * @from 2.5
+	 */
+	public function init_gutenberg() {
+		
+		wp_register_script(
+			'sublanguage-gutenberg',
+			plugins_url( 'js/gutenberg.js', __FILE__ ),
+			array( 'wp-blocks', 'wp-element' )
+		);
+	
+		wp_register_style(
+			'sublanguage-gutenberg-styles',
+			plugins_url('css/gutenberg.css', __FILE__),
+			array('wp-edit-blocks')
+		);
+	
+		if (function_exists('register_block_type')) {
+		
+			register_block_type( 'sublanguage/language-manager', array(
+					'editor_script' => 'sublanguage-gutenberg',
+					'editor_style' => 'sublanguage-gutenberg-styles'
+			));
+						
+		}
+		
+		add_action('block_editor_meta_box_hidden_fields', array($this, 'gutenberg_hidden_fields'));
+				
+	}
+	
+	/**
+	 * Add language hidden fields on gutenberg hidden section
+	 *
+	 * @from 2.5
+	 */
+	public function gutenberg_hidden_fields($post) {
+		
+		if ( $this->get_post_type_option($post->post_type, 'gutenberg_metabox_compat')) {
+			
+			include plugin_dir_path( __FILE__ ) . 'include/gutenberg-metabox.php';
+		
+		}
+		
+	}
 	
 	
 	

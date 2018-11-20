@@ -1,9 +1,9 @@
 === Sublanguage ===
 Contributors: maximeschoeni
 Tags: multilanguage, multilingual, language, translation
-Requires at least: 4.4
-Tested up to: 4.7
-Stable tag: 2.3
+Requires at least: 4.5
+Tested up to: 5.0
+Stable tag: 2.5
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -13,6 +13,7 @@ Sublanguage is a lightweight multilanguage plugin for wordpress.
 
 = Features =
 
+- [NEW] support for Gutenberg (beta feature)
 - translation of posts (pages, attachments and custom posts), terms, options, localized texts and login screens
 - translation of post meta and term meta
 - translatability: define which content is translatable or not
@@ -279,7 +280,7 @@ Use any language instead, then update, then edit language title, slug and locale
 1. Add or edit language screen.
 2. Post.php screen with language switch and tinyMCE button for quick interface.
 3. Tinymce plugin: quick interface for translation
-4. Wp.media interface width language tabs for medias translation
+4. Wp.media interface with language tabs for medias translation
 5. Edit-tags.php screen.
 6. Nav-menus.php screen with language custom metabox
 7. Options-permalink.php screen with inputs for taxonomy slug or custom post archive slug translation.
@@ -290,13 +291,24 @@ Use any language instead, then update, then edit language title, slug and locale
 == Changelog ==
 
 = 2.5 =
+
+- Basic support for Gutenberg
 - Fix bug: Force update_post_caches before translating posts
+- Fix bug: only query languages object with status 'publish' or 'draft' in admin side
+- Add a function (has_post_translation) and a filter (sublanguage_has_post_translation) to detect if a post have a translation
+- A language object can be passed in find_language() function
+- Add hook (sublanguage_search_meta) to filter meta keys searcheable for translation
+- Improved detect http language
+- Use of IETF language tag ("en", "en-en", "es-mx", etc.) to be used for SEO and language detection
 
 = 2.4 =
 
 - Fix bug: attachment translations were not correctly displayed when current language is sub.
 - Fix bug: get_post_meta_translation was returning translated value for main language when current language is sub.
 - First language locale value is set to "en_US" instead of "" when language is english
+- Fix translate sample link
+- Verify meta_query parameter is an array in terms_clauses filter
+- Rewrite wp-json rules
 
 = 2.3 =
 

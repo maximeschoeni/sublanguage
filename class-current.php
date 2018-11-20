@@ -44,6 +44,24 @@ class Sublanguage_current extends Sublanguage_core {
 	 */
 	private $search_sql;
 	
+	/**
+	 * @var array
+	 *
+	 * Gutenberg markup
+	 *
+	 * @from 2.5
+	 */
+	var $gutenberg_language_tag = '<!-- wp:sublanguage/language-manager {"current_language":"%s"} /-->';
+	var $gutenberg_language_reg = '<!-- wp:sublanguage/language-manager \{"current_language":"([^"]+)"\} /-->';
+	
+	/**
+	 * @var object WP_Post language
+	 *
+	 * Language to edit from Gutenberg
+	 *
+	 * @from 2.5
+	 */
+	var $edit_language;
 	
 	/**
 	 * Register all filters needed for admin and front-end
@@ -52,6 +70,7 @@ class Sublanguage_current extends Sublanguage_core {
 	 */
 	public function load() {
 		
+		add_action('init', array($this, 'register_languages')); // @from 2.5 moved from admin-ui
  		add_filter('parse_query', array($this, 'parse_query'));
 		add_filter('get_object_terms', array($this, 'filter_get_object_terms'), 10, 4);
 		add_filter('get_term', array($this, 'translate_get_term'), 10, 2); // hard translate term
@@ -65,7 +84,296 @@ class Sublanguage_current extends Sublanguage_core {
 		add_filter('sublanguage_query_add_language', array($this, 'query_add_language'));
 		add_action('widgets_init', array($this, 'register_widget'));
 		
+		// Gutenberg -> @from 2.5
+		add_action('init', array($this, 'register_translation_meta'));
+		add_action('registered_post_type', array($this, 'rest_register_post_type'));
+		add_filter('rest_prepare_revision', array($this, 'rest_prepare_post'), 10, 3);
+		
 	}
+	
+	/**
+	 * Register language post-type
+	 *
+	 * @hook 'init'
+	 *
+	 * @from 2.5
+	 */
+	public function register_languages() {
+		
+		register_post_type($this->language_post_type, array(
+			'labels'             => array(
+				'name'               => __( 'Languages', 'sublanguage' ),
+				'singular_name'      => __( 'Language', 'sublanguage' ),
+				'menu_name'          => __( 'Languages', 'sublanguage' ),
+				'name_admin_bar'     => __( 'Languages', 'sublanguage' ),
+				'add_new'            => __( 'Add language', 'sublanguage' ),
+				'add_new_item'       => __( 'Add language', 'sublanguage' ),
+				'new_item'           => __( 'New language', 'sublanguage' ),
+				'edit_item'          => __( 'Edit language', 'sublanguage' ),
+				'view_item'          => __( 'View language', 'sublanguage' ),
+				'all_items'          => __( 'Languages', 'sublanguage' ),
+				'search_items'       => __( 'Search languages', 'sublanguage' ),
+				'parent_item_colon'  => __( 'Parent language:', 'sublanguage' ),
+				'not_found'          => __( 'No language found.', 'sublanguage' ),
+				'not_found_in_trash' => __( 'No language found in Trash.', 'sublanguage' )
+			),
+			'public'             => false,
+			'publicly_queryable' => false,
+			'show_ui'            => true,
+			//'show_in_menu'       => true,
+			'show_in_menu'       => true,
+			'query_var'          => false,
+			'rewrite'						 => false,
+			'capabilities' => array(
+				'edit_post' => 'edit_language',
+				'edit_posts' => 'edit_languages',
+				'edit_others_posts' => 'edit_other_languages',
+				'publish_posts' => 'publish_languages',
+				'read_post' => 'read_language',
+				'read_private_posts' => 'read_private_languages',
+				'delete_post' => 'delete_language'
+			),
+			'map_meta_cap' => true,
+			'has_archive'        => false,
+			'hierarchical'       => false,
+			'supports'           => array('title', 'slug', 'page-attributes') ,
+			'menu_icon'			 => 'dashicons-translation',
+			'can_export'		 => false
+		));
+	
+	}
+	
+	
+	/**
+	 * Register meta for REST
+	 *
+	 * @from 2.5
+	 */
+	public function register_translation_meta() {
+		
+		foreach ($this->get_languages() as $language) {
+			
+			// also need to register main language!
+			
+			foreach ($this->fields as $field) {
+			
+				register_meta('post', $this->get_prefix($language) . $field, array(
+					'type' => 'string',
+					'auth_callback' => '__return_true',
+					'single' => true,
+					'show_in_rest' => true
+				));
+			
+			}
+				
+		}
+		
+	}
+	
+	/**
+	 * Register post types for Parse meta for REST
+	 *
+	 * @filter 'registered_post_type'
+	 * @from 2.5
+	 */
+	public function rest_register_post_type($post_type) {
+	
+		if ($this->is_post_type_translatable($post_type)) {
+			
+			add_filter('rest_pre_insert_' . $post_type, array($this, 'rest_pre_insert_post'), 10, 2);
+			add_filter('rest_prepare_' . $post_type, array($this, 'rest_prepare_post'), 10, 3);
+			
+			$post_type_object = get_post_type_object($post_type);
+			
+			if (empty($post_type_object->template)) {
+			
+				$post_type_object->template = array();
+				
+			}
+			
+			$post_type_object->template[] = array('sublanguage/language-manager', array(
+				'current_language' => $this->get_language()
+			));
+			
+		}
+	
+	}
+	
+	/**
+	 * Parse meta for REST
+	 *
+	 * @filter "rest_pre_insert_{$this->post_type}"
+	 * @from 2.5
+	 */
+	public function rest_pre_insert_post($prepared_post, $request) {
+		
+		$meta = $request->get_param('meta');
+	
+		if (!$meta) {
+		
+			$meta = array();
+		
+		}
+	
+		if (preg_match('#'.$this->gutenberg_language_reg.'#', $prepared_post->post_content, $matches)) {
+		
+			$this->edit_language = $this->find_language($matches[1], 'post_name');
+		
+			$prepared_post->post_content = str_replace($matches[0], '', $prepared_post->post_content);
+	
+		} else {
+					
+			$this->edit_language = $this->get_language();
+		
+		}
+	
+		$this->current_language = $this->get_main_language(); // now data are parsed: use main language
+	
+		if (isset($prepared_post->post_content)) $post_content = $prepared_post->post_content;
+		if (isset($prepared_post->post_excerpt)) $post_excerpt = $prepared_post->post_excerpt;
+		if (isset($prepared_post->post_title)) $post_title = $prepared_post->post_title;
+		if (isset($prepared_post->post_name)) $post_name = $prepared_post->post_name;
+	
+		foreach ($this->get_languages() as $language) {
+		
+			$content_field = $this->get_prefix($language) . 'post_content';
+			$excerpt_field = $this->get_prefix($language) . 'post_excerpt';
+			$title_field = $this->get_prefix($language) . 'post_title';
+			$name_field = $this->get_prefix($language) . 'post_name';
+			
+			if (preg_match('#'.$this->gutenberg_language_reg.'#', $content_field, $matches)) {
+		
+				$content_field = str_replace($matches[0], '', $content_field);
+	
+			}
+			
+			if ($this->is_sub($language)) {
+			
+				if ($language === $this->edit_language) {
+				
+					if (isset($post_content)) $meta[$content_field] = $post_content;
+					if (isset($post_excerpt)) $meta[$excerpt_field] = $post_excerpt;
+					if (isset($post_title)) $meta[$title_field] = $post_title;
+					if (isset($post_name)) $meta[$name_field] = $post_name;
+				
+				}
+			
+			} else {
+			
+				if ($language !== $this->edit_language) {
+				
+					if (isset($meta[$content_field])) $prepared_post->post_content = $meta[$content_field];	
+					else unset($prepared_post->post_content);
+				
+					if (isset($meta[$excerpt_field])) $prepared_post->post_excerpt = $meta[$excerpt_field];	
+					else unset($prepared_post->post_excerpt);
+				
+					if (isset($meta[$title_field])) $prepared_post->post_title = $meta[$title_field];
+					else unset($prepared_post->post_title);
+				
+					if (isset($meta[$name_field])) $prepared_post->post_name = $meta[$name_field];
+					else unset($prepared_post->post_name);
+				
+				}
+			
+				// do not save main language in meta
+				unset($meta[$content_field]);
+				unset($meta[$excerpt_field]);
+				unset($meta[$title_field]);
+				unset($meta[$name_field]);
+			
+			}
+		
+		}
+	
+		$request->set_param('meta', $meta);
+				
+		return $prepared_post;
+	}
+
+	
+	/**
+	 * Filters the post data for a response (REST).
+	 *
+	 * @filter "rest_prepare_{$this->post_type}"
+	 *
+	 * @from 2.5
+	 */
+	public function rest_prepare_post($response, $post, $request) {
+		global $wpdb;
+				
+		$meta = $request->get_param('meta');
+		
+		$data = $response->get_data();
+		
+		$post_content = $post->post_content;
+		$post_excerpt = $post->post_excerpt;
+		$post_title = $post->post_title;
+		$post_name = $post->post_name;		
+		
+		if (empty($this->edit_language)) {
+			
+			$this->edit_language = $this->get_language();
+			
+		}
+		
+		foreach ($this->get_languages() as $language) {
+			
+			$content_field = $this->get_prefix($language) . 'post_content';
+			$excerpt_field = $this->get_prefix($language) . 'post_excerpt';
+			$title_field = $this->get_prefix($language) . 'post_title';
+			$name_field = $this->get_prefix($language) . 'post_name';
+			
+			if ($this->is_sub($language)) {
+				
+				if ($language === $this->edit_language) {
+					
+					$data['content']['raw'] = isset($meta[$content_field]) ? $meta[$content_field] : get_post_meta($post->ID, $content_field, true);
+					$data['content']['rendered'] = post_password_required( $post ) ? '' : apply_filters( 'the_content', $data['content']['raw'] );
+					
+					$data['excerpt']['raw'] = isset($meta[$excerpt_field]) ? $meta[$excerpt_field] : get_post_meta($post->ID, $excerpt_field, true);
+					$data['excerpt']['rendered'] = apply_filters( 'the_excerpt', $data['excerpt']['raw'] );
+					
+					$data['title']['raw'] = isset($meta[$title_field]) ? $meta[$title_field] : get_post_meta($post->ID, $title_field, true);
+					$data['title']['rendered'] = apply_filters( 'the_title', $data['title']['raw'], $post->ID );
+					
+					$data['slug'] = isset($meta[$name_field]) ? $meta[$name_field] : get_post_meta($post->ID, $name_field, true);	
+					
+				}
+				
+			} else {
+				
+				if ($this->is_sub()) {
+					
+					// get untranslated post
+					$post = $wpdb->get_row($wpdb->prepare("SELECT ID, post_content, post_excerpt, post_title, post_name FROM $wpdb->posts WHERE ID = %d", $post->ID));
+					
+				}
+				
+				$data['meta'][$content_field] = $post->post_content;
+				$data['meta'][$excerpt_field] = $post->post_excerpt;
+				$data['meta'][$title_field] = $post->post_title;
+				$data['meta'][$name_field] = $post->post_name;
+				
+			}
+			
+		}
+		
+		if (preg_match('#'.$this->gutenberg_language_reg.'#', $data['content']['raw'], $matches)) {
+						
+			$data['content']['raw'] = str_replace($matches[0], '', $data['content']['raw']);
+		
+		}
+		
+		$data['content']['raw'] .= sprintf($this->gutenberg_language_tag, $this->edit_language->post_name);
+		
+		$response->set_data($data);
+		
+		return $response;
+	}
+	
+	
+	
 	
 	/**
 	 * Helper for parse_query(). Check if query is to be translated
@@ -88,7 +396,7 @@ class Sublanguage_current extends Sublanguage_core {
 		
 		} else if (is_array($post_type)) {
 			
-			return array_filter($post_type, array($this, 'is_post_type_translatable'));
+			return array_filter($post_type, array($this, 'is_post_type_translatable')); // at least one is
 		
 		}
 		
@@ -100,25 +408,50 @@ class Sublanguage_current extends Sublanguage_core {
 	 * @hook for 'parse_query'
 	 *
 	 * @from 2.2
+	 * @from 2.5, added 'sublanguage_search_meta' filter
 	 */
 	public function parse_query($wp_query) {
 		
-		$language = isset($wp_query->query_vars['sublanguage']) ? $this->find_language($wp_query->query_vars['sublanguage']) : null;
-		
-		if ($this->is_sub($language) && $this->is_query_translatable($wp_query->query_vars)) {
+		if ($this->is_query_translatable($wp_query->query_vars)) {
 			
+			$language = isset($wp_query->query_vars['sublanguage']) ? $this->find_language($wp_query->query_vars['sublanguage']) : null;
+				
 			if (isset($wp_query->query_vars['s']) && $wp_query->query_vars['s']) { // query_vars['s'] is empty string by default 
 				
-				$wp_query->query_vars['sublanguage_search_meta'] = array(
-					$this->get_prefix($language) . 'post_title',
-					$this->get_prefix($language) . 'post_content',
-					$this->get_prefix($language) . 'post_excerpt'
-				);
-				$wp_query->query_vars['sublanguage_search_alias'] = 'postmeta_search';
+				$search_meta_fields = array();
 				
-				add_filter('posts_join_request', array($this, 'meta_search_join'), 10, 2);
-				add_filter('posts_search', array($this, 'meta_search'), 10, 2);
-				add_filter('posts_distinct_request', array($this, 'meta_search_distinct'), 10, 2);
+				if ($this->is_sub($language)) {
+				
+					$search_meta_fields = array(
+						$this->get_prefix($language) . 'post_title',
+						$this->get_prefix($language) . 'post_content',
+						$this->get_prefix($language) . 'post_excerpt'
+					);
+				
+				}
+				
+				/**
+				 * Filter meta keys searcheable for translation
+				 *
+				 * @from 2.5
+				 *
+				 * @param array $search_meta_fields. Array of custom field keys to search into
+				 * @param WP_Query object $query
+				 * @param Post object $language
+				 * @param Sublanguage_current object $this
+				 */	
+				$search_meta_fields = apply_filters('sublanguage_search_meta', $search_meta_fields, $wp_query, $language, $this);
+				
+				if ($search_meta_fields) {
+					
+					$wp_query->query_vars['sublanguage_search_meta'] = $search_meta_fields;
+					$wp_query->query_vars['sublanguage_search_alias'] = 'postmeta_search';
+				
+					add_filter('posts_join_request', array($this, 'meta_search_join'), 10, 2);
+					add_filter('posts_search', array($this, 'meta_search'), 10, 2);
+					add_filter('posts_distinct_request', array($this, 'meta_search_distinct'), 10, 2);
+				
+				}
 				
 			}
 			
@@ -396,14 +729,15 @@ class Sublanguage_current extends Sublanguage_core {
 	 *	Filter for 'the_content'
 	 *
 	 * @from 1.0
+	 * @from 2.5 check wether content corresponds to global post ('the_content' filter may be used outside of The Loop or when global $post does not match) 
 	 */	
 	public function translate_post_content($content) {
 		global $post;
 		
-		if ($post && $this->is_sub() && $this->is_post_type_translatable($post->post_type) && empty($post->sublanguage)) {
+		if ($post && $post->post_content === $content && $this->is_sub() && $this->is_post_type_translatable($post->post_type) && empty($post->sublanguage)) {
 		
 			$content = $this->translate_post_field($post, 'post_content', null, $content);
-			
+									
 		}
 		
 		return $content;
@@ -411,13 +745,13 @@ class Sublanguage_current extends Sublanguage_core {
 	}
 
 	/**
-	 *	Translate excerpt to current language
-	 *	Filter for 'get_the_excerpt'
+	 * Translate excerpt to current language (the_excerpt() and the_content() behave very differently!)
+	 * @filter for 'get_the_excerpt'
 	 *
 	 * @from 1.0
+	 * @from 2.5 Introduce $post parameter (@since wp 4.5)
 	 */	
-	public function translate_post_excerpt($excerpt) {
-		global $post;
+	public function translate_post_excerpt($excerpt, $post = null) {
 		
 		if ($post && $this->is_sub() && $this->is_post_type_translatable($post->post_type) && empty($post->sublanguage)) {
 		
@@ -503,6 +837,26 @@ class Sublanguage_current extends Sublanguage_core {
 		return $original;
 	}
 	
+	/**
+	 * Public API
+	 * Filter for 'sublanguage_has_post_translation'
+	 *
+	 * @from 2.5
+	 *
+	 * @param boolean $false Value to be filtered. Should be false.
+	 * @param object WP_Post $post Post to translate field.
+	 * @param string|mixed $field Field name. Accepts 'post_content', 'post_title', 'post_name', 'post_excerpt', an array of those, or null
+	 * @param object WP_Post $language Language
+	 *
+	 * @return string
+	 */
+	public function filter_has_post_translation($false, $post = null, $field = null, $language = null) {
+		
+		$language = $this->find_language($language);
+		
+		return (bool) $post && $this->has_post_translation($post, $field, $language);
+	
+	}
 	
 	/**
 	 *	Translate term name
@@ -1111,6 +1465,7 @@ class Sublanguage_current extends Sublanguage_core {
 	 * Hook for 'admin_enqueue_script', 'sublanguage_prepare_ajax', wp_enqueue_scripts
 	 *
 	 * @from 1.4
+	 * @from 2.5 add post_type_options + gutenberg tag and reg
 	 */	
 	public function ajax_enqueue_scripts() {
 		
@@ -1119,15 +1474,26 @@ class Sublanguage_current extends Sublanguage_core {
 		$sublanguage = array(
 			'current' => $language ? $language->post_name : 0,
 			'languages' => array(),
-			'query_var' => $this->language_query_var
+			'query_var' => $this->language_query_var,
+			'post_type_options' => $this->get_post_types_options(),
+			'gutenberg' => array(
+				'tag' => $this->gutenberg_language_tag,
+				'reg' => $this->gutenberg_language_reg
+			)
 		);
-					
+		
 		foreach($this->get_languages() as $language) {
 		
 			$sublanguage['languages'][] = array(
 				'name' => $language->post_title,
 				'slug' => $language->post_name,
-				'id' => $language->ID
+				'id' => $language->ID,
+				'prefix' => $this->get_prefix($language),
+				'tag' => $language->post_excerpt,
+				'locale' => $language->post_content,
+				'isDefault' => $this->is_default($language),
+				'isMain' => $this->is_main($language),
+				'isSub' => $this->is_sub($language)
 			);
 		
 		}

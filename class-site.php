@@ -20,7 +20,7 @@ class Sublanguage_site extends Sublanguage_current {
 	public function __construct() {
 		
 		add_filter('locale', array($this, 'get_locale'));
-		add_action( 'plugins_loaded', array($this, 'load'));
+		add_action('plugins_loaded', array($this, 'load'));
 		
 	}
 	
@@ -33,6 +33,7 @@ class Sublanguage_site extends Sublanguage_current {
 			
 			parent::load();
 			
+			add_filter('the_content', array($this, 'translate_post_content'), 9); // -> allowed @from 2.5
 			add_filter('the_title', array($this, 'translate_post_title'), 10, 2);
 			add_filter('get_the_excerpt', array($this, 'translate_post_excerpt'), 9);
 			add_filter('single_post_title', array($this, 'translate_single_post_title'), 10, 2);
@@ -1039,56 +1040,75 @@ class Sublanguage_site extends Sublanguage_current {
 	 * Detect language
 	 *
 	 * @from 1.2
+	 * @from 2.5 improved detect language
+	 *
+	 * @return WP_Post|false
 	 */
 	public function auto_detect_language() {
 		
-		if (class_exists('Locale')) {
+		$available_languages = array();
+		
+		foreach ($this->get_languages() as $language) {
 			
-			$locale = Locale::acceptFromHttp($_SERVER['HTTP_ACCEPT_LANGUAGE']); 
+			$available_languages[] = $this->get_language_tag($language);
 			
-			return $this->find_language_by_locale($locale);
+		}
+		
+		if (isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
+		
+			$prefered_language = $this->prefered_language($available_languages, $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+		
+			if ($prefered_language) {
+			
+				foreach ($prefered_language as $language_slug => $value) {
+				
+					return $this->find_language($language_slug, 'post_name');
+				
+				}
+			
+			}
 		
 		}
 		
 		return false;
-		
 	}
 	
 	/**
-	 * Find best matching language from locale code
-	 * 
-	 * @from 1.5.2
+	 * Find prefered language
+	 * source: https://stackoverflow.com/a/25749660/2086505
 	 *
-	 * @param string $locale Locale code
-	 * @return object|false Language Object
+	 * @from 2.5
+	 *
+	 * @param array $available_languages Available languages. Eg: array("en", "zh-cn", "es");
+	 * @param string $http_accept_language HTTP Accepted languages. Eg: $_SERVER["HTTP_ACCEPT_LANGUAGE"] = 'en-us,en;q=0.8,es-cl;q=0.5,zh-cn;q=0.3';
+	 * @return array prefered languages. Eg: Array([en] => 0.8, [es] => 0.4, [zh-cn] => 0.3)
 	 */
-	public function find_language_by_locale($locale) {
-		
-		$language = $this->get_language_by($locale, 'post_content');
-		
-		if (!$language) {
-			
-			$locale = preg_replace("/^([a-z]+).*/", '$1', $locale);
-			
-			$language = $this->get_language_by($locale, 'post_content');
-			
-			if (!$language) {
-				
-				$locales = preg_grep("/$locale/", $this->get_language_column('post_content'));
-				
-				if ($locales) {
-					
-					$language = $this->get_language_by(array_shift($locales), 'post_content');
-					
-				}
-				
-			}
-			
-		}
-		
-		return $language;
+	private function prefered_language($available_languages, $http_accept_language) {
+
+    $available_languages = array_flip($available_languages);
+
+    $langs = array();
+    preg_match_all('~([\w-]+)(?:[^,\d]+([\d.]+))?~', strtolower($http_accept_language), $matches, PREG_SET_ORDER);
+    foreach($matches as $match) {
+
+        list($a, $b) = explode('-', $match[1]) + array('', '');
+        $value = isset($match[2]) ? (float) $match[2] : 1.0;
+
+        if(isset($available_languages[$match[1]])) {
+            $langs[$match[1]] = $value;
+            continue;
+        }
+
+        if(isset($available_languages[$a])) {
+            $langs[$a] = $value - 0.1;
+        }
+
+    }
+    arsort($langs);
+
+    return $langs;
 	}
-	
+
 	/**
 	 * Get language link
 	 *
@@ -1252,30 +1272,29 @@ class Sublanguage_site extends Sublanguage_current {
 	 * @from 1.4.5
 	 */
 	public function print_hreflang() {
-	
-		$languages = $this->get_languages();
 		
 		$output = '';
+		$languages = $this->get_languages();
 		
 		foreach ($languages as $language) {
-		
+			
 			$output .= sprintf('<link rel="alternate" href="%s" hreflang="%s" />',
 				$this->get_translation_link($language),
-				$language->post_content ? strtolower(str_replace('_', '-', $language->post_content)) : 'en'
+				$this->get_language_tag($language)
 			);
 			
 		}
 		
 		/**
-		 * Filter header alternate language links
+		 * filter hreflang tags in html head
 		 *
-		 * @from 2.4
+		 * @from 2.5
 		 *
-		 * @param String $output html output
-		 * @param Sublanguage_site
+		 * @param string HTML hreflang tag
+		 * @param WP_Post object $language
+		 * @param Sublanguage_current object $this
 		 */
 		echo apply_filters('sublanguage_hreflang', $output, $this);
-		
 	}
 	
 	/**

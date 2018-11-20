@@ -1,0 +1,30 @@
+ul.gutenberg-language-switch {
+	display: inline-flex;
+	margin: 0;
+}
+ul.gutenberg-language-switch li {
+	margin: -9px 0;
+}
+ul.gutenberg-language-switch li a {
+	display: block;
+	height: 100%;
+	padding: 20px 12px;
+	box-sizing: border-box;
+	border-bottom: 1px solid #e2e4e7;
+	border-right: 1px solid #e2e4e7;
+	text-decoration: none;
+	cursor: pointer;
+}
+ul.gutenberg-language-switch li:first-child a {
+	border-left: 1px solid #e2e4e7;
+}
+ul.gutenberg-language-switch li.active a {
+	border-bottom-color: white;
+	color: black;
+	cursor: default;
+}
+.sublanguage-language-manager {
+	font-size: 13px;
+	color: #555d66;
+	font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif;
+}
