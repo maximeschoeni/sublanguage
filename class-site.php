@@ -483,7 +483,14 @@ class Sublanguage_site extends Sublanguage_current {
 			
 			$post_types = isset($query_vars['post_type']) ? array($query_vars['post_type']) : array('page', 'post');
 			
-			$post = $this->query_post($post_name, $post_types, $ancestors);
+// 			$post = $this->query_post($post_name, $post_types, $ancestors);
+			
+			$post = $this->query_post($post_name, array(
+				'post_types' => $post_types,
+				'ancestor_names' => $ancestors,
+				'strict' => false
+			));
+			
 			
 			if ($post) {
 				
@@ -552,8 +559,11 @@ class Sublanguage_site extends Sublanguage_current {
 			}
 			
 		} else if (isset($query_vars['attachment']) && $this->is_post_type_translatable('attachment')) { // -> attachment (this is a child of a "post" post-type)
-			
-			$post = $this->query_post($query_vars['attachment'], 'attachment');
+						
+			$post = $this->query_post($query_vars['attachment'], array(
+				'post_types' => array('attachment'),
+				'strict' => false
+			));
 			
 			if ($post) {
 			
@@ -688,55 +698,77 @@ class Sublanguage_site extends Sublanguage_current {
 		
 	}	
 		
-
 	/**
-	 *	Find original post based on query vars info.
+	 * Find original post based on query vars info.
 	 *  
-	 *  @from 1.0
+	 * @from 1.0
+	 * @from 2.5 use arguments array, introduce exclude_ids, better ancestors verification (support when different parented posts use same slug)
 	 *
-	 * @param string $post_name
-	 * @param string|array $post_types
+	 * @param string $post_name	 
+	 * @param array $args {
+	 *   Array of arguments
+	 *	 @type array 		$post_types 			Array of post_type strings
+	 *   @type array		$ancestor_names		Array of ancestor post_names
+	 *   @type array		$exclude_ids			Array of post ids
+	 * }
+	 * @return WP_Post object $post. Queried post or null
 	 */
-	public function query_post($post_name, $post_types, $ancestors = array()) {
+	public function query_post($post_name, $args = array()) {
 		global $wpdb;
 		
-		$post_types = esc_sql($post_types);
+		$post_name = esc_sql($post_name);
 		
-		$post_type_strings = is_array($post_types) ? "'".implode("','", $post_types)."'" : "'".$post_types."'";
+		if (isset($args['post_types']) && is_array($args['post_types']) && $args['post_types']) {
+						
+			$post_type_sql = $wpdb->prepare(implode(',', array_fill(0, count($args['post_types']), '%s')), $args['post_types']);
+			
+		}
 		
-		$translation_slug = $this->get_prefix().'post_name';
+		if ($this->is_sub()) {
+			
+			$post_ids = array_map('intval', $wpdb->get_col( $wpdb->prepare(
+				"SELECT post_id FROM $wpdb->postmeta WHERE meta_key = %s AND meta_value = %s", 
+				$this->get_prefix().'post_name',
+				$post_name
+			)));
+			
+			if (isset($args['exclude_ids']) && $post_ids) { 
+				
+				$exclude_ids = array_map('intval', $args['exclude_ids']);
+				$post_ids = array_diff($post_ids, $exclude_ids);
+				
+			}
+			
+		}
 		
-		$post_ids = $wpdb->get_col( $wpdb->prepare(
-			"SELECT post_id FROM $wpdb->postmeta WHERE meta_key = %s AND meta_value = %s", 
-			$translation_slug,
-			$post_name
-		));
-		
-		if ($post_ids) { 
-		
-			// Translations found but we're not sure about post_type
+		if (isset($post_ids) && $post_ids) {
+			
+			$post_ids_sql = $wpdb->prepare(implode(',', array_fill(0, count($post_ids), '%d')), $post_ids);
+			
+			$wheres = array();
+			
+			$wheres[] = 'post.ID IN (' . $post_ids_sql . ')';
+			
+			if (isset($post_type_sql)) {
+			
+				$wheres[] = 'post.post_type IN (' . $post_type_sql . ')';
+				
+			}
+			
 			$posts = $wpdb->get_results(
 				"SELECT post.* FROM $wpdb->posts AS post
-					WHERE post.post_type IN ($post_type_strings)
-						AND post.ID IN (".implode(",", array_map('intval', $post_ids)).")"
+				 WHERE ".implode(" AND ", $wheres)
 			);
 			
-			// Use WP_Query (for caching)
-// 			$posts_query = new WP_Query(array(
-// 				'post_type' => $post_types,
-// 				'post__in' => $post_ids,
-// 				'posts_per_page' => -1,
-// 				'ignore_sticky_posts' => true
-// 			));
-// 			$posts = $posts_query->posts;
-			
-			foreach ($posts as $post) {
+			foreach ($posts as $post) { // -> Translations found
 				
-				if ($ancestors) { // -> verify ancestors recursively
+				if (isset($args['ancestor_names']) && $args['ancestor_names']) { // -> verify ancestors recursively
 					
-					$parent_name = array_pop($ancestors);
+					$query_args = $args;
+					$query_args['exclude_ids'][] = $post->ID; // -> exclude this post to prevent a loop hole (multiple pages can share the same slug if parented differently)
+					$parent_name = array_pop($query_args['ancestor_names']);
 					
-					$parent = $this->query_post($parent_name, $post_types, $ancestors);
+					$parent = $this->query_post($parent_name, $query_args);
 					
 					if ($parent && $post->post_parent == $parent->ID) {
 						
@@ -744,7 +776,7 @@ class Sublanguage_site extends Sublanguage_current {
 					
 					}
 				
-				} else {
+				} else if (!$post->post_parent) {
 					
 					// This one will just do
 					return $post;
@@ -753,42 +785,44 @@ class Sublanguage_site extends Sublanguage_current {
 				
 			}
 			
-			foreach ($posts as $post) {
+		}
+		
+		// no translation -> search untranslated posts with this name
+		
+		$wheres = array();
+		
+		$wheres[] = $wpdb->prepare('post.post_name = %s', $post_name);
+		
+		if (isset($post_type_sql)) {
 			
-				// -> no ancestor matched
-				$this->canonical = false;
-			
-				// This one will do
-				return $post;
-				
-			}
+			$wheres[] = 'post.post_type IN (' . $post_type_sql . ')';
 			
 		}
 		
-		$posts = $wpdb->get_results( $wpdb->prepare(
+		if (isset($args['exclude_ids'])) { 
+				
+			$exclude_ids = array_map('intval', $args['exclude_ids']);
+			$exclude_sql = $wpdb->prepare(implode(',', array_fill(0, count($exclude_ids), '%d')), $exclude_ids);
+			$wheres[] = 'post.ID NOT IN ('.$exclude_sql.')';
+			
+		}
+		
+		$posts = $wpdb->get_results(
 			"SELECT post.* FROM $wpdb->posts AS post
-				WHERE post.post_name = %s AND post.post_type IN ($post_type_strings)",
-			$post_name
-		));
-
-		// Use WP_Query
-// 		$posts_query = new WP_Query(array(
-// 			'post_type' => $post_types,
-// 			'name' => $post_name,
-// 			'posts_per_page' => -1,
-// 			'ignore_sticky_posts' => true
-// 		));
-// 		$posts = $posts_query->posts;
-					
+			 WHERE ".implode(' AND ', $wheres)
+		);
+			
 		if ($posts) { 
 			
 			foreach ($posts as $post) {
 				
-				if ($ancestors) { // -> we need to verify ancestors recursively
+				if (isset($args['ancestor_names']) && $args['ancestor_names']) { // -> verify ancestors recursively
 					
-					$parent_name = array_pop($ancestors);
+					$query_args = $args;
+					$query_args['exclude_ids'][] = $post->ID; // -> exclude this post to prevent a loop hole (multiple pages can share the same slug if parented differently)
+					$parent_name = array_pop($query_args['ancestor_names']);
 					
-					$parent = $this->query_post($parent_name, $post_types, $ancestors);
+					$parent = $this->query_post($parent_name, $query_args);
 					
 					// check if parent match and there is no specific translation...
 					if ($parent && $post->post_parent == $parent->ID) {
@@ -805,7 +839,7 @@ class Sublanguage_site extends Sublanguage_current {
 					
 					}
 				
-				} else {
+				} else if (!$post->post_parent) {
 					
 					// Post found
 					if ($this->is_post_type_translatable($post->post_type) && get_post_meta($post->ID, $this->get_prefix() . 'post_name', true)) {
@@ -820,40 +854,69 @@ class Sublanguage_site extends Sublanguage_current {
 				}
 				
 			}
-			
-			foreach ($posts as $post) {
-			
-				$this->canonical = false;
-			
-				// no ancestor matched but lets return this one
-				return $post;
-				
-			}
-			
-		} else {
-			
-			// Nothing found. -> Search in other languages...
-			$post = $wpdb->get_row( $wpdb->prepare(
-				"SELECT post.* FROM $wpdb->posts AS post
-					INNER JOIN $wpdb->postmeta AS meta ON (post.ID = meta.post_id)
-					WHERE post.post_type IN ($post_type_strings) AND (meta_key IN ('".implode("post_name', '", esc_sql(array_map(array($this, 'create_prefix'), $this->get_language_column('post_name'))))."post_name') AND meta.meta_value = %s)",					
-				$post_name
-			));
-			
-			// teacher, do I need to check ancestors?
-			
-			if ($post) {
-			
-				// Post found in wrong language.
-				$this->canonical = false;
-				
-				return $post;
+						
+		} 
 		
+		// Nothing found. -> Search in other languages...
+		
+		$post_names = array();
+		
+		foreach ($this->get_languages() as $language) {
+			
+			if ($this->is_sub($language)) {
+			
+				$post_names[] = esc_sql($this->get_prefix($language).'post_name');
+				
 			}
 			
 		}
 		
-		return false;
+		$post_names_sql = $wpdb->prepare(implode(',', array_fill(0, count($post_names), '%s')), $post_names);
+		
+		$wheres = array();
+		$wheres[] = 'meta.meta_key IN ('.$post_names_sql.')';
+		$wheres[] = $wpdb->prepare('meta.meta_value = %s', $post_name);
+		
+		if (isset($post_type_sql)) {
+		
+			$wheres[] = 'post.post_type IN (' . $post_type_sql . ')';
+			
+		}
+		
+		$posts = $wpdb->get_results(
+			"SELECT post.* FROM $wpdb->posts AS post
+			 INNER JOIN $wpdb->postmeta AS meta ON (post.ID = meta.post_id)
+			 WHERE ".implode(' AND ', $wheres)
+		);
+		
+		foreach ($posts as $post) { // -> Translations found
+			
+			if (isset($args['ancestor_names']) && $args['ancestor_names']) { // -> verify ancestors recursively
+				
+				$query_args = $args;
+				$query_args['exclude_ids'][] = $post->ID; // -> exclude this post to prevent a loop hole (multiple pages can share the same slug if parented differently)
+				$parent_name = array_pop($query_args['ancestor_names']);
+				
+				$parent = $this->query_post($parent_name, $query_args);
+				
+				if ($parent && $post->post_parent == $parent->ID) {
+					
+					$this->canonical = false;
+					
+					return $post;
+				
+				}
+			
+			} else if (!$post->post_parent) {
+				
+				$this->canonical = false;
+				
+				// This one will just do
+				return $post;
+			
+			}
+			
+		}
 		
 	}
 
