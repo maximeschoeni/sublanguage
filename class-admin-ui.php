@@ -398,6 +398,13 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 						$post_types_options[$post_type]['gutenberg_metabox_compat'] = 1;
 					}
 					
+					// @from 2.6 Revision
+					if (isset($_POST['enable_revisions']) && $_POST['enable_revisions']) {
+						$post_types_options[$post_type]['enable_revisions'] = 1;
+					} else {
+						unset($post_types_options[$post_type]['enable_revisions']);
+					}
+					
 					$this->update_option('post_type', $post_types_options);
 				
 				}

@@ -483,14 +483,10 @@ class Sublanguage_site extends Sublanguage_current {
 			
 			$post_types = isset($query_vars['post_type']) ? array($query_vars['post_type']) : array('page', 'post');
 			
-// 			$post = $this->query_post($post_name, $post_types, $ancestors);
-			
 			$post = $this->query_post($post_name, array(
 				'post_types' => $post_types,
-				'ancestor_names' => $ancestors,
-				'strict' => false
+				'ancestor_names' => $ancestors
 			));
-			
 			
 			if ($post) {
 				
@@ -561,8 +557,7 @@ class Sublanguage_site extends Sublanguage_current {
 		} else if (isset($query_vars['attachment']) && $this->is_post_type_translatable('attachment')) { // -> attachment (this is a child of a "post" post-type)
 						
 			$post = $this->query_post($query_vars['attachment'], array(
-				'post_types' => array('attachment'),
-				'strict' => false
+				'post_types' => array('attachment')
 			));
 			
 			if ($post) {
@@ -702,7 +697,7 @@ class Sublanguage_site extends Sublanguage_current {
 	 * Find original post based on query vars info.
 	 *  
 	 * @from 1.0
-	 * @from 2.5 use arguments array, introduce exclude_ids, better ancestors verification (support when different parented posts use same slug)
+	 * @from 2.5 adds arguments
 	 *
 	 * @param string $post_name	 
 	 * @param array $args {
@@ -919,6 +914,8 @@ class Sublanguage_site extends Sublanguage_current {
 		}
 		
 	}
+	
+	
 
 	/**
 	 *	Find original term based on query vars info.

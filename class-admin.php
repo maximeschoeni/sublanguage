@@ -47,7 +47,10 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 			add_filter('single_tag_title', array($this, 'filter_single_term_title')); // filter term title
 		
 			add_filter('get_edit_post_link', array($this, 'translate_edit_post_link'), 10, 3);
-		
+			
+			// @from 2.6 -> prevent skip post updating when post fields are empty
+			add_filter('wp_insert_post_empty_content', array($this, 'empty_content'), 10, 2);
+			
 			// restore post data before post saves
 			add_filter('wp_insert_post_data', array($this, 'insert_post'), 10, 2);
 		
@@ -451,72 +454,182 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 	}
 	
 	/**
+	 * Prevent post to be considered empty and skipped when inserted or updated
+	 *
+	 * @filter 'wp_insert_post_empty_content'
+	 *
+	 * @from 2.6
+	 */	
+	public function empty_content($maybe_empty, $postarr) {
+		
+		return false; // @todo -> should check if original content is also empty when editing sub language
+	
+	}
+	
+	/**
 	 * Restore main language post data before post saves.
 	 * Filter for 'wp_insert_post_data'
 	 *
 	 * @from 1.0
 	 */	
 	public function insert_post($data, $postarr) {
-		
-		if (isset($data['post_type']) && is_string($data['post_type']) && $this->is_post_type_translatable($data['post_type']) && empty($postarr['sublanguage_gutenberg_metabox'])) { // -> only for translatable post, @from 2.5 -> skip when gutenberg updates compat metaboxes
+
+		if (!isset($data['post_type']) || !is_string($data['post_type'])) { // -> not sure if needed
 			
+			return $data;
+				
+		}
+		
+		if (isset($postarr['sublanguage_gutenberg_metabox'])) { 
+			
+			// @from 2.5 -> skip when gutenberg updates compat metaboxes
+			return $data;
+		
+		}
+		
+		if ($data['post_type'] === 'revision') {
+			
+			$post = get_post($data['post_parent']);
+			
+		} else {
+			
+			$post = get_post($postarr['ID']);
+			
+		}
+		
+		if ($this->is_sub() && $this->is_post_type_translatable($post->post_type) && empty($this->sublanguage_data[$post->ID])) {
+			
+			// @from 2.6 -> skip if sublanguage_data already exists (when parsing revision data except autosave)
+		
 			$language = $this->get_language();
 			
-			if ($this->is_sub($language)) { 
+			// set default post name
+			if ($data['post_title'] == '') {
+			
+				if (empty($_POST['post_name']) || $_POST['post_name'] == '') {
+			
+					if ($post->post_name) {
+			
+						$data['post_name'] = $post->post_name;
+			
+					} else if ($post->post_title) {
+			
+						$data['post_name'] = sanitize_title($post->post_title);
 				
-				if (!isset($this->sublanguage_data)) {
+					}
+			
+				}
+		
+			} else if ($data['post_name'] == '') {
+		
+				$data['post_name'] = sanitize_title($data['post_title']);
+		
+			}
+		
+			foreach ($this->fields as $field) {
+			
+				// store translated data
+				$this->sublanguage_data[$post->ID][$language->ID][$field] = $data[$field];
+			
+				// and restore original data
+				$data[$field] = wp_slash($post->$field);
 				
-					$this->sublanguage_data = array();
+			}
+			
+		}
+
+		return $data;
+	
+	}
+	
+	
+	/**
+	 * @override Sublanguage_current::save_post_revision
+	 *
+	 * @hook 'save_post_revision'
+	 *
+	 * @from 2.6
+	 */
+	public function save_post_revision($revision_id, $revision) {
+		
+		$post = get_post($revision->post_parent);
+		
+		if ($this->is_post_type_translatable($post->post_type) && $this->get_post_type_option($post->post_type, 'enable_revisions')) {
+			
+			$post_id = $post->ID;
+			
+			foreach ($this->get_languages() as $language) {
+			
+				foreach (array('post_title', 'post_content', 'post_excerpt') as $field) {
+					
+					if ($this->is_sub($language)) {
+					
+						$language_field = $this->get_prefix($language).$field;
+				
+						if (isset($this->sublanguage_data[$post_id][$language->ID][$field])) {
+						
+							if ($this->sublanguage_data[$post_id][$language->ID][$field]) {
+							
+								update_metadata('post', $revision_id, $language_field, $this->sublanguage_data[$post_id][$language->ID][$field]);
+						
+							} else {
+				
+								delete_metadata('post', $revision_id, $language_field);
+							}
+						
+						} else {
+						
+							$meta_value = get_metadata('post', $post_id, $language_field, true);
+						
+							if ($meta_value) {
+							
+								update_metadata('post', $revision_id, $language_field, $meta_value);
+							
+							}
+						
+						}
+						
+					}
 				
 				}
 				
-				$post = get_post($postarr['ID']); // original post
+			}
+			
+		}
+		
+	}
+	
+	/**
+	 * @override Sublanguage_current::revision_post_has_changed
+	 *
+	 * @filter 'wp_save_post_revision_post_has_changed'
+	 *
+	 * @from 2.6
+	 */
+	public function revision_post_has_changed($post_has_changed, $last_revision, $post) {
+		
+		if (!$post_has_changed && $this->is_sub() && $this->get_post_type_option($post->post_type, 'enable_revisions')) {
+		
+			$language = $this->get_language();
+			$prefix = $this->get_prefix($language);
+		
+			foreach (array('post_title', 'post_content', 'post_excerpt') as $field) {
+		
+				if (isset($this->sublanguage_data[$post->ID][$language->ID][$field]) && $this->sublanguage_data[$post->ID][$language->ID][$field] !== get_metadata('post', $last_revision->ID, $prefix.$field, true)) {
+		
+					return true;
 				
-				if ($post && empty($this->sublanguage_data[$post->ID])) { // -> verify insert_post was not already called
-				
-					// set default post name
-					if ($data['post_title'] == '') {
-					
-						if (empty($_POST['post_name']) || $_POST['post_name'] == '') {
-					
-							if ($post->post_name) {
-					
-								$data['post_name'] = $post->post_name;
-					
-							} else if ($post->post_title) {
-					
-								$data['post_name'] = sanitize_title($post->post_title);
-						
-							}
-					
-						}
-				
-					} else if ($data['post_name'] == '') {
-				
-						$data['post_name'] = sanitize_title($data['post_title']);
-				
-					}
-				
-					foreach ($this->fields as $field) {
-					
-						// store translated data
-						$this->sublanguage_data[$post->ID][$language->ID][$field] = $data[$field];
-					
-						// and restore original data
-						$data[$field] = wp_slash($post->$field);
-						
-					}
-					
 				}
 				
 			}
 		
 		}
 		
-		return $data;
+		return $post_has_changed;
 	
 	}
-
+	
+	
 	/**
 	 * Save translation data after post saves.
 	 * Hook for 'save_post'

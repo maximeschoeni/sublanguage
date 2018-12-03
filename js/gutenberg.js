@@ -1,48 +1,17 @@
 
 document.addEventListener("DOMContentLoaded", function() {
-	
-	var el = wp.element.createElement;
-	var registerBlockType = wp.blocks.registerBlockType;
-	var isRegistered;
-	var attributes = {
-		current_language: {
-			type: "string"
-		}
-	};
-	
-	function getLanguage(slug) {
+	var currentLanguage;
+	function getMainLanguage() {
 		for (var i = 0; i < sublanguage.languages.length; i++) {
-			if (sublanguage.languages[i].slug === slug) {
+			if (sublanguage.languages[i].isMain) {
 				return sublanguage.languages[i];
 			}
 		}
 	}
-	
-	function registerLanguageManager(props) {
-		
+	function registerLanguageManager() {
 		var store = {};
-		var currentLanguage;
 		var languageSwitchContainer;
-
-		
-		function init() {
-			
-			sublanguage.languages.forEach(function(language) {
-				if (language.slug === sublanguage.current) {
-					currentLanguage = language;
-					saveAttributes();
-				} else {
-					store[language.prefix+"post_content"] = props.attributes[language.prefix+"post_content"];
-					store[language.prefix+"post_excerpt"] = props.attributes[language.prefix+"post_excerpt"];
-					store[language.prefix+"post_title"] = props.attributes[language.prefix+"post_title"];
-					store[language.prefix+"post_name"] = props.attributes[language.prefix+"post_name"];
-				}
-			});
-			props.setAttributes({
-				current_language: sublanguage.current
-			});
-			updateSwitch();
-		}
+	
 		function build(tag) {
 			var classes = tag.split(".");
 			element = document.createElement(classes[0]);
@@ -64,11 +33,11 @@ document.addEventListener("DOMContentLoaded", function() {
 			}
 			return element;
 		}
-	
+
 		function updateSwitch() {
 			var editor = document.getElementById("editor");
 			var editorHeader = editor && editor.querySelector(".edit-post-header__settings");
-			
+		
 			if (languageSwitchContainer && languageSwitchContainer.parentNode) {
 				languageSwitchContainer.parentNode.removeChild(languageSwitchContainer);
 			}
@@ -98,7 +67,7 @@ document.addEventListener("DOMContentLoaded", function() {
 				}, 500);
 			}
 		}		
-	
+
 		function saveAttributes() {
 			var content = wp.data.select("core/editor").getEditedPostContent();
 			var excerpt = wp.data.select("core/editor").getEditedPostAttribute("excerpt");
@@ -110,68 +79,94 @@ document.addEventListener("DOMContentLoaded", function() {
 			store[currentLanguage.prefix+"post_title"] = title;
 			store[currentLanguage.prefix+"post_name"] = slug;
 		}
-	
+
 		function switchLanguage(language) {		
 			var content = store[language.prefix+"post_content"];
 			var excerpt = store[language.prefix+"post_excerpt"];
 			var title = store[language.prefix+"post_title"];
 			var slug = store[language.prefix+"post_name"];
-			if (!content || !content.match(new RegExp(sublanguage.gutenberg.reg))) {
-				content += sublanguage.gutenberg.tag.replace("%s", language.slug);
-			}
-			var blocks = wp.blocks.parse( content );
-			wp.data.dispatch("core/editor").resetBlocks([]);
-			wp.data.dispatch("core/editor").insertBlocks( blocks );
-			wp.data.dispatch("core/editor").editPost({
-				excerpt: excerpt,
-				title: title,
-				slug: slug
-			});
-			var meta = {};
+		
+			var meta = wp.data.select("core/editor").getPostEdits().meta || {};
+		
 			meta[currentLanguage.prefix+"post_content"] = store[currentLanguage.prefix+"post_content"];
 			meta[currentLanguage.prefix+"post_excerpt"] = store[currentLanguage.prefix+"post_excerpt"];
 			meta[currentLanguage.prefix+"post_title"] = store[currentLanguage.prefix+"post_title"];
-			meta[currentLanguage.prefix+"post_name"] = store[currentLanguage.prefix+"post_name"]
-			props.setAttributes(meta);
-			
+			meta[currentLanguage.prefix+"post_name"] = store[currentLanguage.prefix+"post_name"];
+			meta["edit_language"] = language.slug;
+				
+			wp.data.dispatch("core/editor").resetBlocks([]);
+			if (content) {
+				var blocks = wp.blocks.parse( content );
+				if (blocks.length) {
+					wp.data.dispatch("core/editor").insertBlocks( blocks );
+				}
+			}
+			wp.data.dispatch("core/editor").editPost({
+				excerpt: excerpt,
+				title: title,
+				slug: slug,
+				meta: meta
+			});
 			wp.data.dispatch("core/editor").clearSelectedBlock();
-			
+		
 			currentLanguage = language;
 			sublanguage.current = language.slug;
 		}
-		
-		setTimeout(function() {
-			init();
-		}, 300);
-		isRegistered = true;
-	}
-	
-	sublanguage.languages.forEach(function(language) {
-		["post_content", "post_excerpt", "post_title", "post_name"].forEach(function(field) {
-			attributes[language.prefix + field] = {
-				type: 'string',
-				source: 'meta',
-				meta: language.prefix + field
-			};
-		});
-	});
-	
-	registerBlockType('sublanguage/language-manager', {
-		title: 'Language Manager',
-		icon: 'translation',
-		category: 'widgets',
-		attributes: attributes,
-		edit: function( props ) {			
-			if (!isRegistered) {
-				registerLanguageManager(props);
+		function regenLanguage() {
+			// -> force edit_language in edits data
+			// -> @todo: find a way to hook into "after-post-save" or append current_language directly to rest request
+			var edits = wp.data.select("core/editor").getPostEdits();
+			if (!edits.meta) {
+				edits.meta = {};
 			}
-			return el("div", {
-				className: "sublanguage-language-manager"
-			}, 'This block is automatically added by Sublanguage for handling multi-language. It is only visible from admin side. Do not remove!');			
-		},
-		save: function(props) {
-			return null;
+			if (!edits.meta.edit_language) {
+				edits.meta.edit_language = currentLanguage.slug;
+				wp.data.dispatch("core/editor").editPost(edits);
+			}
+			setTimeout(regenLanguage, 200);
 		}
-	});
-});
+		function init() {
+			var meta = wp.data.select("core/editor").getCurrentPostAttribute("meta");
+			sublanguage.languages.forEach(function(language) {
+				if (language.slug === meta.edit_language) {
+					currentLanguage = language;
+					saveAttributes();
+					switchLanguage(language)
+				} else {
+					store[language.prefix+"post_content"] = meta[language.prefix+"post_content"];
+					store[language.prefix+"post_excerpt"] = meta[language.prefix+"post_excerpt"];
+					store[language.prefix+"post_title"] = meta[language.prefix+"post_title"];
+					store[language.prefix+"post_name"] = meta[language.prefix+"post_name"];
+				}
+			});
+		}
+	
+		init();
+		regenLanguage();
+		updateSwitch();
+	}
+	function tryRegister() {
+		var post = wp.data.select("core/editor").getCurrentPost();
+		if (post && post.id) {
+			registerLanguageManager();
+		} else {
+			setTimeout(tryRegister, 200);
+		}
+	}
+	tryRegister();
+	
+	// monkey patch permalinks
+	var getPermalinkParts = wp.data.select("core/editor").getPermalinkParts;
+	
+	wp.data.select("core/editor").getPermalinkParts = function() {
+		var parts = getPermalinkParts();
+		var mainLanguage = getMainLanguage();
+		if (mainLanguage && currentLanguage && mainLanguage !== currentLanguage) {
+			parts.prefix = parts.prefix.replace(mainLanguage.home_url.replace(/\/$/, ""), currentLanguage.home_url.replace(/\/$/, ""));
+		}
+		return parts;
+	}
 
+	
+	
+});

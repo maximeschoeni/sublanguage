@@ -89,6 +89,12 @@ class Sublanguage_current extends Sublanguage_core {
 		add_action('registered_post_type', array($this, 'rest_register_post_type'));
 		add_filter('rest_prepare_revision', array($this, 'rest_prepare_post'), 10, 3);
 		
+		// Revision -> @from 2.6
+		add_action('save_post_revision', array($this, 'save_post_revision'), 10, 2);
+		add_action('wp_restore_post_revision', array($this, 'restore_revision'), 10, 2);
+		add_filter('_wp_post_revision_fields', array($this, 'revision_fields'), 10, 2);
+		add_filter('wp_save_post_revision_post_has_changed', array($this, 'revision_post_has_changed'), 10, 3);
+		
 	}
 	
 	/**
@@ -143,7 +149,6 @@ class Sublanguage_current extends Sublanguage_core {
 	
 	}
 	
-	
 	/**
 	 * Register meta for REST
 	 *
@@ -168,6 +173,14 @@ class Sublanguage_current extends Sublanguage_core {
 				
 		}
 		
+		// @from 2.6 register edit_language meta
+		register_meta('post', 'edit_language', array(
+			'type' => 'string',
+			'auth_callback' => '__return_true',
+			'single' => true,
+			'show_in_rest' => true
+		));
+		
 	}
 	
 	/**
@@ -175,6 +188,7 @@ class Sublanguage_current extends Sublanguage_core {
 	 *
 	 * @filter 'registered_post_type'
 	 * @from 2.5
+	 * @from 2.6 get ride of sublanguage manager template
 	 */
 	public function rest_register_post_type($post_type) {
 	
@@ -182,18 +196,6 @@ class Sublanguage_current extends Sublanguage_core {
 			
 			add_filter('rest_pre_insert_' . $post_type, array($this, 'rest_pre_insert_post'), 10, 2);
 			add_filter('rest_prepare_' . $post_type, array($this, 'rest_prepare_post'), 10, 3);
-			
-			$post_type_object = get_post_type_object($post_type);
-			
-			if (empty($post_type_object->template)) {
-			
-				$post_type_object->template = array();
-				
-			}
-			
-			$post_type_object->template[] = array('sublanguage/language-manager', array(
-				'current_language' => $this->get_language()
-			));
 			
 		}
 	
@@ -204,30 +206,32 @@ class Sublanguage_current extends Sublanguage_core {
 	 *
 	 * @filter "rest_pre_insert_{$this->post_type}"
 	 * @from 2.5
+	 * @from 2.6 $meta -> $this->meta, edit_language from meta not tag
 	 */
 	public function rest_pre_insert_post($prepared_post, $request) {
 		
-		$meta = $request->get_param('meta');
-	
-		if (!$meta) {
+		$this->meta = $request->get_param('meta');
 		
-			$meta = array();
+		if (!$this->meta) {
+		
+			$this->meta = array();
 		
 		}
-	
-		if (preg_match('#'.$this->gutenberg_language_reg.'#', $prepared_post->post_content, $matches)) {
 		
-			$this->edit_language = $this->find_language($matches[1], 'post_name');
+		if (isset($this->meta['edit_language'])) {
+			
+			$this->edit_language = $this->find_language($this->meta['edit_language'], 'post_name');
+			unset($this->meta['edit_language']);
+			
+		} 
 		
-			$prepared_post->post_content = str_replace($matches[0], '', $prepared_post->post_content);
-	
-		} else {
-					
+		if (empty($this->edit_language)) {
+			
 			$this->edit_language = $this->get_language();
-		
+			
 		}
-	
-		$this->current_language = $this->get_main_language(); // now data are parsed: use main language
+		
+		$this->current_language = $this->get_main_language(); // now data are parsed like its the main language
 	
 		if (isset($prepared_post->post_content)) $post_content = $prepared_post->post_content;
 		if (isset($prepared_post->post_excerpt)) $post_excerpt = $prepared_post->post_excerpt;
@@ -241,6 +245,7 @@ class Sublanguage_current extends Sublanguage_core {
 			$title_field = $this->get_prefix($language) . 'post_title';
 			$name_field = $this->get_prefix($language) . 'post_name';
 			
+			// keep for compat
 			if (preg_match('#'.$this->gutenberg_language_reg.'#', $content_field, $matches)) {
 		
 				$content_field = str_replace($matches[0], '', $content_field);
@@ -251,10 +256,10 @@ class Sublanguage_current extends Sublanguage_core {
 			
 				if ($language === $this->edit_language) {
 				
-					if (isset($post_content)) $meta[$content_field] = $post_content;
-					if (isset($post_excerpt)) $meta[$excerpt_field] = $post_excerpt;
-					if (isset($post_title)) $meta[$title_field] = $post_title;
-					if (isset($post_name)) $meta[$name_field] = $post_name;
+					if (isset($post_content)) $this->meta[$content_field] = $post_content;
+					if (isset($post_excerpt)) $this->meta[$excerpt_field] = $post_excerpt;
+					if (isset($post_title)) $this->meta[$title_field] = $post_title;
+					if (isset($post_name)) $this->meta[$name_field] = $post_name;
 				
 				}
 			
@@ -262,32 +267,32 @@ class Sublanguage_current extends Sublanguage_core {
 			
 				if ($language !== $this->edit_language) {
 				
-					if (isset($meta[$content_field])) $prepared_post->post_content = $meta[$content_field];	
+					if (isset($this->meta[$content_field])) $prepared_post->post_content = $this->meta[$content_field];	
 					else unset($prepared_post->post_content);
 				
-					if (isset($meta[$excerpt_field])) $prepared_post->post_excerpt = $meta[$excerpt_field];	
+					if (isset($this->meta[$excerpt_field])) $prepared_post->post_excerpt = $this->meta[$excerpt_field];	
 					else unset($prepared_post->post_excerpt);
 				
-					if (isset($meta[$title_field])) $prepared_post->post_title = $meta[$title_field];
+					if (isset($this->meta[$title_field])) $prepared_post->post_title = $this->meta[$title_field];
 					else unset($prepared_post->post_title);
 				
-					if (isset($meta[$name_field])) $prepared_post->post_name = $meta[$name_field];
+					if (isset($this->meta[$name_field])) $prepared_post->post_name = $this->meta[$name_field];
 					else unset($prepared_post->post_name);
 				
 				}
 			
 				// do not save main language in meta
-				unset($meta[$content_field]);
-				unset($meta[$excerpt_field]);
-				unset($meta[$title_field]);
-				unset($meta[$name_field]);
+				unset($this->meta[$content_field]);
+				unset($this->meta[$excerpt_field]);
+				unset($this->meta[$title_field]);
+				unset($this->meta[$name_field]);
 			
 			}
 		
 		}
-	
-		$request->set_param('meta', $meta);
-				
+		
+		$request->set_param('meta', $this->meta);
+		
 		return $prepared_post;
 	}
 
@@ -298,6 +303,7 @@ class Sublanguage_current extends Sublanguage_core {
 	 * @filter "rest_prepare_{$this->post_type}"
 	 *
 	 * @from 2.5
+	 * @from 2.6 get ride of language manager tag/reg
 	 */
 	public function rest_prepare_post($response, $post, $request) {
 		global $wpdb;
@@ -343,7 +349,7 @@ class Sublanguage_current extends Sublanguage_core {
 				
 			} else {
 				
-				if ($this->is_sub()) {
+				if ($this->is_sub($this->edit_language)) { // -> should never be the case
 					
 					// get untranslated post
 					$post = $wpdb->get_row($wpdb->prepare("SELECT ID, post_content, post_excerpt, post_title, post_name FROM $wpdb->posts WHERE ID = %d", $post->ID));
@@ -359,13 +365,7 @@ class Sublanguage_current extends Sublanguage_core {
 			
 		}
 		
-		if (preg_match('#'.$this->gutenberg_language_reg.'#', $data['content']['raw'], $matches)) {
-						
-			$data['content']['raw'] = str_replace($matches[0], '', $data['content']['raw']);
-		
-		}
-		
-		$data['content']['raw'] .= sprintf($this->gutenberg_language_tag, $this->edit_language->post_name);
+		$data['meta']['edit_language'] = $this->edit_language->post_name;
 		
 		$response->set_data($data);
 		
@@ -374,6 +374,180 @@ class Sublanguage_current extends Sublanguage_core {
 	
 	
 	
+	
+	/**
+	 * Save meta with post revision (REST only, classic editor ajax calls override it)
+	 *
+	 * @hook 'save_post_revision'
+	 *
+	 * @from 2.6
+	 */
+	public function save_post_revision($revision_id, $revision) {
+		
+		if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+			
+			// skip when doing autosave because data are not available.
+			// -> just let autosave do weird stuffs
+			return;
+			
+		}
+		
+		if (isset($this->meta)) {
+			
+			$post = get_post($revision->post_parent);
+			$post_id = $post->ID;
+			
+			if ($this->get_post_type_option($post->post_type, 'enable_revisions')) {
+			
+				foreach ($this->get_languages() as $language) {
+				
+					$prefix = $this->get_prefix($language);
+				
+					foreach (array('post_title', 'post_content', 'post_excerpt') as $field) {
+					
+						if ($this->is_sub($language)) {
+												
+							if (isset($this->meta[$prefix.$field])) {
+						
+								if ($this->meta[$prefix.$field]) {
+							
+									update_metadata('post', $revision_id, $prefix.$field, $this->meta[$prefix.$field]);
+						
+								} else {
+				
+									delete_metadata('post', $revision_id, $prefix.$field);
+								}
+						
+							} else {
+						
+								$meta_value = get_metadata('post', $post_id, $prefix.$field, true);
+						
+								if ($meta_value) {
+							
+									update_metadata('post', $revision_id, $prefix.$field, $meta_value);
+							
+								}
+						
+							}
+						
+						}
+				
+					}
+				
+				}
+				
+			}
+
+		}
+		
+	}
+	
+	/**
+	 * Restore meta data when restoring revision
+	 *
+	 * @hook 'wp_restore_post_revision'
+	 *
+	 * @from 2.6
+	 */
+	public function restore_revision( $post_id, $revision_id ) {
+
+		foreach ($this->get_languages() as $language) {
+			
+			if ($this->is_sub($language)) {
+				
+				$prefix = $this->get_prefix($language);
+				
+				foreach (array('post_title', 'post_content', 'post_excerpt') as $field) {
+					
+					$value  = get_metadata('post', $revision_id, $prefix.$field, true );
+					
+					if ($value) {
+						
+						update_metadata('post', $post_id, $prefix.$field, $value);
+						
+					} else {
+						
+						delete_metadata('post', $post_id, $prefix.$field);
+						
+					}
+					
+				}
+					
+			}
+			
+		}
+
+	}
+	
+	
+	/**
+	 * Add revision field
+	 *
+	 * @hook '_wp_post_revision_fields'
+	 *
+	 * @from 2.6
+	 */
+	public function revision_fields($fields, $post) {
+		
+		if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE && isset($this->meta) && empty($this->meta)) {
+			
+			// -> it means an autosave is done using rest. 
+			// Rest autosave cannot work because meta data are not sent. Editing language is unknown.
+			// -> revision will save potentially all wrong but that's life
+			
+			return $fields;
+		
+		}
+		
+		if ($this->get_post_type_option($post['post_type'], 'enable_revisions')) {
+		
+			foreach ($this->get_languages() as $language) {
+			
+				if ($this->is_sub($language)) {
+			
+					$prefix = $this->get_prefix($language);
+					$fields[$prefix.'post_title'] = sprintf(__('Title (%s)', 'sublanguage'), $language->post_title);
+					$fields[$prefix.'post_content'] = sprintf(__('Content (%s)', 'sublanguage'), $language->post_title);
+					$fields[$prefix.'post_excerpt'] = sprintf(__('Excerpt (%s)', 'sublanguage'), $language->post_title);
+			
+					add_filter('_wp_post_revision_field_'.$prefix.'post_title', array($this, 'revision_field'), 10, 3);
+					add_filter('_wp_post_revision_field_'.$prefix.'post_content', array($this, 'revision_field'), 10, 3);
+					add_filter('_wp_post_revision_field_'.$prefix.'post_excerpt', array($this, 'revision_field'), 10, 3);
+			
+				}
+			
+			}
+			
+		}
+		
+		return $fields;
+	}
+	
+	/**
+	 * Fix revision check for change. Overrided in Sublanguage_admin.
+	 *
+	 * @filter 'wp_save_post_revision_post_has_changed'
+	 *
+	 * @from 2.6
+	 */
+	public function revision_post_has_changed($post_has_changed, $last_revision, $post) {
+		
+		return $post_has_changed; // actually not used in Gutenberg!
+	
+	}
+	
+	/**
+	 * Add revision field
+	 *
+	 * @hook '_wp_post_revision_field_{$field}'
+	 *
+	 * @from 2.6
+	 */
+	public function revision_field($value, $field, $revision) {
+		
+		return get_metadata( 'post', $revision->ID, $field, true );
+
+	}
 	
 	/**
 	 * Helper for parse_query(). Check if query is to be translated
@@ -1483,7 +1657,11 @@ class Sublanguage_current extends Sublanguage_core {
 		);
 		
 		foreach($this->get_languages() as $language) {
-		
+			
+			$this->set_language($language);
+			$home_url = home_url();
+			$this->restore_language();
+			
 			$sublanguage['languages'][] = array(
 				'name' => $language->post_title,
 				'slug' => $language->post_name,
@@ -1493,7 +1671,8 @@ class Sublanguage_current extends Sublanguage_core {
 				'locale' => $language->post_content,
 				'isDefault' => $this->is_default($language),
 				'isMain' => $this->is_main($language),
-				'isSub' => $this->is_sub($language)
+				'isSub' => $this->is_sub($language),
+				'home_url' => $home_url
 			);
 		
 		}

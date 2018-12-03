@@ -72,6 +72,12 @@
 				<?php } ?>
 			</tr>
 			<tr>
+				<th>Revisions</th>
+				<td>
+					<label><input type="checkbox" name="enable_revisions" value="1" <?php if ($this->get_post_type_option($post_type, 'enable_revisions')) echo 'checked' ?>/><?php echo __('Save language data in revisions', 'sublanguage'); ?></label>
+				</td>
+			</tr>
+			<tr>
 				<th>Gutenberg</th>
 				<td>
 					<label><input type="checkbox" name="gutenberg_async_switch" value="1" <?php if (!$this->get_post_type_option($post_type, 'gutenberg_metabox_compat')) echo 'checked' ?>/><?php echo __('Use asynchronous language switch in Gutenberg. NOT COMPATIBLE WITH METABOXES!', 'sublanguage'); ?></label>

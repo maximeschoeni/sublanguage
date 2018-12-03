@@ -29,15 +29,15 @@ echo wp_nonce_field( 'sublanguage_switch_language', 'sublanguage_switch_language
 		var links = tab.querySelectorAll("a");
 		for (var i = 0; i < links.length; i++) {
 			links[i].addEventListener("click", function(event) {
+				event.preventDefault();
 				var submit = getSubmitBtn();
 				var input = document.getElementById("sublanguage-language-input");
-				input.value = event.target.dataset.language;
+				input.value = this.getAttribute("data-language");
 				if (submit) {
 					submit.click();
 				} else {
 					input.form.submit();
 				}
-				event.preventDefault();
 			});
 		}
 	})();

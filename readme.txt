@@ -19,7 +19,7 @@ Sublanguage is a lightweight multilanguage plugin for wordpress.
 - translatability: define which content is translatable or not
 - inheritance: untranslated or untranslatable contents inherit original values
 - URL rewrite: translate posts and terms permalinks and sub-pages path
-- quick edit: tinyEditor button and quick edit interface
+- support revisions
 - support multisite
 - support ajax
 - extendable
@@ -289,6 +289,16 @@ Use any language instead, then update, then edit language title, slug and locale
 
 
 == Changelog ==
+
+= 2.6 =
+
+- Support revisions in classic editor
+- Partial support revisions in Gutenberg (autosave still bugged)
+- Gutenberg UI remove language manager stupid block
+- Fix bug when using differently parented pages with same slug
+- Fix bug in Gutenberg when saving twice in sub-language 
+- Fix bug when inserting empty post and sub-language data not empty
+- Fix permalink correct language slug in Gutenberg
 
 = 2.5 =
 
