@@ -33,12 +33,11 @@ echo wp_nonce_field( 'sublanguage_switch_language', 'sublanguage_switch_language
 				var submit = getSubmitBtn();
 				var input = document.getElementById("sublanguage-language-input");
 				input.value = this.getAttribute("data-language");
-				if (submit) {
-					submit.click();
-				} else {
-					input.form.submit();
-				}
+				input.form.submit();
 			});
 		}
+		window.onbeforeunload = function(e) {
+			e.stopImmediatePropagation();
+		};
 	})();
 </script>

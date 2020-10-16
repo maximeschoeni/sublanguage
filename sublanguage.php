@@ -4,7 +4,7 @@ Plugin Name: Sublanguage
 Plugin URI: http://sublanguageplugin.wordpress.com
 Description: Plugin for building a site with multiple languages
 Author: Maxime Schoeni
-Version: 2.5
+Version: 2.7
 Author URI: http://sublanguageplugin.wordpress.com
 Text Domain: sublanguage
 Domain Path: /languages
@@ -31,49 +31,43 @@ require( plugin_dir_path( __FILE__ ) . 'class-core.php');
 require( plugin_dir_path( __FILE__ ) . 'class-current.php');
 require( plugin_dir_path( __FILE__ ) . 'class-rewrite.php');
 
+
+
+global $sublanguage, $sublanguage_admin; // -> $sublanguage_admin is DEPRECATED. Use $sublanguage
+
 if (is_admin()) {
-	
-	global $sublanguage_admin;
-	
-	
+
 	require( plugin_dir_path( __FILE__ ) . 'class-admin.php');
-	
+
 	if (defined('DOING_AJAX') && DOING_AJAX) {
-	
+
 		require( plugin_dir_path( __FILE__ ) . 'class-ajax.php');
-		$sublanguage_admin = new Sublanguage_ajax();
-	
+		$sublanguage = $sublanguage_admin = new Sublanguage_ajax();
+
 	} else {
-		
+
 		require( plugin_dir_path( __FILE__ ) . 'class-admin-ui.php');
-		$sublanguage_admin = new Sublanguage_admin_ui();
-		
+		$sublanguage = $sublanguage_admin = new Sublanguage_admin_ui();
+
 	}
-	
-	register_activation_hook(__FILE__, array($sublanguage_admin, 'activate'));
-	register_deactivation_hook(__FILE__, array($sublanguage_admin, 'desactivate'));
-	
+
+	register_activation_hook(__FILE__, array($sublanguage, 'activate'));
+	register_deactivation_hook(__FILE__, array($sublanguage, 'desactivate'));
+
 } else {
-	
+
 	$options_v2 = get_option('sublanguage');
-		
+
 	if (!$options_v2 || empty($options_v2['version']) || version_compare($options_v2['version'], '2.0') < 0 || empty($options_v2['db_version']) || version_compare($options_v2['db_version'], '2.0') < 0) {
-	
+
 		// run compat
 		require( plugin_dir_path( __FILE__ ) . 'compat/sublanguage.php');
-	
+
 	} else {
-	
-		global $sublanguage;
-		
+
 		require( plugin_dir_path( __FILE__ ) . 'class-site.php');
 		$sublanguage = new Sublanguage_site();
-		
+
 	}
 
 }
-
-
-
-
-

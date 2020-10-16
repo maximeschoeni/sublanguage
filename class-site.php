@@ -1,6 +1,6 @@
 <?php 
 
-class Sublanguage_site extends Sublanguage_current {
+class Sublanguage_site extends Sublanguage_rewrite {
 	
 	/**
 	 * @var boolean
