@@ -298,6 +298,10 @@ Use any language instead, then update, then edit language title, slug and locale
 
 == Changelog ==
 
+= 2.7.1 =
+
+- Fix bug in Sublanguage::catch_translation: in some case (eg. querying posts page) query_vars "page" property become the pagename, leading to 404 error.
+
 = 2.7 =
 
 - Fix bug when data is not a string in /js/ajax.js
