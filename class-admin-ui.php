@@ -429,7 +429,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 					// custom post type archive
 					if (isset($_POST['cpt_archive'])) {
 
-						$cpt_archive = isset($_POST['cpt_archive']) ? array_map(array($this, 'sanitize_slug'), $_POST['cpt_archive']) : array();
+						$cpt_archive = isset($_POST['cpt_archive']) ?  $_POST['cpt_archive'] : array();
 
 						if (!isset($translations['cpt_archive'][$post_type]) || $translations['cpt_archive'][$post_type] !== $cpt_archive) {
 							$translations['cpt_archive'][$post_type] = $cpt_archive;
