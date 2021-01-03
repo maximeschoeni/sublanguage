@@ -38,13 +38,15 @@ class Sublanguage_rewrite extends Sublanguage_current {
 	 *
 	 * @filter 'register_post_type_args'
 	 * @from 2.0
+	 * @from 2.8 also activate when rewrite is not set
 	 */
 	public function register_post_type_args($args, $post_type) {
 
-		if ($this->is_post_type_translatable($post_type) && isset($args['rewrite']) && $args['rewrite'] !== false && get_option('permalink_structure') != '') {
+		if ($this->is_post_type_translatable($post_type) && (!isset($args['rewrite']) || $args['rewrite'] !== false) && get_option('permalink_structure') != '') {
 
 			// -> WP_Post_Type::set_props()
-			if ( ! is_array( $args['rewrite'] ) ) {
+
+			if (!isset($args['rewrite']) || !is_array( $args['rewrite'] ) ) {
 				$args['rewrite'] = array();
 			}
 			if ( empty( $args['rewrite']['slug'] ) ) {

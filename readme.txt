@@ -2,8 +2,8 @@
 Contributors: maximeschoeni
 Tags: multilanguage, multilingual, language, translation
 Requires at least: 4.5
-Tested up to: 5.1
-Stable tag: 2.6
+Tested up to: 5.6
+Stable tag: 2.7.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -297,6 +297,11 @@ Use any language instead, then update, then edit language title, slug and locale
 
 
 == Changelog ==
+
+= 2.8 =
+
+- Allow special characters in cpt archive url or slug
+- Activate rewrite also when property is not set when registering post type
 
 = 2.7.1 =
 

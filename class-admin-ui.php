@@ -578,10 +578,11 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	 * Sanitize slug
 	 *
 	 * @from 2.3
+	 * @from 2.8 use 'sanitize_text_field' instead of 'sanitize_title'
 	 */
 	public function sanitize_slug($slug) {
 
-		return sanitize_title($slug);
+		return sanitize_text_field($slug);
 
 	}
 
