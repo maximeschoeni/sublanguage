@@ -1531,23 +1531,25 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 
 		if (isset($post_id, $data['sublanguages'], $data['post_type']) && $this->is_post_type_translatable($data['post_type'])) {
 
-			foreach ($data['sublanguages'] as $sub_data) {
+				foreach ($data['sublanguages'] as $sub_data) {
 
-				if (isset($sub_data['language'])) {
+					if (isset($sub_data['language'])) {
 
-					$sub_data['ID'] = $post_id;
-					$sub_data['post_type'] = $data['post_type'];
-					$sub_data['post_status'] = get_post_field('post_status', $post_id);
+						$sub_data['ID'] = $post_id;
+						$sub_data['post_type'] = $data['post_type'];
+						$sub_data['post_status'] = get_post_field('post_status', $post_id);
 
-					$language = $this->find_language($sub_data['language']);
+						$language = $this->find_language($sub_data['language']);
 
-					if (isset($language)) {
+						if (isset($language)) {
 
-						foreach ($this->fields as $field) {
+							foreach ($this->fields as $field) {
 
-							if (isset($sub_data[$field])) {
+								if (isset($sub_data[$field])) {
 
-								update_post_meta($post_id, $this->create_prefix($language->post_name).$field, $sub_data[$field]);
+									update_post_meta($post_id, $this->create_prefix($language->post_name).$field, $sub_data[$field]);
+
+								}
 
 							}
 
@@ -1556,8 +1558,6 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 					}
 
 				}
-
-			}
 
 		}
 
