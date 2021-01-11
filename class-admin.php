@@ -1488,7 +1488,7 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 	 *
 	 *		@int 	$ID (Optional) post Id
 	 *		@string $post_name (Optional) post name
-	 *		@string $post_type (Optional) post type. Required if ID or post_name is not set
+	 *		@string $post_type (Optional) post type.
 	 *		@string $post_title (Optional) post title
 	 *		@string $post_content (Optional) post content
 	 *		@string $post_status (Optional) post status
@@ -1529,25 +1529,30 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 
 		}
 
-		if (isset($post_id, $data['sublanguages'], $data['post_type']) && $this->is_post_type_translatable($data['post_type'])) {
+		if (isset($post_id, $data['sublanguages'])){
+			$post_type=get_post_type($post_id);
 
-			foreach ($data['sublanguages'] as $sub_data) {
+			if ($post_type && $this->is_post_type_translatable($post_type)) {
 
-				if (isset($sub_data['language'])) {
+				foreach ($data['sublanguages'] as $sub_data) {
 
-					$sub_data['ID'] = $post_id;
-					$sub_data['post_type'] = $data['post_type'];
-					$sub_data['post_status'] = get_post_field('post_status', $post_id);
+					if (isset($sub_data['language'])) {
 
-					$language = $this->find_language($sub_data['language']);
+						$sub_data['ID'] = $post_id;
+						$sub_data['post_type'] = $post_type;
+						$sub_data['post_status'] = get_post_field('post_status', $post_id);
 
-					if (isset($language)) {
+						$language = $this->find_language($sub_data['language']);
 
-						foreach ($this->fields as $field) {
+						if (isset($language)) {
 
-							if (isset($sub_data[$field])) {
+							foreach ($this->fields as $field) {
 
-								update_post_meta($post_id, $this->create_prefix($language->post_name).$field, $sub_data[$field]);
+								if (isset($sub_data[$field])) {
+
+									update_post_meta($post_id, $this->create_prefix($language->post_name).$field, $sub_data[$field]);
+
+								}
 
 							}
 
@@ -1558,7 +1563,7 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 				}
 
 			}
-
+			
 		}
 
 	}
