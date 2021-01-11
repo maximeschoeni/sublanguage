@@ -1503,6 +1503,7 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 	 *				@string $post_title (Optional) Translation title
 	 *				@string $post_content (Optional) Translation content
 	 *				@string $post_excerpt (Optional) Translation excerpt
+	 *				@array $meta_input (Optional) Array of post meta values keyed by their post meta key.
 	 *			}
 	 *		}
 	 *		@mixed $xxx Refer to wp_insert_post() $postarr for a complete list of parameters
@@ -1529,18 +1530,15 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 
 		}
 
-		if (isset($post_id, $data['sublanguages'])){
-			$post_type=get_post_type($post_id);
+		if (isset($post_id, $data['sublanguages'])) {
+
+			$post_type = get_post_type($post_id);
 
 			if ($post_type && $this->is_post_type_translatable($post_type)) {
 
 				foreach ($data['sublanguages'] as $sub_data) {
 
 					if (isset($sub_data['language'])) {
-
-						$sub_data['ID'] = $post_id;
-						$sub_data['post_type'] = $post_type;
-						$sub_data['post_status'] = get_post_field('post_status', $post_id);
 
 						$language = $this->find_language($sub_data['language']);
 
@@ -1556,6 +1554,16 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 
 							}
 
+							if (isset($sub_data['meta_input'] && is_array($sub_data['meta_input']))) {
+
+								foreach ($sub_data['meta_input'] as $key => $value) {
+
+									update_post_meta($post_id, $this->create_prefix($language->post_name).$key, $value);
+
+								}
+
+							}
+
 						}
 
 					}
@@ -1563,7 +1571,7 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 				}
 
 			}
-			
+
 		}
 
 	}
