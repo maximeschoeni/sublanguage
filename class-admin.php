@@ -1554,11 +1554,15 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 
 							}
 
-							if (isset($sub_data['meta_input'] && is_array($sub_data['meta_input']))) {
+							if (isset($sub_data['meta_input']) && is_array($sub_data['meta_input'])) {
 
 								foreach ($sub_data['meta_input'] as $key => $value) {
 
-									update_post_meta($post_id, $this->create_prefix($language->post_name).$key, $value);
+									if ($this->is_meta_key_translatable($post_type, $key)) {
+
+										update_post_meta($post_id, $this->create_prefix($language->post_name).$key, $value);
+
+									}
 
 								}
 
