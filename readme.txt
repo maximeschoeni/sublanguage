@@ -2,8 +2,8 @@
 Contributors: maximeschoeni
 Tags: multilanguage, multilingual, language, translation
 Requires at least: 4.5
-Tested up to: 5.6
-Stable tag: 2.7.1
+Tested up to: 5.7
+Stable tag: 2.8
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -300,6 +300,8 @@ Use any language instead, then update, then edit language title, slug and locale
 
 = 2.8 =
 
+- Fix Bug that erase other language content when a post is saved multiple times with Gutenberg.
+- Fix Bug when a post has a translated post_name for main language causing a canonical loop
 - Allow special characters in cpt archive url or slug
 - Activate rewrite also when property is not set when registering post type
 

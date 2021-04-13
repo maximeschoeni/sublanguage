@@ -43,6 +43,9 @@ class Sublanguage_site extends Sublanguage_rewrite {
 			add_filter('tag_cloud_sort', array($this,'translate_tag_cloud'), 10, 2);
 			add_action('init', array($this, 'init'));
 
+
+
+
 			$this->add_options_filters();
 
 		}
@@ -71,6 +74,9 @@ class Sublanguage_site extends Sublanguage_rewrite {
 
 		// link filters only after request have been parsed
 		add_action('parse_request', array($this, 'add_links_translation_filters'));
+
+		// link filter on rest request because 'parse_request' is not triggered
+		add_action('rest_api_init', array($this, 'add_links_translation_filters'));
 
 		// login
 		add_filter('login_url', array($this, 'translate_login_url'));
@@ -823,7 +829,7 @@ class Sublanguage_site extends Sublanguage_rewrite {
 					if ($parent && $post->post_parent == $parent->ID) {
 
 						// Post found
-						if ($this->is_post_type_translatable($post->post_type) && get_post_meta($post->ID, $this->get_prefix() . 'post_name', true)) {
+						if ($this->is_sub() && $this->is_post_type_translatable($post->post_type) && get_post_meta($post->ID, $this->get_prefix() . 'post_name', true)) {
 
 							// But there is a specific translation for this post
 							$this->canonical = false;
@@ -837,7 +843,7 @@ class Sublanguage_site extends Sublanguage_rewrite {
 				} else if (!$post->post_parent) {
 
 					// Post found
-					if ($this->is_post_type_translatable($post->post_type) && get_post_meta($post->ID, $this->get_prefix() . 'post_name', true)) {
+					if ($this->is_sub() && $this->is_post_type_translatable($post->post_type) && get_post_meta($post->ID, $this->get_prefix() . 'post_name', true)) {
 
 						// But there is a specific translation for this post
 						$this->canonical = false;

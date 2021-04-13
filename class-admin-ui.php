@@ -644,7 +644,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 		$meta_keys = apply_filters("sublanguage_post_type_metakeys", $meta_keys, $post_type);
 
 		ksort($meta_keys);
-		
+
 		return $meta_keys;
 
 	}
@@ -2129,13 +2129,15 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 		wp_register_script(
 			'sublanguage-gutenberg',
 			plugins_url( 'js/gutenberg.js', __FILE__ ),
-			array( 'wp-blocks', 'wp-element' )
+			array( 'wp-blocks', 'wp-element' ),
+			'1'
 		);
 
 		wp_register_style(
 			'sublanguage-gutenberg-styles',
 			plugins_url('css/gutenberg.css', __FILE__),
-			array('wp-edit-blocks')
+			array('wp-edit-blocks'),
+			'1'
 		);
 
 		if (function_exists('register_block_type')) {

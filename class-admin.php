@@ -1488,7 +1488,7 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 	 *
 	 *		@int 	$ID (Optional) post Id
 	 *		@string $post_name (Optional) post name
-	 *		@string $post_type (Optional) post type.
+	 *		@string $post_type (Optional) post type. Required if ID or post_name is not set
 	 *		@string $post_title (Optional) post title
 	 *		@string $post_content (Optional) post content
 	 *		@string $post_status (Optional) post status
@@ -1503,7 +1503,6 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 	 *				@string $post_title (Optional) Translation title
 	 *				@string $post_content (Optional) Translation content
 	 *				@string $post_excerpt (Optional) Translation excerpt
-	 *				@array $meta_input (Optional) Array of post meta values keyed by their post meta key.
 	 *			}
 	 *		}
 	 *		@mixed $xxx Refer to wp_insert_post() $postarr for a complete list of parameters
@@ -1530,41 +1529,25 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 
 		}
 
-		if (isset($post_id, $data['sublanguages'])) {
+		if (isset($post_id, $data['sublanguages'], $data['post_type']) && $this->is_post_type_translatable($data['post_type'])) {
 
-			$post_type = get_post_type($post_id);
+			foreach ($data['sublanguages'] as $sub_data) {
 
-			if ($post_type && $this->is_post_type_translatable($post_type)) {
+				if (isset($sub_data['language'])) {
 
-				foreach ($data['sublanguages'] as $sub_data) {
+					$sub_data['ID'] = $post_id;
+					$sub_data['post_type'] = $data['post_type'];
+					$sub_data['post_status'] = get_post_field('post_status', $post_id);
 
-					if (isset($sub_data['language'])) {
+					$language = $this->find_language($sub_data['language']);
 
-						$language = $this->find_language($sub_data['language']);
+					if (isset($language)) {
 
-						if (isset($language)) {
+						foreach ($this->fields as $field) {
 
-							foreach ($this->fields as $field) {
+							if (isset($sub_data[$field])) {
 
-								if (isset($sub_data[$field])) {
-
-									update_post_meta($post_id, $this->create_prefix($language->post_name).$field, $sub_data[$field]);
-
-								}
-
-							}
-
-							if (isset($sub_data['meta_input']) && is_array($sub_data['meta_input'])) {
-
-								foreach ($sub_data['meta_input'] as $key => $value) {
-
-									if ($this->is_meta_key_translatable($post_type, $key)) {
-
-										update_post_meta($post_id, $this->create_prefix($language->post_name).$key, $value);
-
-									}
-
-								}
+								update_post_meta($post_id, $this->create_prefix($language->post_name).$field, $sub_data[$field]);
 
 							}
 

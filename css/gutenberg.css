@@ -8,9 +8,10 @@ ul.gutenberg-language-switch li {
 ul.gutenberg-language-switch li a {
 	display: block;
 	height: 100%;
-	padding: 20px 12px;
-	box-sizing: border-box;
-	border-bottom: 1px solid #e2e4e7;
+	padding: 20px 10px;
+	min-width: 50px;
+	text-align: center;
+	/* border-bottom: 1px solid #e2e4e7; */
 	border-right: 1px solid #e2e4e7;
 	text-decoration: none;
 	cursor: pointer;
