@@ -292,6 +292,10 @@ class Sublanguage_current extends Sublanguage_core {
 
 		}
 
+		// @from v2.9
+		$prepared_post->meta_input = $this->meta;
+
+		// -> will only update meta if post supports include 'meta-fields' ... (and will update twice actually)
 		$request->set_param('meta', $this->meta);
 
 		return $prepared_post;
@@ -335,16 +339,25 @@ class Sublanguage_current extends Sublanguage_core {
 
 				if ($language === $this->edit_language) {
 
-					$data['content']['raw'] = isset($meta[$content_field]) ? $meta[$content_field] : get_post_meta($post->ID, $content_field, true);
+					$data['content']['raw'] = get_post_meta($post->ID, $content_field, true);
 					$data['content']['rendered'] = post_password_required( $post ) ? '' : apply_filters( 'the_content', $data['content']['raw'] );
 
-					$data['excerpt']['raw'] = isset($meta[$excerpt_field]) ? $meta[$excerpt_field] : get_post_meta($post->ID, $excerpt_field, true);
+					$data['excerpt']['raw'] = get_post_meta($post->ID, $excerpt_field, true);
 					$data['excerpt']['rendered'] = apply_filters( 'the_excerpt', $data['excerpt']['raw'] );
 
-					$data['title']['raw'] = isset($meta[$title_field]) ? $meta[$title_field] : get_post_meta($post->ID, $title_field, true);
+					$data['title']['raw'] = get_post_meta($post->ID, $title_field, true);
 					$data['title']['rendered'] = apply_filters( 'the_title', $data['title']['raw'], $post->ID );
 
+
 					$data['slug'] = isset($meta[$name_field]) ? $meta[$name_field] : get_post_meta($post->ID, $name_field, true);
+
+				} else {
+
+					// @from v2.9
+					$data['meta'][$content_field] = get_post_meta($post->ID, $content_field, true);
+					$data['meta'][$excerpt_field] = get_post_meta($post->ID, $excerpt_field, true);
+					$data['meta'][$title_field] = get_post_meta($post->ID, $title_field, true);
+					$data['meta'][$name_field] = get_post_meta($post->ID, $name_field, true);
 
 				}
 

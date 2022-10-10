@@ -2,7 +2,7 @@
 Contributors: maximeschoeni
 Tags: multilanguage, multilingual, language, translation
 Requires at least: 4.5
-Tested up to: 5.7
+Tested up to: 6.0.2
 Stable tag: 2.8
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -297,6 +297,11 @@ Use any language instead, then update, then edit language title, slug and locale
 
 
 == Changelog ==
+
+= 2.9 =
+
+- Fix Bug causing problems when saving posts in block editor, when "custom-fields" not in post supports
+- Replace deprecated js code for block editor API
 
 = 2.8 =
 
