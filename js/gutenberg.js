@@ -116,22 +116,26 @@ document.addEventListener("DOMContentLoaded", function() {
 			// -> force edit_language in edits data
 			// -> spoiler: this is ugly!
 
-			var meta = wp.data.select("core/editor").getPostEdits().meta || {};
-			if (!meta.edit_language) {
-				meta.edit_language = currentLanguage.slug;
-				meta.force_update = Date.now();
-				wp.data.dispatch("core/editor").editPost({meta: meta});
+			if (currentLanguage) {
+				var meta = wp.data.select("core/editor").getPostEdits().meta || {};
+				if (!meta.edit_language) {
+					meta.edit_language = currentLanguage.slug;
+					meta.force_update = Date.now();
+					wp.data.dispatch("core/editor").editPost({meta: meta});
 
-				// @from 2.9
-				// -> put back language parameter in url (dunno why it went away...)
-				var postType = wp.data.select("core/editor").getCurrentPostType();
-				var searchParams = new URLSearchParams(location.search);
-				if (sublanguage.post_type_options[postType].gutenberg_metabox_compat && currentLanguage && currentLanguage.isSub && !searchParams.has("language")) {
-					searchParams.set("language", currentLanguage.slug);
-					history.replaceState({}, null, "?"+searchParams.toString());
+					// @from 2.9
+					// -> put back language parameter in url (dunno why it went away...)
+					var postType = wp.data.select("core/editor").getCurrentPostType();
+					var searchParams = new URLSearchParams(location.search);
+					if (sublanguage.post_type_options[postType].gutenberg_metabox_compat && currentLanguage && currentLanguage.isSub && !searchParams.has("language")) {
+						searchParams.set("language", currentLanguage.slug);
+						history.replaceState({}, null, "?"+searchParams.toString());
+					}
+
 				}
-
 			}
+
+
 
 			setTimeout(regenLanguage, 200);
 		}
@@ -187,4 +191,12 @@ document.addEventListener("DOMContentLoaded", function() {
 
 
 
+
+
+
+});
+
+
+window.addEventListener('beforeunload', function (event) {
+	event.stopImmediatePropagation();
 });

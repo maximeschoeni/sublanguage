@@ -64,6 +64,11 @@ class Sublanguage_current extends Sublanguage_core {
 	var $edit_language;
 
 	/**
+	 * @from 2.10
+	 */
+	var $meta;
+
+	/**
 	 * Register all filters needed for admin and front-end
 	 *
 	 * @from 1.4.7
@@ -1420,7 +1425,15 @@ class Sublanguage_current extends Sublanguage_core {
 
 				$post_type_obj = get_post_type_object($post->post_type);
 
-				$translated_cpt = ($post_type_obj->rewrite['with_front']) ? $wp_rewrite->front : $wp_rewrite->root;
+				if (is_array($post_type_obj->rewrite) && isset($post_type_obj->rewrite['with_front']) && $post_type_obj->rewrite['with_front']) {
+
+					$translated_cpt = $wp_rewrite->front;
+
+				} else {
+
+					$translated_cpt = $wp_rewrite->root;
+
+				}
 
 				$translated_cpt .= $this->translate_cpt($post->post_type, null, $post->post_type);
 

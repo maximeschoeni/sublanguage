@@ -67,8 +67,9 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 		// add language meta box in appearance > menu
 		add_action('admin_init', array($this, 'add_language_meta_box'));
 
+		// disabled in 2.10
 		// register CSS and JS for option translation page
-		add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_scripts'));
+		// add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_scripts'));
 
 		// enqueue ajax script
 		add_action('admin_enqueue_scripts', array($this, 'ajax_enqueue_scripts'));
@@ -76,18 +77,15 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 		// add option translation page to tools menu
 		add_action('admin_menu', array($this, 'admin_menu'));
 
+		// feature disabled in 2.10
 		// Editor button
-		add_action('admin_head', array($this, 'load_editor_button'));
-		add_action('load-post.php', array($this, 'load_editor_page'));
+		// add_action('admin_head', array($this, 'load_editor_button'));
+		// add_action('load-post.php', array($this, 'load_editor_page'));
 
-		// add placeholder mce plugin (@from 2.7)
-// 		add_filter('mce_external_plugins', array($this, 'register_placeholder_plugin'));
-// 		add_filter('the_editor', array($this, 'add_editor_placeholder'));
-// 		add_filter('wp_editor_settings', array($this, 'prepare_placeholder'), 10, 2);
-
+		// feature disabled in 2.10
 		// Register for Tinymce Advanced Plugin
-		add_filter('tadv_allowed_buttons', array($this, 'tadv_register_button'));
-		add_action('admin_head', array($this, 'tadv_set_icon'));
+		// add_filter('tadv_allowed_buttons', array($this, 'tadv_register_button'));
+		// add_action('admin_head', array($this, 'tadv_set_icon'));
 
 		// Flush rewrite rules if needed
 		add_action('wp_loaded', array($this, 'flush_rewrite_rules'), 12);
@@ -107,16 +105,12 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	 *
 	 * @filter 'mce_external_plugins'
 	 * @from 2.7
+	 * @removed from 2.10
 	 */
 	public function register_placeholder_plugin( $plugins ) {
 
-		if ($this->is_post_type_translatable(get_post_type())) {
+		trigger_error('feature is removed and function has been disabled, Sublanguage v2.10');
 
- 			$plugins['placeholder'] = plugin_dir_url( __FILE__ ) . 'js/mce.placeholder.js';
-
-		}
-
-		return $plugins;
 	}
 
 	/**
@@ -124,15 +118,11 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	 *
 	 * @filter 'wp_editor_settings'
 	 * @from 2.7
+	 * @removed from 2.10
 	 */
 	public function prepare_placeholder($settings, $editor_id) {
-		global $post;
 
-		if ($editor_id === 'content' && isset($post)) {
-
-			$this->editor_placeholder = get_post($post->ID)->post_content;
-
-		}
+		trigger_error('feature is removed and function has been disabled, Sublanguage v2.10');
 
 	}
 
@@ -141,18 +131,12 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	 *
 	 * @filter 'the_editor'
 	 * @from 2.7
+	 * @removed from 2.10
 	 */
 	public function add_editor_placeholder($textarea_html) {
 
-		if ($this->is_post_type_translatable(get_post_type()) && isset($this->editor_placeholder)) {
+		trigger_error('feature is removed and function has been disabled, Sublanguage v2.10');
 
-			$textarea_html = preg_replace( '/<textarea/', "<textarea placeholder=\"{$this->editor_placeholder}\"", $textarea_html );
-
-			$this->editor_placeholder = null;
-
-		}
-
-		return $textarea_html;
 	}
 
 
@@ -278,15 +262,16 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 
 		}
 
+		// disabled in 2.10
 		// options translate page in tools
-		add_submenu_page (
-			'tools.php',
-			'Translate Options',
-			'Translate Options',
-			'manage_options',
-			$this->option_page_name,
-			array($this, 'print_page')
-		);
+		// add_submenu_page (
+		// 	'tools.php',
+		// 	'Translate Options',
+		// 	'Translate Options',
+		// 	'manage_options',
+		// 	$this->option_page_name,
+		// 	array($this, 'print_page')
+		// );
 
 
 	}
@@ -784,10 +769,11 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	 *
 	 * @hook for 'post_updated'
 	 * @from 2.0
+   * @from 2.10 Remove post_name unchanged condition
 	 */
 	public function update_page($post_ID, $post_after, $post_before) {
 
-		if (($post_after->post_type === 'page' || $post_before->post_type === 'page') && $post_after->post_name !== $post_before->post_name && ($post_after->post_parent === 0 || $post_before->post_parent === 0) && ($post_after->post_status === 'publish' || $post_before->post_status === 'publish')) {
+		if (($post_after->post_type === 'page' || $post_before->post_type === 'page') && ($post_after->post_parent === 0 || $post_before->post_parent === 0) && ($post_after->post_status === 'publish' || $post_before->post_status === 'publish')) {
 
 			$this->update_option('need_flush', 1);
 
@@ -1822,20 +1808,11 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	 * Renders Translate Options page
 	 *
 	 * @from 1.5
+	 * @removed from 2.10
 	 */
 	public function print_page() {
-		global $wpdb;
 
-		$sql_blacklist = "option_name NOT IN ('" . implode("', '", array_map('esc_sql', $this->get_options_blacklist())) . "')";
-
-		$options = $wpdb->get_results( "
-			SELECT option_name, option_value
-			FROM $wpdb->options
-			WHERE option_name NOT LIKE '_transient%' AND option_name NOT LIKE '_site_transient%' AND $sql_blacklist
-			ORDER BY option_name"
-		);
-
-		include plugin_dir_path( __FILE__ ) . 'include/option-page.php';
+		trigger_error('feature is removed and function has been disabled, Sublanguage v2.10');
 
 	}
 
@@ -1843,107 +1820,11 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	 * List of options that should not be translated
 	 *
 	 * @from 1.5
+	 * @removed from 2.10
 	 */
 	private function get_options_blacklist() {
 
-		return apply_filters('sublanguage_options_blacklist', array(
-			'active_plugins',
-			'admin_email',
-			'auto_core_update_notified',
-			'avatar_default',
-			'avatar_rating',
-			'blacklist_keys',
-			'blog_charset',
-			'blog_public',
-			'can_compress_scripts',
-			'category_base',
-			'close_comments_days_old',
-			'close_comments_for_old_posts',
-			'comment_max_links',
-			'comment_moderation',
-			'comment_order',
-			'comment_registration',
-			'comment_whitelist',
-			'comments_notify',
-			'comments_per_page',
-			'cron',
-			'db_upgraded',
-			'db_version',
-			'default_category',
-			'default_comment_status',
-			'default_comments_page',
-			'default_email_category',
-			'default_link_category',
-			'default_ping_status',
-			'default_pingback_flag',
-			'default_post_format',
-			'default_role',
-			'finished_splitting_shared_terms',
-			'gmt_offset',
-			'hack_file',
-			'home',
-			'html_type',
-			'image_default_align',
-			'image_default_link_type',
-			'image_default_size',
-			'initial_db_version',
-			'large_size_h',
-			'large_size_w',
-			'link_manager_enabled',
-			'links_updated_date_format',
-			'mailserver_login',
-			'mailserver_pass',
-			'mailserver_port',
-			'mailserver_url',
-			'medium_large_size_h',
-			'medium_large_size_w',
-			'medium_size_h',
-			'medium_size_w',
-			'moderation_keys',
-			'moderation_notify',
-			'nav_menu_options',
-			'page_comments',
-			'page_for_posts',
-			'page_on_front',
-			'permalink_structure',
-			'ping_sites',
-			'posts_per_page',
-			'posts_per_rss',
-			'recently_activated',
-			'recently_edited',
-			'require_name_email',
-			'rewrite_rules',
-			'rss_use_excerpt',
-			'show_avatars',
-			'show_on_front',
-			'sidebars_widgets',
-			'site_icon',
-			'siteurl',
-			'start_of_week',
-			'sticky_posts',
-			'stylesheet',
-			'sublanguage_options',
-			'sublanguage_translations',
-			'tag_base',
-			'template',
-			'theme_mods_twentyfifteen',
-			'thread_comments',
-			'thread_comments_depth',
-			'thumbnail_crop',
-			'thumbnail_size_h',
-			'thumbnail_size_w',
-			'timezone_string',
-			'uninstall_plugins',
-			'upload_path',
-			'upload_url_path',
-			'uploads_use_yearmonth_folders',
-			'use_balanceTags',
-			'use_smilies',
-			'use_trackback',
-			'users_can_register',
-			'wp_user_roles',
-			'WPLANG'
-		));
+		trigger_error('feature is removed and function has been disabled, Sublanguage v2.10');
 
 	}
 
@@ -1951,17 +1832,13 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	 * Enqueue javascript and styles on option translation page
 	 *
 	 * @from 1.5
+	 * @removed from 2.10
 	 */
 	 public function admin_enqueue_scripts($hook) {
 
-		if (strpos($hook, "_page_".$this->option_page_name) !== false) {
+		 trigger_error('feature is removed and function has been disabled, Sublanguage v2.10');
 
-			wp_enqueue_style('sublanguage-options-style', plugin_dir_url( __FILE__ ) . 'js/options-style.css');
-			wp_enqueue_script('sublanguage-options', plugin_dir_url( __FILE__ ) . 'js/options.js', array('sublanguage-ajax'), false, true);
-
-		}
-
-	}
+	 }
 
 
 
@@ -1976,54 +1853,42 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	 * @hook 'load-post.php'
 	 *
 	 * @from 1.1
+	 * @removed from 2.10
 	 */
 	public function load_editor_page() {
 
-		$current_screen = get_current_screen();
-
-		if (isset($current_screen->post_type) && $this->is_post_type_translatable($current_screen->post_type) && isset($_GET['post'])) {
-
-			add_action('admin_footer-post.php', array($this, 'print_javascript_post_translations'));
-
-		}
+		trigger_error('feature is removed and function has been disabled, Sublanguage v2.10');
 
 	}
 
 	/**
 	 * @from 1.3
+	 * @removed from 2.10
 	 */
 	public function load_editor_button() {
 
-		$current_screen = get_current_screen();
-
-		if (isset($current_screen->post_type) && $this->is_post_type_translatable($current_screen->post_type) && isset($_GET['post']) && current_user_can( 'edit_posts')) {
-
-			add_filter('mce_buttons', array($this, 'register_tinymce_button'));
-			add_filter('mce_external_plugins', array($this, 'add_tinymce_button'));
-
-		}
+		trigger_error('feature is removed and function has been disabled, Sublanguage v2.10');
 
 	}
 
 	/**
 	 * @from 1.3
+	 * @removed from 2.10
 	 */
 	public function register_tinymce_button( $buttons ) {
 
-		 array_push( $buttons, "sublanguage");
-
-		 return $buttons;
+		trigger_error('feature is removed and function has been disabled, Sublanguage v2.10');
 
 	}
 
 	/**
 	 * @from 1.3
+	 * @removed from 2.10
 	 */
 	public function add_tinymce_button( $plugin_array ) {
 
-		 $plugin_array['sublanguage'] = plugins_url('js/editor-btn.js', __FILE__);
+		trigger_error('feature is removed and function has been disabled, Sublanguage v2.10');
 
-		 return $plugin_array;
 	}
 
 	/**
@@ -2032,49 +1897,11 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	 * @hook 'admin_footer-{...}'
 	 *
 	 * @from 1.3
+	 * @removed from 2.10
 	 */
 	public function print_javascript_post_translations() {
 
-		if (isset($_GET['post'])) {
-
-			$post_id = intval($_GET['post']);
-			$post = get_post($post_id);
-			$screen = get_current_screen();
-
-			if ($post) {
-
-				$languages = $this->get_languages();
-				$data = array();
-
-				$hidden_meta_boxes = get_hidden_meta_boxes( $screen );
-
-				foreach ($languages as $language) {
-
-					$translation_data = array(
-						'lid' => $language->ID,
-						'l' => $language->post_title,
-						'ls' => $language->post_name,
-						'id' => $post_id,
-						't' => $this->translate_post_field($post, 'post_title', $language, ''),
-						'n' => $this->translate_post_field($post, 'post_name', $language, ''),
-						'c' => $this->translate_post_field($post, 'post_content', $language, ''),
-					);
-
-					if (isset($screen->post_type) && post_type_supports($screen->post_type, 'excerpt') && !in_array('postexcerpt', $hidden_meta_boxes)) {
-
-						$translation_data['e'] = $this->translate_post_field($post, 'post_excerpt', $language, '');
-
-					}
-
-					$data[] = $translation_data;
-
-				}
-
-				include plugin_dir_path( __FILE__ ) . 'include/editor-button-script.php';
-
-			}
-
-		}
+		trigger_error('feature is removed and function has been disabled, Sublanguage v2.10');
 
 	}
 
@@ -2084,12 +1911,11 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	 * Hook for 'tadv_allowed_buttons'
 	 *
 	 * @from 1.3
+	 * @removed from 2.10
 	 */
 	public function tadv_register_button($buttons) {
 
-		$buttons['sublanguage'] = 'Translation';
-
-		return $buttons;
+		trigger_error('feature is removed and function has been disabled, Sublanguage v2.10');
 
 	}
 
@@ -2099,17 +1925,12 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 	 * Hook for 'admin_head'
 	 *
 	 * @from 1.3
+	 * @removed from 2.10
 	 */
 	public function tadv_set_icon() {
 
-?>
-<style>
-	.mce-i-sublanguage:before {
-		content: "\f326";
-		font-family: "dashicons";
-	}
-  </style>
-<?php
+		trigger_error('feature is removed and function has been disabled, Sublanguage v2.10');
+
 
 	}
 

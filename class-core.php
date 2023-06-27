@@ -11,7 +11,7 @@ class Sublanguage_core {
 	 *
 	 * @var string
 	 */
-	var $version = '2.9';
+	var $version = '2.10';
 
 	/**
 	 * @from 2.0
@@ -840,7 +840,7 @@ class Sublanguage_core {
 
 		}
 
-		return array_intersect($this->get_taxonomies(), $taxonomies);
+		// return array_intersect($this->get_taxonomies(), $taxonomies);
 	}
 
 	/**
@@ -1488,5 +1488,97 @@ class Sublanguage_core {
 
 		return get_term_meta($term->term_id, $meta_key, $single);
 	}
+
+
+	/**
+	 * find hierarchical post id by path (return post ID not object)
+	 *
+	 * @param string $page_path Page path.
+	 * @param string $post_type Post type.
+	 * @return int|null
+	 *
+	 * @from 2.10
+	 */
+	public function get_page_by_path($page_path, $post_type = 'page', $language = null) {
+    global $wpdb;
+
+    // @from https://developer.wordpress.org/reference/functions/get_page_by_path/
+    $page_path     = rawurlencode( urldecode( $page_path ) );
+    $page_path     = str_replace( '%2F', '/', $page_path );
+    $page_path     = str_replace( '%20', ' ', $page_path );
+    $parts         = explode( '/', trim( $page_path, '/' ) );
+    $parts         = array_map( 'sanitize_title_for_query', $parts );
+
+    // if ($parts && $this->is_post_type_translatable($post_type) && $this->get_language_by($parts[0], 'post_name')) {
+		//
+    //   array_shift($parts);
+		//
+    // }
+
+    $escaped_parts = esc_sql( $parts );
+    $in_string = "'" . implode( "','", $escaped_parts ) . "'";
+
+    $post_type = esc_sql($post_type);
+
+    // $language_slugs = $this->get_language_column('post_name');
+    // $language_slugs = esc_sql($language_slugs);
+    // $language_slugs_in_string = "'" . implode("_post_name','", $post_names) . "_post_name'";
+
+		$prefix = (string) $this->get_prefix($language);
+		$prefix = esc_sql($prefix);
+
+    $sql = "SELECT p.ID, p.post_name, p.post_parent, pm.meta_value FROM $wpdb->posts AS p
+      LEFT JOIN $wpdb->postmeta AS pm ON (p.ID = pm.post_id)
+			WHERE (p.post_name IN ($in_string) || (pm.meta_key = '{$prefix}post_name' AND pm.meta_value IN ($in_string)))
+      	AND p.post_type = '$post_type'
+      GROUP BY p.ID";
+
+    $pages = $wpdb->get_results($sql);
+
+    $find = function($parts) use ($pages, &$find) {
+
+      $slug = array_pop($parts);
+
+      if (count($parts) > 0) {
+
+        $parent = $find($parts);
+
+        if ($parent) {
+
+          $parent_id = $parent->ID;
+
+        }
+
+      } else {
+
+        $parent_id = 0;
+
+      }
+
+      if ($slug && isset($parent_id)) {
+
+        foreach ($pages as $page ) {
+
+          if ($page->post_parent == $parent_id && ($page->post_name === $slug || $page->meta_value === $slug)) {
+
+            return $page;
+
+          }
+
+        }
+
+      }
+
+    };
+
+    $page = $find($parts);
+
+    if ($page) {
+
+      return $page->ID;
+
+    }
+
+  }
 
 }

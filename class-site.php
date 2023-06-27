@@ -1240,6 +1240,57 @@ class Sublanguage_site extends Sublanguage_rewrite {
 	}
 
 	/**
+	 * Get language permalink
+	 *
+	 * @from 2.10
+	 */
+	public function get_permlink_translation($language, $post = 0) {
+		global $wp_query, $wp_rewrite;
+
+		$post = get_post($post);
+		
+		$this->set_language($language); // -> pretend this is the current language
+		
+		$link = get_permalink($post);
+
+		$this->restore_language(); // restore original current language after messing with it
+		
+		return $link;
+	}
+
+	/**
+	 * Get language archive link
+	 *
+	 * @from 2.10
+	 */
+	public function get_archive_link_translation($language, $post_type) {
+		
+		$this->set_language($language); // -> pretend this is the current language
+		
+		$link = get_post_type_archive_link($post_type);
+
+		$this->restore_language(); // restore original current language after messing with it
+		
+		return $link;
+	}
+
+	/**
+	 * Get language rest url translation
+	 *
+	 * @from 2.10
+	 */
+	public function get_rest_url_translation($language) {
+		
+		$this->set_language($language); // -> pretend this is the current language
+		
+		$link = rest_url();
+
+		$this->restore_language(); // restore original current language after messing with it
+		
+		return $link;
+	}
+
+	/**
 	 * Get taxonomy query var
 	 *
 	 * @from 1.0

@@ -26,7 +26,8 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 	 */
 	public function load() {
 
-		$this->update();
+		// updater is disabled in 2.10
+		// $this->update();
 
 		if ($this->get_language()) {
 
@@ -200,57 +201,9 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 	 * Hook for 'init'
 	 *
 	 * @from 1.2
+	 * @from 2.10 upgrader is disabled
 	 */
 	public function update() {
-
-		if (version_compare($this->get_option('version', '0'), '2.0') < 0) { // version < 2.0
-
-			require( plugin_dir_path( __FILE__ ) . 'upgrade/v2.php');
-
-			$v2 = new Sublanguage_V2();
-			$v2->notice();
-			$v2->upgrade_options();
-
-		} else if (version_compare($this->get_option('db_version', '0'), '2.0') < 0) { // db_version < 2.0
-
-			require( plugin_dir_path( __FILE__ ) . 'upgrade/v2.php');
-
-			$v2 = new Sublanguage_V2();
-
-			$v2->notice();
-
-		} else {
-
-			// run 2.0 upgrade only in settings + ajax
-			require( plugin_dir_path( __FILE__ ) . 'upgrade/v2.php');
-
-			$v2 = new Sublanguage_V2();
-
-			add_action('load-settings_page_sublanguage-settings', array($v2, 'notice')); // -> only check on the settings page
-
-			// fixe sublanguage_hide not registered by default in meta_keys for nav_menu_items
-			if (version_compare($this->get_option('version', '0'), '2.3') < 0) { // version < 2.3
-
-				if ($this->is_post_type_translatable('nav_menu_item')) {
-
-					$post_types_options = $this->get_post_types_options();
-					$post_types_options['nav_menu_item']['meta_keys'][] = 'sublanguage_hide';
-					$post_types_options['nav_menu_item']['meta_keys'][] = '_menu_item_url';
-					$this->update_option('post_type', $post_types_options);
-
-				}
-
-			}
-
-			// Add latest upgrade here...
-
-			if (version_compare($this->get_option('version', '0'), $this->version) < 0) { // version < current version
-
-				$this->update_option('version', $this->version);
-
-			}
-
-		}
 
 	}
 
@@ -781,19 +734,15 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 
 				}
 
-				if ($value) {
-
-					/**
-					 * Filter before a term translation field is updated.
-					 * @param int $post_id. Original post id.
-					 * @param string $field. Field name.
-					 * @param string $value. Value.
-					 *
-					 * @from 2.0
-					 */
-					update_term_meta($term_id, $this->get_prefix($language).$field, apply_filters('sublanguage_admin_update_term', $value, $term_id, $field));
-
-				}
+        /**
+         * Filter before a term translation field is updated.
+         * @param int $post_id. Original post id.
+         * @param string $field. Field name.
+         * @param string $value. Value.
+         *
+         * @from 2.0
+         */
+        update_term_meta($term_id, $this->get_prefix($language).$field, apply_filters('sublanguage_admin_update_term', $value, $term_id, $field));
 
 			}
 
@@ -1241,23 +1190,11 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 	 * Ajax route to fetch options
 	 *
 	 * @from 1.5
+	 * @removed from 2.1
 	 */
 	public function ajax_export_options() {
-		global $wpdb;
 
-		$options = $wpdb->get_results( "SELECT option_name, option_value FROM $wpdb->options ORDER BY option_name" );
-
-		$unserialized_options = array();
-
-		foreach ($options as $option) {
-
-			$unserialized_options[$option->option_name] = $this->unserialize_deep($option->option_value);
-
-		}
-
-		echo json_encode($unserialized_options);
-
-		die();
+		trigger_error('feature is removed and function has been disabled, Sublanguage v2.10');
 
 	}
 
@@ -1267,16 +1204,12 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 	 *
 	 * @from 1.5
 	 * @deprecated from 2.3
+	 * @removed from 2.10
 	 */
 	public function unserialize_option($options) {
 
-		if ( $option->option_name != '' ) {
+		trigger_error('feature is removed and function has been disabled, Sublanguage v2.10');
 
-			$result[$option->option_name] = maybe_unserialize( $option->option_value );
-
-		}
-
-		return $result;
 	}
 
 
@@ -1284,26 +1217,12 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 	 * Unserialize options. Callback for array_reduce
 	 *
 	 * @from 2.3
+	 * @removed from 2.10
 	 */
 	public function unserialize_deep($value) {
 
-		if ($value) {
+		trigger_error('feature is removed and function has been disabled, Sublanguage v2.10');
 
-			$value = maybe_unserialize($value);
-
-			if (is_array($value)) {
-
-				foreach ($value as $key => $child) {
-
-					$value[$key] = $this->unserialize_deep($child);
-
-				}
-
-			}
-
-		}
-
-		return $value;
 	}
 
 
@@ -1314,26 +1233,11 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 	 * @hook 'load-options.php'
 	 *
 	 * @from 1.5
+	 * @removed from 2.10
 	 */
 	public function options_page() {
 
-		if (isset($_POST['option_explorer'])) {
-
-			$options = $_POST['option_explorer'];
-
-			foreach ($options as $name => $option) {
-
-				$original = get_option($name);
-
-				$option = array_replace_recursive($original, $option);
-
-				$option = $this->map_deep($option, array($this, 'format_option'));
-
-				update_option($name, $option);
-
-			}
-
-		}
+		trigger_error('feature is removed and function has been disabled, Sublanguage v2.10');
 
 	}
 
@@ -1343,22 +1247,12 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 	 * @from 1.5.3 add stripslashes
 	 * @from 1.5.2 remove default html escaping
 	 * @from 1.5
+	 * @removed from 2.10
 	 */
 	public function format_option($value) {
 
-		$value = stripslashes(trim($value));
+		trigger_error('feature is removed and function has been disabled, Sublanguage v2.10');
 
-		switch ($value) {
-
-			case 'false':
-				return false;
-
-			case 'true':
-				return true;
-
-		}
-
-		return $value;
 	}
 
 	/**
@@ -1381,12 +1275,11 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 	 * Get option translations for ajax
 	 *
 	 * @from 1.5
+	 * @removed from 2.10
 	 */
 	public function ajax_get_option_translations() {
 
-		echo json_encode($this->get_option_translations());
-
-		wp_die();
+		trigger_error('feature is removed and function has been disabled, Sublanguage v2.10');
 
 	}
 
@@ -1394,18 +1287,11 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 	 * Set option translation for ajax
 	 *
 	 * @from 1.5
+	 * @removed from 2.10
 	 */
 	public function ajax_set_option_translation() {
 
-		if (isset($_POST['sublanguage_option_translation'])) {
-
-			$option_tree = $this->map_deep($_POST['sublanguage_option_translation'], array($this, 'format_option'));
-
-			$this->update_option_translations($option_tree);
-
-		}
-
-		wp_die();
+		trigger_error('feature is removed and function has been disabled, Sublanguage v2.10');
 
 	}
 
@@ -1413,25 +1299,13 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 	 * Update option translations
 	 *
 	 * @from 1.5
+	 * @removed from 2.10
 	 *
 	 * @return array
 	 */
 	public function update_option_translations($option_tree) {
 
-		$translations = $this->get_option('translations', array());
-
-		if (empty($translations['option'])) {
-
-			$translations['option'] = array();
-
-		}
-
-		$translations['option'] = array_replace_recursive($translations['option'], $option_tree); // only PHP 5.3 !
-
-		// clean array
-		$translations['option'] = $this->clean_translations($translations['option']);
-
-		$this->update_option('translations', $translations);
+		trigger_error('feature is removed and function has been disabled, Sublanguage v2.10');
 
 	}
 
@@ -1439,29 +1313,12 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 	 * Clean array deep. Callback for array_reduce
 	 *
 	 * @from 1.5
+	 * @removed from 2.10
 	 */
 	private function clean_translations($node) {
 
-		if (is_array($node)) {
+		trigger_error('feature is removed and function has been disabled, Sublanguage v2.10');
 
-			$clean_node = array();
-
-			foreach ($node as $key => $child) {
-
-				$child = $this->clean_translations($child);
-
-				if ($child !== '' && !(is_array($child) && !$child)) {
-
-					$clean_node[$key] = $child;
-
-				}
-
-			}
-
-			return $clean_node;
-		}
-
-		return $node;
 	}
 
 

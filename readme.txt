@@ -2,8 +2,8 @@
 Contributors: maximeschoeni
 Tags: multilanguage, multilingual, language, translation
 Requires at least: 4.5
-Tested up to: 6.0.2
-Stable tag: 2.8
+Tested up to: 6.2
+Stable tag: 2.10
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -27,7 +27,6 @@ Sublanguage is a multilanguage plugin for wordpress.
 - translation UI for terms name, slug and description
 - translation UI for attachments title, caption, description, alt and meta
 - translation UI for nav menus
-- translation UI for options
 - translate localized text
 - translate login, password change, etc.
 - translatability: define which content is translatable or not
@@ -35,6 +34,14 @@ Sublanguage is a multilanguage plugin for wordpress.
 - support revisions
 - support multisite
 - extendable
+
+= Notes =
+
+In version 2.10, a security exploit (medium severity) was reported for Sublanguage. In order to ease the fixing, we chose to permanently remove a few under-used features concerned by this exploit. Please write in the forum if you disagree with this choice.
+
+- remove automatic upgrade from version 1.x (version 2.0 is now about 10 years old).
+- remove a quick edit button in classic editor that was available width Tinymce Advanced plugin.
+- remove the possibility to translate options (Options translated so far will still works as usual in the front-end, you just no longer can edit translations in the back-end).
 
 = Documentation =
 
@@ -297,6 +304,16 @@ Use any language instead, then update, then edit language title, slug and locale
 
 
 == Changelog ==
+
+= 2.10 =
+
+- add get_permlink_translation and get_archive_link_translation functions
+- Fix bug when flush after editing a root page
+- Fix bug when editing empty term meta translation
+- remove creation of dynamic property (deprecated in PHP 8.2)
+- remove options translation
+- remove classic editor button
+- remove automatic upgrade from 1.x
 
 = 2.9 =
 

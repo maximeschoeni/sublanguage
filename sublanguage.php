@@ -4,7 +4,7 @@ Plugin Name: Sublanguage
 Plugin URI: http://sublanguageplugin.wordpress.com
 Description: Plugin for building a site with multiple languages
 Author: Maxime Schoeni
-Version: 2.9
+Version: 2.10
 Author URI: http://sublanguageplugin.wordpress.com
 Text Domain: sublanguage
 Domain Path: /languages
@@ -56,18 +56,7 @@ if (is_admin()) {
 
 } else {
 
-	$options_v2 = get_option('sublanguage');
-
-	if (!$options_v2 || empty($options_v2['version']) || version_compare($options_v2['version'], '2.0') < 0 || empty($options_v2['db_version']) || version_compare($options_v2['db_version'], '2.0') < 0) {
-
-		// run compat
-		require( plugin_dir_path( __FILE__ ) . 'compat/sublanguage.php');
-
-	} else {
-
-		require( plugin_dir_path( __FILE__ ) . 'class-site.php');
-		$sublanguage = new Sublanguage_site();
-
-	}
+	require( plugin_dir_path( __FILE__ ) . 'class-site.php');
+	$sublanguage = new Sublanguage_site();
 
 }
