@@ -872,52 +872,56 @@ class Sublanguage_site extends Sublanguage_rewrite {
 
 		}
 
-		$post_names_sql = $wpdb->prepare(implode(',', array_fill(0, count($post_names), '%s')), $post_names);
+		if ($post_names) {
 
-		$wheres = array();
-		$wheres[] = 'meta.meta_key IN ('.$post_names_sql.')';
-		$wheres[] = $wpdb->prepare('meta.meta_value = %s', $post_name);
+			$post_names_sql = $wpdb->prepare(implode(',', array_fill(0, count($post_names), '%s')), $post_names);
 
-		if (isset($post_type_sql)) {
+			$wheres = array();
+			$wheres[] = 'meta.meta_key IN ('.$post_names_sql.')';
+			$wheres[] = $wpdb->prepare('meta.meta_value = %s', $post_name);
 
-			$wheres[] = 'post.post_type IN (' . $post_type_sql . ')';
+			if (isset($post_type_sql)) {
 
-		}
+				$wheres[] = 'post.post_type IN (' . $post_type_sql . ')';
 
-		$posts = $wpdb->get_results(
-			"SELECT post.* FROM $wpdb->posts AS post
-			 INNER JOIN $wpdb->postmeta AS meta ON (post.ID = meta.post_id)
-			 WHERE ".implode(' AND ', $wheres)
-		);
+			}
 
-		foreach ($posts as $post) { // -> Translations found
+			$posts = $wpdb->get_results(
+				"SELECT post.* FROM $wpdb->posts AS post
+				 INNER JOIN $wpdb->postmeta AS meta ON (post.ID = meta.post_id)
+				 WHERE ".implode(' AND ', $wheres)
+			);
 
-			if (isset($args['ancestor_names']) && $args['ancestor_names']) { // -> verify ancestors recursively
+			foreach ($posts as $post) { // -> Translations found
 
-				$query_args = $args;
-				$query_args['exclude_ids'][] = $post->ID; // -> exclude this post to prevent a loop hole (multiple pages can share the same slug if parented differently)
-				$parent_name = array_pop($query_args['ancestor_names']);
+				if (isset($args['ancestor_names']) && $args['ancestor_names']) { // -> verify ancestors recursively
 
-				$parent = $this->query_post($parent_name, $query_args);
+					$query_args = $args;
+					$query_args['exclude_ids'][] = $post->ID; // -> exclude this post to prevent a loop hole (multiple pages can share the same slug if parented differently)
+					$parent_name = array_pop($query_args['ancestor_names']);
 
-				if ($parent && $post->post_parent == $parent->ID) {
+					$parent = $this->query_post($parent_name, $query_args);
+
+					if ($parent && $post->post_parent == $parent->ID) {
+
+						$this->canonical = false;
+
+						return $post;
+
+					}
+
+				} else if (!$post->post_parent) {
 
 					$this->canonical = false;
 
+					// This one will just do
 					return $post;
 
 				}
 
-			} else if (!$post->post_parent) {
-
-				$this->canonical = false;
-
-				// This one will just do
-				return $post;
-
 			}
 
-		}
+		}		
 
 	}
 
@@ -1248,13 +1252,13 @@ class Sublanguage_site extends Sublanguage_rewrite {
 		global $wp_query, $wp_rewrite;
 
 		$post = get_post($post);
-		
+
 		$this->set_language($language); // -> pretend this is the current language
-		
+
 		$link = get_permalink($post);
 
 		$this->restore_language(); // restore original current language after messing with it
-		
+
 		return $link;
 	}
 
@@ -1264,13 +1268,13 @@ class Sublanguage_site extends Sublanguage_rewrite {
 	 * @from 2.10
 	 */
 	public function get_archive_link_translation($language, $post_type) {
-		
+
 		$this->set_language($language); // -> pretend this is the current language
-		
+
 		$link = get_post_type_archive_link($post_type);
 
 		$this->restore_language(); // restore original current language after messing with it
-		
+
 		return $link;
 	}
 
@@ -1280,13 +1284,13 @@ class Sublanguage_site extends Sublanguage_rewrite {
 	 * @from 2.10
 	 */
 	public function get_rest_url_translation($language) {
-		
+
 		$this->set_language($language); // -> pretend this is the current language
-		
+
 		$link = rest_url();
 
 		$this->restore_language(); // restore original current language after messing with it
-		
+
 		return $link;
 	}
 

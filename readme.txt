@@ -37,7 +37,7 @@ Sublanguage is a multilanguage plugin for wordpress.
 
 = Notes =
 
-In version 2.10, a security exploit (medium severity) was reported for Sublanguage. In order to ease the fixing, we chose to permanently remove a few under-used features concerned by this exploit. Please write in the forum if you disagree with this choice.
+In version 2.9, a security vulnerability ("The plugin settings can be executed by lower privilleged (sic) user") was reported for Sublanguage. In order to ease the fixing, we chose to permanently remove a few under-used features concerned by this exploit in v 2.10. Please write in the forum if you disagree with this choice.
 
 - remove automatic upgrade from version 1.x (version 2.0 is now about 10 years old).
 - remove a quick edit button in classic editor that was available width Tinymce Advanced plugin.
