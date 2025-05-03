@@ -691,6 +691,8 @@ class Sublanguage_site extends Sublanguage_rewrite {
 
 			}
 
+			$url = apply_filters('sublanguage_redirect_uncanonical_url', $url, $this);
+
 			wp_redirect($url);
 
 			exit;
@@ -921,7 +923,7 @@ class Sublanguage_site extends Sublanguage_rewrite {
 
 			}
 
-		}		
+		}
 
 	}
 

@@ -154,7 +154,7 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 	 */
 	public function update_option($option_name, $value) {
 
-		$options = get_option($this->option_name);
+		$options = get_option($this->option_name, array());
 		$options[$option_name] = $value;
 		update_option($this->option_name, $options);
 
@@ -427,6 +427,7 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 	 */
 	public function insert_post($data, $postarr) {
 
+
 		if (!isset($data['post_type']) || !is_string($data['post_type'])) { // -> not sure if needed
 
 			return $data;
@@ -479,15 +480,56 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 
 			}
 
-			foreach ($this->fields as $field) {
+			// store translated data
+			$this->sublanguage_data[$post->ID][$language->ID]['post_name'] = $data['post_name'];
+
+			// and restore original data
+			$data['post_name'] = wp_slash($post->post_name);
+
+			if (isset($_POST['content'])) {
 
 				// store translated data
-				$this->sublanguage_data[$post->ID][$language->ID][$field] = $data[$field];
+				$this->sublanguage_data[$post->ID][$language->ID]['post_content'] = $data['post_content'];
 
 				// and restore original data
-				$data[$field] = wp_slash($post->$field);
+				$data['post_content'] = wp_slash($post->post_content);
 
 			}
+
+			if (isset($_POST['post_excerpt'])) {
+
+				// store translated data
+				$this->sublanguage_data[$post->ID][$language->ID]['post_excerpt'] = $data['post_excerpt'];
+
+				// and restore original data
+				$data['post_excerpt'] = wp_slash($post->post_excerpt);
+
+			}
+
+			if (isset($_POST['post_title'])) {
+
+				// store translated data
+				$this->sublanguage_data[$post->ID][$language->ID]['post_title'] = $data['post_title'];
+
+				// and restore original data
+				$data['post_title'] = wp_slash($post->post_title);
+
+			}
+
+
+
+
+			// foreach ($this->fields as $field) {
+			//
+			// 	// store translated data
+			// 	$this->sublanguage_data[$post->ID][$language->ID][$field] = $data[$field];
+			//
+			// 	// and restore original data
+			// 	$data[$field] = wp_slash($post->$field);
+			//
+			// }
+
+
 
 		}
 
@@ -590,6 +632,9 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 	 * @from 1.0
 	 */
 	public function save_translation_post_data($post_id, $post) {
+
+
+
 
 		if ($this->is_post_type_translatable($post->post_type) && current_user_can('edit_post', $post_id)) {
 

@@ -2,8 +2,8 @@
 Contributors: maximeschoeni
 Tags: multilanguage, multilingual, language, translation
 Requires at least: 4.5
-Tested up to: 6.2
-Stable tag: 2.10
+Tested up to: 6.8.1
+Stable tag: 2.13
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -305,10 +305,22 @@ Use any language instead, then update, then edit language title, slug and locale
 
 == Changelog ==
 
+= 2.13 =
+
+- Fix Language Switch injection in Gutenberg
+
+= 2.12 =
+
+- Add filter 'sublanguage_redirect_uncanonical_url' in class-site.php
+- Fix versioning when registering gutenberg.js script (class-admin-ui.php, line 1954)
+
 = 2.11 =
 
 - Updated plugin to version 2.11 to capture recent changes.
 - Improved functionality and fixed minor bugs.
+- Fix bug: Automatic conversion of false to array is deprecated in class-admin.php on line 158
+- Fix bug: add_submenu_page function first argument being null in class-admin-ui.php on line 252
+- Fix bug: replace this class “.edit-post-header__settings” with “editor-header__settings” to inject language switch in Gutenberg (Thx @andreinemes)
 
 = 2.10 =
 

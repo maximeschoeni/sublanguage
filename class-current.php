@@ -1742,7 +1742,7 @@ class Sublanguage_current extends Sublanguage_core {
 
 		}
 
-		wp_register_script('sublanguage-ajax', plugin_dir_url( __FILE__ ) . 'js/ajax.js', array('jquery'), false, true);
+		wp_register_script('sublanguage-ajax', plugin_dir_url( __FILE__ ) . 'js/ajax.js', array('jquery'), false);
 		wp_localize_script('sublanguage-ajax', 'sublanguage', $sublanguage);
 		wp_enqueue_script('sublanguage-ajax');
 

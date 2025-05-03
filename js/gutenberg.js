@@ -50,13 +50,13 @@ document.addEventListener("DOMContentLoaded", function() {
 
 		function updateSwitch() {
 			var editor = document.getElementById("editor");
-			var editorHeader = editor && editor.querySelector(".edit-post-header__settings");
+			var editorHeader = editor && editor.querySelector(".editor-header__settings");
 			if (editorHeader && editorHeader.parentNode) {
 				if (!languageSwitchContainer) {
 					languageSwitchContainer = createLanguageSwitch();
 				}
 				if (languageSwitchContainer.parentNode !== editorHeader.parentNode) {
-					editorHeader.parentNode.insertBefore(languageSwitchContainer, editorHeader);
+					editorHeader.insertBefore(languageSwitchContainer, editorHeader.firstElementChild);
 				}
 			} else {
 				setTimeout(function() {

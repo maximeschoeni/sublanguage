@@ -250,7 +250,7 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 			if ($this->is_taxonomy_translatable($taxonomy)) {
 
 				add_submenu_page (
-					null, // no parent
+					'', // no parent
 					'Taxonomy Language Options',
 					'Taxonomy Language Options',
 					'manage_options',
@@ -1951,14 +1951,14 @@ class Sublanguage_admin_ui extends Sublanguage_admin {
 			'sublanguage-gutenberg',
 			plugins_url( 'js/gutenberg.js', __FILE__ ),
 			array( 'wp-blocks', 'wp-element' ),
-			'1'
+			$this->version
 		);
 
 		wp_register_style(
 			'sublanguage-gutenberg-styles',
 			plugins_url('css/gutenberg.css', __FILE__),
 			array('wp-edit-blocks'),
-			'1'
+			$this->version
 		);
 
 		if (function_exists('register_block_type')) {
