@@ -305,6 +305,11 @@ Use any language instead, then update, then edit language title, slug and locale
 
 == Changelog ==
 
+= 2.11 =
+
+- Updated plugin to version 2.11 to capture recent changes.
+- Improved functionality and fixed minor bugs.
+
 = 2.10 =
 
 - add get_permlink_translation and get_archive_link_translation functions

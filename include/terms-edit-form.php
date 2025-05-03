@@ -22,12 +22,12 @@
 		<td>
 			<div style="display:flex;display: -webkit-flex;flex-wrap:wrap;-webkit-flex-wrap:wrap">
 				<div style="margin-bottom:1em">
-					<input name="sublanguage_term[<?php echo $taxonomy; ?>][<?php echo $language->ID; ?>][name]" type="text" value="<?php echo $name; ?>" placeholder="<?php echo $tag->name; ?>" size="40" style="box-sizing:border-box">
-					<p class="description"><?php echo __('Term name', 'sublanguage'); ?></p>
+					<input name="sublanguage_term[<?php echo esc_attr($taxonomy); ?>][<?php echo esc_attr($language->ID); ?>][name]" type="text" value="<?php echo esc_attr($name); ?>" placeholder="<?php echo esc_attr($tag->name); ?>" size="40" style="box-sizing:border-box">
+					<p class="description"><?php echo esc_html__('Term name', 'sublanguage'); ?></p>
 				</div>
 				<div style="margin-bottom:1em">
-					<input name="sublanguage_term[<?php echo $taxonomy; ?>][<?php echo $language->ID; ?>][slug]" type="text" value="<?php echo $slug; ?>" placeholder="<?php echo $tag->slug; ?>" size="40" style="box-sizing:border-box">
-					<p class="description"><?php echo __('Term slug', 'sublanguage'); ?></p>
+					<input name="sublanguage_term[<?php echo esc_attr($taxonomy); ?>][<?php echo esc_attr($language->ID); ?>][slug]" type="text" value="<?php echo esc_attr($slug); ?>" placeholder="<?php echo esc_attr($tag->slug); ?>" size="40" style="box-sizing:border-box">
+					<p class="description"><?php echo esc_html__('Term slug', 'sublanguage'); ?></p>
 				</div>
 				<div style="margin-bottom:1em; width:100%">
 					<textarea name="sublanguage_term[<?php echo $taxonomy; ?>][<?php echo $language->ID; ?>][description]" style="box-sizing:border-box;width:95%;"><?php echo $desc; ?></textarea>
@@ -36,5 +36,4 @@
 			</div>
 		</td>
 	</tr>
-<?php } 
-	
+<?php }
