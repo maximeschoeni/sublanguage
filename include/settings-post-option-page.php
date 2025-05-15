@@ -1,8 +1,8 @@
 <form action="<?php echo admin_url(); ?>" method="POST">
 	<?php wp_nonce_field('sublanguage_action', 'sublanguage_post_option', true, true); ?>
-	<input type="hidden" name="post_type" value="<?php echo esc_attr($post_type); ?>">
-	<h2><?php echo sprintf(esc_html__('%s Language Options', 'sublanguage'), isset($post_type_obj->label) ? esc_html($post_type_obj->label) : esc_html($post_type)); ?></h2>
-	<nav><a href="<?php echo esc_url(admin_url('options-general.php?page=sublanguage-settings')); ?>"><?php echo esc_html__('Sublanguage General Settings', 'sublanguage'); ?></a></nav>
+	<input type="hidden" name="post_type" value="<?php echo $post_type; ?>">
+	<h2><?php echo sprintf(__('%s Language Options', 'sublanguage'), isset($post_type_obj->label) ? $post_type_obj->label : $post_type); ?></h2>
+	<nav><a href="<?php echo admin_url('options-general.php?page=sublanguage-settings'); ?>"><?php echo __('Sublanguage General Settings', 'sublanguage'); ?></a></nav>
 	<table class="form-table">
 		<tbody>
 			<?php if ($post_type !== 'post' && $post_type !== 'page' && $post_type !== 'attachment' && $post_type_obj->publicly_queryable) { ?>
