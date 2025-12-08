@@ -78,6 +78,8 @@ class Sublanguage_site extends Sublanguage_rewrite {
 		// link filter on rest request because 'parse_request' is not triggered
 		add_action('rest_api_init', array($this, 'add_links_translation_filters'));
 
+		add_action('set_comment_cookies', array($this, 'add_links_translation_filters'));
+
 		// login
 		add_filter('login_url', array($this, 'translate_login_url'));
 		add_filter('lostpassword_url', array($this, 'translate_login_url'));
@@ -1234,11 +1236,11 @@ class Sublanguage_site extends Sublanguage_rewrite {
 
 		}
 
-		/* TODO: keep paged, endpoints and url search arguments
-
-			 -> get_pagenum_link()
-
-		*/
+		/**
+		 * filter for plugins support on translations link, so now it's possible to change links for custom endpoints
+		 * @from 2.14
+		 */
+		$link = apply_filters( 'sublanguage_translated_link', $link, $language, $this );
 
 		$this->restore_language(); // restore original current language after messing with it
 

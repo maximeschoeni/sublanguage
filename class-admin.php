@@ -499,6 +499,16 @@ class Sublanguage_admin extends Sublanguage_rewrite {
 			if (isset($_POST['post_excerpt'])) {
 
 				// store translated data
+				$this->sublanguage_data[$post->ID][$language->ID]['post_excerpt'] = $data['post_excerpt'];
+
+				// and restore original data
+				$data['post_excerpt'] = wp_slash($post->post_excerpt);
+
+			}
+
+			if (isset($_POST['post_title'])) {
+
+				// store translated data
 				$this->sublanguage_data[$post->ID][$language->ID]['post_title'] = $data['post_title'];
 
 				// and restore original data
