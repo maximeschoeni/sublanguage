@@ -3,7 +3,7 @@ Contributors: maximeschoeni
 Tags: multilanguage, multilingual, language, translation
 Requires at least: 4.5
 Tested up to: 6.9
-Stable tag: 2.13
+Stable tag: 2.14
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
